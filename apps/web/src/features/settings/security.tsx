@@ -17,6 +17,9 @@ import { Panel, SettingsPage } from './common';
 
 interface Overview {
   twoFactorEnabled: boolean;
+  twoFactor: { totp: boolean; email: boolean };
+  emailVerified: boolean;
+  mailEnabled: boolean;
   recoveryCodesLeft: number;
   activeSessions: number;
   deviceKeys: number;
@@ -28,7 +31,20 @@ export function SecurityOverview() {
   const o = q.data;
   const checks = o
     ? [
-        { ok: o.twoFactorEnabled, title: 'Двухфакторная защита', text: o.twoFactorEnabled ? `Включена · резервных кодов: ${o.recoveryCodesLeft}` : 'Не включена — аккаунт защищён только паролем', to: '/settings/security/2fa' },
+        {
+          ok: o.emailVerified,
+          title: 'Почта подтверждена',
+          text: o.emailVerified ? 'На неё можно восстановить доступ и получать коды входа' : 'Подтвердите почту — без неё пароль не восстановить',
+          to: '/settings/account/email',
+        },
+        {
+          ok: o.twoFactorEnabled,
+          title: 'Двухфакторная защита',
+          text: o.twoFactorEnabled
+            ? `Включена: ${[o.twoFactor.totp && 'приложение', o.twoFactor.email && 'код на почту'].filter(Boolean).join(' и ')} · резервных кодов: ${o.recoveryCodesLeft}`
+            : 'Не включена — аккаунт защищён только паролем',
+          to: '/settings/security/2fa',
+        },
         { ok: o.twoFactorEnabled && o.recoveryCodesLeft >= 3, title: 'Резервные коды', text: o.recoveryCodesLeft >= 3 ? 'Есть запас на случай потери телефона' : 'Мало или нет — обновите', to: '/settings/security/2fa' },
         { ok: o.activeSessions <= 3, title: 'Активные сеансы', text: `Устройств: ${o.activeSessions}. Завершите незнакомые`, to: '/settings/security/sessions' },
         { ok: o.deviceKeys > 0, title: 'Ключи шифрования', text: o.deviceKeys ? `Зарегистрировано устройств: ${o.deviceKeys}` : 'Нет ключей — секретные чаты недоступны', to: '/settings/security/keys' },
@@ -106,128 +122,6 @@ export function PasswordSettings() {
           </Button>
         </form>
       </Panel>
-    </SettingsPage>
-  );
-}
-
-function RecoveryCodes({ codes }: { codes: string[] }) {
-  return (
-    <div className="col gap-3">
-      <Notice kind="warning">Сохраните резервные коды в надёжном месте. Каждый код работает один раз — для входа, если телефон потерян. Больше мы их не покажем.</Notice>
-      <div className="recovery-codes">
-        {codes.map((c) => (
-          <span key={c}>{c}</span>
-        ))}
-      </div>
-      <div className="row">
-        <Button variant="secondary" icon={<Copy size={16} />} onClick={() => void navigator.clipboard.writeText(codes.join('\n')).then(() => toast('Коды скопированы'))}>
-          Скопировать
-        </Button>
-        <a
-          className="btn btn--secondary"
-          download="omni-recovery-codes.txt"
-          href={`data:text/plain;charset=utf-8,${encodeURIComponent(`Резервные коды Omni\n\n${codes.join('\n')}\n`)}`}
-        >
-          Скачать .txt
-        </a>
-      </div>
-    </div>
-  );
-}
-
-export function TwoFactorSettings() {
-  const me = useMe();
-  const patchMe = useSession((s) => s.patchMe);
-  const [password, setPassword] = useState('');
-  const [setup, setSetup] = useState<TotpSetup | null>(null);
-  const [qr, setQr] = useState<string | null>(null);
-  const [code, setCode] = useState('');
-  const [codes, setCodes] = useState<string[] | null>(null);
-  const [fields, setFields] = useState<Record<string, string>>({});
-  const onError = (e: unknown) => {
-    if (e instanceof ApiError && e.fields) setFields(e.fields);
-    toast({ text: errorMessage(e), kind: 'error' });
-  };
-  useEffect(() => {
-    if (setup) void QRCode.toDataURL(setup.otpauthUrl, { margin: 1, width: 200 }).then(setQr);
-  }, [setup]);
-
-  const begin = useMutation({ mutationFn: () => api.post<TotpSetup>('/security/2fa/setup', { password }), onSuccess: (s) => (setSetup(s), setFields({})), onError });
-  const enable = useMutation({
-    mutationFn: () => api.post<{ recoveryCodes: string[] }>('/security/2fa/enable', { code }),
-    onSuccess: (r) => {
-      setCodes(r.recoveryCodes);
-      setSetup(null);
-      setPassword('');
-      setCode('');
-      patchMe({ twoFactorEnabled: true });
-      toast({ text: 'Двухфакторная защита включена', kind: 'success' });
-    },
-    onError,
-  });
-  const disable = useMutation({
-    mutationFn: () => api.post('/security/2fa/disable', { password, code }),
-    onSuccess: () => {
-      patchMe({ twoFactorEnabled: false });
-      setPassword('');
-      setCode('');
-      toast('Двухфакторная защита выключена');
-    },
-    onError,
-  });
-  const regen = useMutation({ mutationFn: () => api.post<{ recoveryCodes: string[] }>('/security/2fa/recovery-codes', { password }), onSuccess: (r) => (setCodes(r.recoveryCodes), setPassword('')), onError });
-
-  return (
-    <SettingsPage title="Двухфакторная защита" subtitle="Код из приложения-аутентификатора при каждом входе с нового устройства" icon={<Smartphone size={22} />}>
-      {codes && (
-        <Panel title="Резервные коды">
-          <div style={{ padding: 16 }}>
-            <RecoveryCodes codes={codes} />
-          </div>
-        </Panel>
-      )}
-      {me.twoFactorEnabled ? (
-        <>
-          <Notice kind="success">Двухфакторная защита включена. Даже зная пароль, злоумышленник не войдёт без кода.</Notice>
-          <Panel title="Управление" footer="Для любых изменений нужен пароль.">
-            <div className="col gap-3" style={{ padding: 16 }}>
-              <PasswordInput label="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" error={fields.password} />
-              <div className="row wrap">
-                <Button variant="secondary" disabled={!password} loading={regen.isPending} onClick={() => regen.mutate()}>
-                  Новые резервные коды
-                </Button>
-              </div>
-              <Input label="Код для отключения" value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" error={fields.code} autoComplete="one-time-code" />
-              <Button variant="danger-ghost" disabled={!password || !code} loading={disable.isPending} onClick={() => disable.mutate()} style={{ alignSelf: 'flex-start' }}>
-                Выключить 2FA
-              </Button>
-            </div>
-          </Panel>
-        </>
-      ) : setup ? (
-        <Panel title="Шаг 2 из 2: подключите приложение">
-          <div className="col gap-4" style={{ padding: 16 }}>
-            <p>Отсканируйте QR-код в Google Authenticator, Aegis, 1Password, Bitwarden или любом TOTP-приложении:</p>
-            {qr && <img className="qr" src={qr} alt="QR-код для приложения-аутентификатора" />}
-            <div className="small muted">
-              Или введите ключ вручную: <span className="mono" style={{ wordBreak: 'break-all', color: 'var(--text)' }}>{setup.secret}</span>
-            </div>
-            <Input label="Код из приложения" value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" placeholder="123456" autoComplete="one-time-code" error={fields.code} />
-            <Button disabled={code.replace(/\s/g, '').length !== 6} loading={enable.isPending} onClick={() => enable.mutate()} style={{ alignSelf: 'flex-start' }}>
-              Включить
-            </Button>
-          </div>
-        </Panel>
-      ) : (
-        <Panel title="Шаг 1 из 2: подтвердите пароль">
-          <div className="col gap-3" style={{ padding: 16 }}>
-            <PasswordInput label="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" error={fields.password} />
-            <Button disabled={!password} loading={begin.isPending} onClick={() => begin.mutate()} style={{ alignSelf: 'flex-start' }}>
-              Продолжить
-            </Button>
-          </div>
-        </Panel>
-      )}
     </SettingsPage>
   );
 }

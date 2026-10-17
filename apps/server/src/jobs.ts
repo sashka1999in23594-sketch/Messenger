@@ -21,6 +21,7 @@ export function startJobs(app: FastifyInstance): () => void {
   every(3600_000, 'purge-sessions', () => services.sessions.purgeExpired());
   every(3600_000, 'purge-stories', () => services.stories.purgeExpired());
   every(600_000, 'purge-login-challenges', () => db.run('DELETE FROM login_challenges WHERE expires_at < :now', { now: Date.now() }).changes);
+  every(6 * 3600_000, 'purge-email-codes', () => services.emailCodes.cleanup());
   every(6 * 3600_000, 'optimize-db', () => db.exec('PRAGMA optimize'));
 
   return () => timers.forEach(clearInterval);

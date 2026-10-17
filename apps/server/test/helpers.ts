@@ -87,7 +87,7 @@ let counter = 0;
 export async function registerUser(app: FastifyInstance, name?: string) {
   const client = new Client(app);
   const username = name ?? `user_${Date.now().toString(36)}_${counter++}`;
-  const res = await client.post('/auth/register', { username, displayName: `Тест ${username}`, password: 'correct-horse-battery-staple' });
+  const res = await client.post('/auth/register', { username, displayName: `Тест ${username}`, email: `${username}@example.com`, password: 'correct-horse-battery-staple' });
   if (res.status !== 201) throw new Error(`register failed: ${JSON.stringify(res.body)}`);
   return { client, user: res.body.me as { id: string; username: string }, password: 'correct-horse-battery-staple' };
 }

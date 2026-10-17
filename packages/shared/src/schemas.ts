@@ -57,6 +57,21 @@ export const password = z
   .min(LIMITS.passwordMin, `Минимум ${LIMITS.passwordMin} символов`)
   .max(LIMITS.passwordMax, `Не более ${LIMITS.passwordMax} символов`);
 
+/** Адрес почты: нормализуется (trim, нижний регистр). */
+export const email = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(LIMITS.emailMax, 'Слишком длинный адрес')
+  .pipe(z.email('Проверьте адрес почты'));
+
+/** 6-значный код из письма (пробелы и дефисы игнорируются). */
+export const emailCode = z
+  .string()
+  .trim()
+  .transform((v) => v.replace(/[\s-]/g, ''))
+  .pipe(z.string().regex(/^\d{6}$/, 'Введите 6 цифр из письма'));
+
 export const totpCode = z
   .string()
   .trim()
@@ -91,6 +106,7 @@ export const registerSchema = z
   .object({
     username,
     displayName,
+    email,
     password,
     deviceName: text(LIMITS.deviceNameMax).optional(),
   })
@@ -100,8 +116,9 @@ export const registerSchema = z
   });
 export type RegisterInput = z.infer<typeof registerSchema>;
 
+/** Вход по имени пользователя или подтверждённой почте. */
 export const loginSchema = z.object({
-  username: z.string().trim().toLowerCase().min(1).max(LIMITS.usernameMax),
+  username: z.string().trim().toLowerCase().min(1).max(LIMITS.emailMax),
   password: z.string().min(1).max(LIMITS.passwordMax),
   deviceName: text(LIMITS.deviceNameMax).optional(),
 });
@@ -111,6 +128,45 @@ export const twoFactorLoginSchema = z.object({
   challengeId: z.string().min(16).max(128),
   code: totpCode,
 });
+
+export const challengeSchema = z.object({ challengeId: z.string().min(16).max(128) });
+
+export const forgotPasswordSchema = z.object({
+  login: z.string().trim().toLowerCase().min(1, 'Укажите имя пользователя или почту').max(LIMITS.emailMax),
+});
+
+export const resetPasswordSchema = z.object({
+  login: z.string().trim().toLowerCase().min(1).max(LIMITS.emailMax),
+  code: emailCode,
+  newPassword: password,
+  deviceName: text(LIMITS.deviceNameMax).optional(),
+});
+
+export const emailCodeSchema = z.object({ code: emailCode });
+
+export const changeEmailSchema = z.object({
+  email,
+  password: z.string().min(1).max(LIMITS.passwordMax),
+});
+
+export const emailTwoFactorSendSchema = z.object({
+  action: z.enum(['enable', 'disable']),
+  password: z.string().min(1).max(LIMITS.passwordMax),
+});
+
+export const emailTwoFactorConfirmSchema = z.object({
+  action: z.enum(['enable', 'disable']),
+  code: emailCode,
+});
+
+export const emailPrefsSchema = z
+  .object({
+    loginAlerts: z.boolean(),
+    securityAlerts: z.boolean(),
+    mentions: z.boolean(),
+    digest: z.boolean(),
+  })
+  .partial();
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1).max(LIMITS.passwordMax),

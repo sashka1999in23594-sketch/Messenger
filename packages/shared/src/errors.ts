@@ -16,6 +16,8 @@ export const ErrorCode = {
   PrivacyRestricted: 'PRIVACY_RESTRICTED',
   Blocked: 'BLOCKED',
   WeakPassword: 'WEAK_PASSWORD',
+  EmailCodeInvalid: 'EMAIL_CODE_INVALID',
+  MailUnavailable: 'MAIL_UNAVAILABLE',
   Internal: 'INTERNAL_ERROR',
 } as const;
 
@@ -49,5 +51,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   PRIVACY_RESTRICTED: 'Настройки приватности пользователя не позволяют это сделать',
   BLOCKED: 'Действие недоступно: пользователь в чёрном списке',
   WEAK_PASSWORD: 'Пароль слишком простой',
+  EMAIL_CODE_INVALID: 'Неверный или устаревший код из письма',
+  MAIL_UNAVAILABLE: 'Отправка писем на сервере не настроена',
   INTERNAL_ERROR: 'Что-то пошло не так. Мы уже разбираемся',
 };

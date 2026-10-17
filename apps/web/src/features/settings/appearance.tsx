@@ -1,70 +1,14 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { Check, CheckCheck, Monitor, Moon, Palette, Sparkles, Sun } from 'lucide-react';
-import { usePrefs, type Accent, type AuroraMode, type Palette as PaletteId, type Theme } from '../../shared/stores/prefs';
-import { cn } from '../../shared/lib/format';
-import { Segmented, SettingRow, Switch } from '../../shared/ui';
+import { Check, Monitor, Moon, Palette, Sparkles, Sun } from 'lucide-react';
+import { usePrefs, type AuroraMode, type Theme } from '../../shared/stores/prefs';
+import { AccentPicker, MiniApp, PALETTES, PalettePicker, Segmented, SettingRow, Switch } from '../../shared/ui';
 import { Panel, SettingsPage } from './common';
-
-export const PALETTES: { id: PaletteId; label: string; hint: string }[] = [
-  { id: 'aurora', label: 'Аврора', hint: 'Фиолетовое сияние' },
-  { id: 'sunset', label: 'Закат', hint: 'Тёплый вечер' },
-  { id: 'ocean', label: 'Океан', hint: 'Глубокая синева' },
-  { id: 'forest', label: 'Лес', hint: 'Свежая зелень' },
-  { id: 'sakura', label: 'Сакура', hint: 'Нежный розовый' },
-  { id: 'midnight', label: 'Полночь', hint: 'Чёрный для OLED' },
-  { id: 'graphite', label: 'Графит', hint: 'Строгий нейтральный' },
-];
-
-export const ACCENTS: { id: Accent; label: string }[] = [
-  { id: 'auto', label: 'Как в палитре' },
-  { id: 'violet', label: 'Фиолетовый' },
-  { id: 'blue', label: 'Синий' },
-  { id: 'cyan', label: 'Бирюзовый' },
-  { id: 'green', label: 'Зелёный' },
-  { id: 'yellow', label: 'Янтарный' },
-  { id: 'orange', label: 'Оранжевый' },
-  { id: 'red', label: 'Красный' },
-  { id: 'pink', label: 'Розовый' },
-  { id: 'purple', label: 'Пурпурный' },
-];
 
 const THEMES: { id: Theme; label: string; icon: ReactNode }[] = [
   { id: 'dark', label: 'Тёмная', icon: <Moon size={16} /> },
   { id: 'light', label: 'Светлая', icon: <Sun size={16} /> },
   { id: 'system', label: 'Как в системе', icon: <Monitor size={16} /> },
 ];
-
-/** Миниатюра приложения в заданной теме — рисуется теми же токенами, что и настоящий интерфейс. */
-function MiniApp({ theme, palette, accent, big }: { theme: 'light' | 'dark'; palette: PaletteId; accent: Accent; big?: boolean }) {
-  return (
-    <span className={cn('mini-app', big && 'mini-app--big')} data-theme={theme} data-palette={palette} data-accent={accent} aria-hidden>
-      <span className="mini-app__aurora" />
-      <span className="mini-app__rail">
-        <span className="mini-app__logo" />
-        <span className="mini-app__dot mini-app__dot--on" />
-        <span className="mini-app__dot" />
-        <span className="mini-app__dot" />
-      </span>
-      <span className="mini-app__main">
-        <span className="mini-app__bubble mini-app__bubble--in">{big ? 'Привет! Как тебе новая тема? 👋' : ''}</span>
-        <span className="mini-app__bubble mini-app__bubble--out">
-          {big ? (
-            <>
-              Очень красиво ✨ <CheckCheck size={12} />
-            </>
-          ) : (
-            ''
-          )}
-        </span>
-        <span className="mini-app__bubble mini-app__bubble--in mini-app__bubble--short">{big ? 'Сияние двигается!' : ''}</span>
-        <span className="mini-app__composer">
-          <span />
-          <span className="mini-app__send" />
-        </span>
-      </span>
-    </span>
-  );
-}
 
 export function AppearanceSettings({ section }: { section: 'theme' | 'accent' | 'text' | 'density' }) {
   const prefs = usePrefs();
@@ -113,45 +57,12 @@ export function AppearanceSettings({ section }: { section: 'theme' | 'accent' | 
       </Panel>
 
       <Panel title="Палитра" footer="Палитра задаёт цвета фонового сияния и акцент по умолчанию.">
-        <div className="palette-cards">
-          {PALETTES.map((p) => (
-            <button key={p.id} className="palette-card" aria-pressed={prefs.palette === p.id} onClick={() => update({ palette: p.id })} data-theme={resolved} data-palette={p.id} data-accent="auto">
-              <span className="palette-card__swatch">
-                <span />
-                <span />
-                <span />
-              </span>
-              <span className="palette-card__label">{p.label}</span>
-              <span className="palette-card__hint">{p.hint}</span>
-              {prefs.palette === p.id && (
-                <span className="palette-card__check">
-                  <Check size={14} />
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        <PalettePicker />
       </Panel>
 
       <section className="panel" ref={(el) => void (refs.current.accent = el)}>
         <div className="panel__title">Акцент</div>
-        <div className="accent-swatches">
-          {ACCENTS.map((a) => (
-            <button
-              key={a.id}
-              className="accent-swatch"
-              data-accent={a.id}
-              data-palette={prefs.palette}
-              aria-pressed={prefs.accent === a.id}
-              aria-label={a.label}
-              title={a.label}
-              onClick={() => update({ accent: a.id })}
-            >
-              {a.id === 'auto' && <Sparkles size={18} />}
-              {prefs.accent === a.id && a.id !== 'auto' && <Check size={18} />}
-            </button>
-          ))}
-        </div>
+        <AccentPicker />
         <div className="panel__footer">Кнопки, выделение, исходящие сообщения и значки окрасятся в градиент выбранного акцента.</div>
       </section>
 

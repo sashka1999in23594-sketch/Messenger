@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { notificationSettingsSchema, pagination, privacySettingsSchema, updateProfileSchema } from '@omni/shared';
+import { emailPrefsSchema, notificationSettingsSchema, pagination, privacySettingsSchema, updateProfileSchema } from '@omni/shared';
 import { parse } from '../../lib/errors.js';
 import { requireAuth } from '../../http/request.js';
 
@@ -22,6 +22,17 @@ export async function usersRoutes(app: FastifyInstance): Promise<void> {
   app.patch('/me/notification-settings', async (req) => {
     const auth = requireAuth(req);
     return services.users.updateNotificationPrefs(auth.userId, parse(notificationSettingsSchema, req.body));
+  });
+
+  app.patch('/me/email-prefs', async (req) => {
+    const auth = requireAuth(req);
+    return services.users.updateEmailPrefs(auth.userId, parse(emailPrefsSchema, req.body));
+  });
+
+  app.post('/me/onboarded', async (req) => {
+    const auth = requireAuth(req);
+    services.users.markOnboarded(auth.userId);
+    return services.users.me(auth.userId);
   });
 
   app.get('/me/follow-requests', async (req) => ({ items: services.users.followRequests(requireAuth(req).userId) }));

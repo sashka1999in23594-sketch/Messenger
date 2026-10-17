@@ -74,6 +74,7 @@ const FollowRequestsPage = lazyNamed(notifications, 'FollowRequestsPage');
 const SettingsHome = lazyNamed(settings, 'SettingsHome');
 const ProfileSettings = lazyNamed(settings, 'ProfileSettings');
 const UsernameSettings = lazyNamed(settings, 'UsernameSettings');
+const EmailSettings = lazyNamed(settings, 'EmailSettings');
 const ExportSettings = lazyNamed(settings, 'ExportSettings');
 const DeleteAccountSettings = lazyNamed(settings, 'DeleteAccountSettings');
 const PrivacySettings = lazyNamed(settings, 'PrivacySettings');
@@ -192,6 +193,7 @@ export function AppRoutes() {
         <Route path="settings/account" element={<Navigate to="/settings/account/profile" replace />} />
         <Route path="settings/account/profile" element={<ProfileSettings />} />
         <Route path="settings/account/username" element={<UsernameSettings />} />
+        <Route path="settings/account/email" element={<EmailSettings />} />
         <Route path="settings/account/export" element={<ExportSettings />} />
         <Route path="settings/account/delete" element={<DeleteAccountSettings />} />
         <Route path="settings/privacy" element={<Navigate to="/settings/privacy/profile" replace />} />

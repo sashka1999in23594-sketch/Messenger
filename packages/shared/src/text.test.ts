@@ -37,9 +37,13 @@ describe('password policy', () => {
     expect(passwordStrength('Tr0ub4dor&3-Long-Phrase')).toBeGreaterThanOrEqual(3);
   });
 
-  it('register schema normalizes username', () => {
-    const r = registerSchema.safeParse({ username: '  Alice_1 ', displayName: 'Alice', password: 'sunny-river-42-mountain' });
+  it('register schema normalizes username and email', () => {
+    const r = registerSchema.safeParse({ username: '  Alice_1 ', displayName: 'Алиса', email: ' Alice@Example.COM ', password: 'correct-horse-battery-staple' });
     expect(r.success).toBe(true);
-    if (r.success) expect(r.data.username).toBe('alice_1');
+    if (r.success) {
+      expect(r.data.username).toBe('alice_1');
+      expect(r.data.email).toBe('alice@example.com');
+    }
+    expect(registerSchema.safeParse({ username: 'bob_1', displayName: 'Bob', email: 'not-an-email', password: 'correct-horse-battery-staple' }).success).toBe(false);
   });
 });

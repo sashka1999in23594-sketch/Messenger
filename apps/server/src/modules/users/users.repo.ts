@@ -1,4 +1,4 @@
-import type { NotificationSettings, PrivacySettings, UserSummary } from '@omni/shared';
+import type { EmailPrefs, NotificationSettings, PrivacySettings, UserSummary } from '@omni/shared';
 import type { Db } from '../../db/index.js';
 import { bool, json } from '../../db/index.js';
 import type { MediaService } from '../media/media.service.js';
@@ -28,6 +28,11 @@ export interface UserRow {
   created_at: number;
   updated_at: number;
   deleted_at: number | null;
+  email: string | null;
+  email_verified_at: number | null;
+  email_2fa: number;
+  email_prefs: string;
+  onboarded_at: number | null;
 }
 
 export const DEFAULT_PRIVACY: Omit<PrivacySettings, 'isPrivate' | 'showInSearch'> = {
@@ -62,6 +67,17 @@ export function notificationPrefsOf(row: UserRow): NotificationSettings {
   return json(row.notification_prefs, DEFAULT_NOTIFICATIONS);
 }
 
+export const DEFAULT_EMAIL_PREFS: EmailPrefs = {
+  loginAlerts: true,
+  securityAlerts: true,
+  mentions: false,
+  digest: false,
+};
+
+export function emailPrefsOf(row: UserRow): EmailPrefs {
+  return json(row.email_prefs, DEFAULT_EMAIL_PREFS);
+}
+
 const SUMMARY_COLS = 'id, username, display_name, avatar_media_id, verified, deleted_at';
 
 /** Доступ к пользователям + пакетная загрузка карточек (без N+1 запросов). */
@@ -73,6 +89,16 @@ export class UsersRepo {
 
   byId(id: string): UserRow | undefined {
     return this.db.get<UserRow>('SELECT * FROM users WHERE id = :id AND deleted_at IS NULL', { id });
+  }
+
+  /** Аккаунт с подтверждённой почтой (вход и восстановление по адресу). */
+  byVerifiedEmail(email: string): UserRow | undefined {
+    return this.db.get<UserRow>('SELECT * FROM users WHERE email = :email AND email_verified_at IS NOT NULL AND deleted_at IS NULL', { email });
+  }
+
+  /** По имени пользователя или подтверждённой почте. */
+  byLogin(login: string): UserRow | undefined {
+    return login.includes('@') ? this.byVerifiedEmail(login) : this.byUsername(login);
   }
 
   byUsername(username: string): UserRow | undefined {

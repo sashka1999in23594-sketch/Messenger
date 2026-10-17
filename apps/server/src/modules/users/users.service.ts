@@ -1,4 +1,5 @@
 import type {
+  EmailPrefs,
   Me,
   NotificationSettings,
   Paginated,
@@ -13,7 +14,16 @@ import type { MediaService } from '../media/media.service.js';
 import type { NotificationService } from '../notifications/notifications.service.js';
 import type { Policy } from '../policy/policy.service.js';
 import type { RealtimeHub } from '../realtime/hub.js';
-import { DEFAULT_NOTIFICATIONS, DEFAULT_PRIVACY, notificationPrefsOf, privacyOf, type UserRow, type UsersRepo } from './users.repo.js';
+import {
+  DEFAULT_EMAIL_PREFS,
+  DEFAULT_NOTIFICATIONS,
+  DEFAULT_PRIVACY,
+  emailPrefsOf,
+  notificationPrefsOf,
+  privacyOf,
+  type UserRow,
+  type UsersRepo,
+} from './users.repo.js';
 
 /** Курсор по смещению — для списков, где порядок не совпадает с id. */
 export const offsetCursor = {
@@ -42,7 +52,12 @@ export class UsersService {
       location: u.location,
       bannerUrl: this.media.url(u.banner_media_id),
       createdAt: iso(u.created_at),
-      twoFactorEnabled: bool(u.totp_enabled),
+      twoFactorEnabled: bool(u.totp_enabled) || bool(u.email_2fa),
+      twoFactor: { totp: bool(u.totp_enabled), email: bool(u.email_2fa) },
+      email: u.email,
+      emailVerified: !!u.email_verified_at,
+      emailPrefs: emailPrefsOf(u),
+      onboarded: !!u.onboarded_at,
       privacy: privacyOf(u),
       notifications: notificationPrefsOf(u),
       counters: this.notifications.counters(userId),
@@ -145,6 +160,19 @@ export class UsersService {
       id: userId,
     });
     return next;
+  }
+
+  updateEmailPrefs(userId: string, input: Partial<EmailPrefs>): EmailPrefs {
+    const u = this.requireUser(userId);
+    const next = { ...emailPrefsOf(u), ...input };
+    const stored = Object.fromEntries(Object.keys(DEFAULT_EMAIL_PREFS).map((k) => [k, (next as Record<string, unknown>)[k]]));
+    this.db.run('UPDATE users SET email_prefs = :json, updated_at = :now WHERE id = :id', { json: JSON.stringify(stored), now: Date.now(), id: userId });
+    return next;
+  }
+
+  /** Знакомство с приложением после регистрации пройдено (или пропущено). */
+  markOnboarded(userId: string): void {
+    this.db.run('UPDATE users SET onboarded_at = coalesce(onboarded_at, :now) WHERE id = :id', { now: Date.now(), id: userId });
   }
 
   // ─── Подписки ─────────────────────────────────────────────────────────────

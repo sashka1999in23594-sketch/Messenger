@@ -12,5 +12,7 @@ export {
   ShortcutsSettings,
 } from './general';
 export { PrivacySettings, RelationsList } from './privacy';
-export { KeysSettings, PasscodeSettings, PasswordSettings, SecurityLogSettings, SecurityOverview, SessionsSettings, TwoFactorSettings } from './security';
+export { KeysSettings, PasscodeSettings, PasswordSettings, SecurityLogSettings, SecurityOverview, SessionsSettings } from './security';
 export { AppearanceSettings } from './appearance';
+export { EmailSettings } from './email';
+export { TwoFactorSettings } from './twofactor';

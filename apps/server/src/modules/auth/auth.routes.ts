@@ -1,15 +1,24 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import {
+  challengeSchema,
+  changeEmailSchema,
   changePasswordSchema,
   changeUsernameSchema,
   deleteAccountSchema,
+  emailCodeSchema,
+  emailTwoFactorConfirmSchema,
+  emailTwoFactorSendSchema,
+  forgotPasswordSchema,
   loginSchema,
   pagination,
   passwordConfirmSchema,
   registerSchema,
+  resetPasswordSchema,
   totpConfirmSchema,
   totpDisableSchema,
   twoFactorLoginSchema,
+  type AuthConfig,
+  type DevMail,
   type LoginResult,
 } from '@omni/shared';
 import { notFound, parse } from '../../lib/errors.js';
@@ -19,6 +28,8 @@ import type { IssuedSession } from './auth.service.js';
 /** Строгие лимиты на эндпоинты входа: защита от перебора паролей и кодов. */
 const authRateLimit = { rateLimit: { max: 10, timeWindow: '1 minute' } };
 const sensitiveRateLimit = { rateLimit: { max: 20, timeWindow: '10 minutes' } };
+/** Письма: отправка кодов и восстановление пароля — ещё строже */
+const mailRateLimit = { rateLimit: { max: 6, timeWindow: '15 minutes' } };
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
   const { services, config } = app.ctx;
@@ -41,6 +52,11 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     return { me: req.auth ? services.users.me(req.auth.userId) : null };
   });
 
+  /** Что умеет сервер: отправляются ли письма, публичное ли это демо. */
+  app.get('/auth/config', async () => {
+    return { mail: { enabled: services.mail.enabled, dev: services.mail.dev }, demo: config.demoSeed } satisfies AuthConfig;
+  });
+
   app.post('/auth/register', { config: authRateLimit }, async (req, reply) => {
     noStore(reply);
     const input = parse(registerSchema, req.body);
@@ -53,12 +69,67 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     noStore(reply);
     const input = parse(loginSchema, req.body);
     const result = await services.auth.login(input.username, input.password, requestMeta(req, input.deviceName));
-    if ('challengeId' in result) {
-      return { status: 'two_factor_required', challengeId: result.challengeId } satisfies LoginResult;
+    if ('challenge' in result) {
+      return { status: 'two_factor_required', ...result.challenge } satisfies LoginResult;
     }
     setSession(reply, result.session);
     return { status: 'ok', me: services.users.me(result.session.userId) } satisfies LoginResult;
   });
+
+  /** Прислать код входа на почту (если включён вход по коду из письма). */
+  app.post('/auth/login/2fa/email', { config: mailRateLimit }, async (req, reply) => {
+    noStore(reply);
+    const input = parse(challengeSchema, req.body);
+    return services.auth.sendLoginCode(input.challengeId, requestMeta(req));
+  });
+
+  /** Восстановление пароля: ответ одинаковый для существующих и несуществующих аккаунтов. */
+  app.post('/auth/password/forgot', { config: mailRateLimit }, async (req, reply) => {
+    noStore(reply);
+    const input = parse(forgotPasswordSchema, req.body);
+    services.auth.requestPasswordReset(input.login, requestMeta(req));
+    return { ok: true };
+  });
+
+  app.post('/auth/password/reset', { config: authRateLimit }, async (req, reply) => {
+    noStore(reply);
+    const input = parse(resetPasswordSchema, req.body);
+    const s = await services.auth.resetPassword(input.login, input.code, input.newPassword, requestMeta(req, input.deviceName));
+    if (!s) return { status: 'login_required' as const };
+    setSession(reply, s);
+    return { status: 'ok' as const, me: services.users.me(s.userId) };
+  });
+
+  // ─── Почта аккаунта ────────────────────────────────────────────────────────
+
+  app.post('/me/email/send-code', { config: mailRateLimit }, async (req) => {
+    const auth = requireAuth(req);
+    return services.auth.sendEmailVerification(auth.userId);
+  });
+
+  app.post('/me/email/verify', { config: authRateLimit }, async (req) => {
+    const auth = requireAuth(req);
+    const input = parse(emailCodeSchema, req.body);
+    services.auth.verifyEmail(auth.userId, input.code, requestMeta(req));
+    return services.users.me(auth.userId);
+  });
+
+  app.post('/me/email', { config: sensitiveRateLimit }, async (req) => {
+    const auth = requireAuth(req);
+    const input = parse(changeEmailSchema, req.body);
+    const r = await services.auth.changeEmail(auth.userId, input.email, input.password, requestMeta(req));
+    return { ...r, me: services.users.me(auth.userId) };
+  });
+
+  /** Тестовый почтовый ящик — только в режиме разработки (в production маршрута нет). */
+  if (services.mail.dev && !config.isProd) {
+    app.get('/dev/mail', async (_req, reply) => {
+      noStore(reply);
+      return {
+        items: services.mail.outbox.map((m) => ({ id: m.id, to: m.to, subject: m.subject, text: m.text, createdAt: new Date(m.createdAt).toISOString() })),
+      } satisfies { items: DevMail[] };
+    });
+  }
 
   app.post('/auth/login/2fa', { config: authRateLimit }, async (req, reply) => {
     noStore(reply);
@@ -82,6 +153,9 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     const me = services.users.me(auth.userId);
     return {
       twoFactorEnabled: me.twoFactorEnabled,
+      twoFactor: me.twoFactor,
+      emailVerified: me.emailVerified,
+      mailEnabled: services.mail.enabled,
       recoveryCodesLeft: services.auth.recoveryCodesLeft(auth.userId),
       activeSessions: services.sessions.list(auth.userId, auth.sessionId).length,
       deviceKeys: services.keys.listOwn(auth.userId).length,
@@ -144,6 +218,19 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     const input = parse(totpDisableSchema, req.body);
     await services.auth.disableTotp(auth.userId, input.password, input.code, requestMeta(req));
     return { ok: true };
+  });
+
+  app.post('/security/2fa/email/send', { config: mailRateLimit }, async (req) => {
+    const auth = requireAuth(req);
+    const input = parse(emailTwoFactorSendSchema, req.body);
+    return services.auth.sendEmailTwoFactorCode(auth.userId, input.action, input.password);
+  });
+
+  app.post('/security/2fa/email/confirm', { config: sensitiveRateLimit }, async (req, reply) => {
+    const auth = requireAuth(req);
+    noStore(reply);
+    const input = parse(emailTwoFactorConfirmSchema, req.body);
+    return services.auth.confirmEmailTwoFactor(auth.userId, input.action, input.code, requestMeta(req));
   });
 
   app.post('/security/2fa/recovery-codes', { config: sensitiveRateLimit }, async (req, reply) => {

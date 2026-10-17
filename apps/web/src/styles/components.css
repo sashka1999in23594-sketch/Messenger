@@ -1311,3 +1311,79 @@ a.list-item:hover {
   right: 6px;
   bottom: 6px;
 }
+
+/* ─── Поле кода из 6 ячеек ─── */
+.otp {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+.otp__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  font-size: 16px;
+  cursor: text;
+  z-index: 1;
+}
+.otp__cell {
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 26px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease),
+    transform var(--dur) var(--ease-spring);
+}
+.otp__cell--filled {
+  border-color: color-mix(in oklab, var(--accent) 45%, transparent);
+  background: var(--accent-soft);
+  animation: scale-in var(--dur) var(--ease-spring);
+}
+.otp__cell--active {
+  border-color: var(--accent);
+  box-shadow: var(--ring);
+}
+.otp__cell--active:empty::after {
+  content: '';
+  width: 2px;
+  height: 26px;
+  border-radius: 2px;
+  background: var(--accent);
+  animation: caret-blink 1s steps(1) infinite;
+}
+.otp--error .otp__cell {
+  border-color: var(--danger);
+  animation: shake 0.35s var(--ease);
+}
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes shake {
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+@media (max-width: 400px) {
+  .otp {
+    gap: 6px;
+  }
+  .otp__cell {
+    height: 52px;
+    font-size: 22px;
+  }
+}

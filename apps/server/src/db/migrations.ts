@@ -424,4 +424,36 @@ CREATE TRIGGER posts_fts_au AFTER UPDATE OF title, text ON posts BEGIN
 END;
 `,
   },
+  {
+    version: '002_email',
+    sql: /* sql */ `
+-- ── Почта: адрес, подтверждение, вход по коду из письма, настройки писем ─────
+ALTER TABLE users ADD COLUMN email TEXT;
+ALTER TABLE users ADD COLUMN email_verified_at INTEGER;
+ALTER TABLE users ADD COLUMN email_2fa INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN email_prefs TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE users ADD COLUMN onboarded_at INTEGER;
+-- Уже существующие аккаунты знакомство с приложением не проходят
+UPDATE users SET onboarded_at = created_at;
+-- Подтверждённый адрес может принадлежать только одному аккаунту
+CREATE UNIQUE INDEX users_email_verified ON users(email) WHERE email_verified_at IS NOT NULL;
+
+-- Одноразовые коды из писем: в базе только HMAC кода
+CREATE TABLE email_codes (
+  id          TEXT PRIMARY KEY,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  purpose     TEXT NOT NULL,
+  email       TEXT NOT NULL,
+  code_hash   TEXT NOT NULL,
+  ref         TEXT,
+  attempts    INTEGER NOT NULL DEFAULT 0,
+  expires_at  INTEGER NOT NULL,
+  created_at  INTEGER NOT NULL,
+  consumed_at INTEGER
+);
+CREATE INDEX email_codes_user ON email_codes(user_id, purpose, created_at);
+
+ALTER TABLE login_challenges ADD COLUMN email_sent INTEGER NOT NULL DEFAULT 0;
+`,
+  },
 ];

@@ -7,6 +7,8 @@ import type { Config } from './config.js';
 import type { Db } from './db/index.js';
 import { AccountExporter } from './modules/account/exporter.js';
 import { AuthService } from './modules/auth/auth.service.js';
+import { EmailCodes } from './modules/auth/email-codes.js';
+import { MailService } from './modules/mail/mail.service.js';
 import { SecurityLog } from './modules/auth/security-log.js';
 import { SessionService } from './modules/auth/sessions.js';
 import { MessagesRepo } from './modules/chats/chats.repo.js';
@@ -34,7 +36,9 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub) {
   const notifications = new NotificationService(db, usersRepo, hub);
   const users = new UsersService(db, usersRepo, policy, media, notifications, hub);
   const keys = new KeysService(db, securityLog);
-  const auth = new AuthService(db, config.secret, usersRepo, users, sessions, securityLog, notifications, hub);
+  const mail = new MailService(config);
+  const emailCodes = new EmailCodes(db, config.secret);
+  const auth = new AuthService(db, config.secret, usersRepo, users, sessions, securityLog, notifications, hub, mail, emailCodes, config.publicOrigin);
   const messagesRepo = new MessagesRepo(db, usersRepo, media);
   const chats = new ChatsService(db, usersRepo, messagesRepo, policy, media, hub, notifications, keys);
   const posts = new PostsService(db, usersRepo, policy, media, notifications);
@@ -58,6 +62,8 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub) {
   });
 
   return {
+    mail,
+    emailCodes,
     media,
     usersRepo,
     policy,

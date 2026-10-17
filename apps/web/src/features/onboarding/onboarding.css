@@ -1,0 +1,214 @@
+/* ─── Знакомство с приложением ─── */
+.onb {
+  position: relative;
+  z-index: 1;
+  height: 100dvh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(18px + var(--safe-top)) 16px calc(24px + var(--safe-bottom));
+}
+.onb__top {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.onb__progress {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+}
+.onb__progress span {
+  flex: 1;
+  height: 5px;
+  border-radius: 5px;
+  background: var(--surface-3);
+  transition: background var(--dur-slow) var(--ease);
+}
+.onb__progress span.onb__progress--on {
+  background: var(--grad);
+  box-shadow: 0 0 10px color-mix(in oklab, var(--accent) 60%, transparent);
+}
+.onb__link {
+  color: var(--text-2);
+  font-weight: 620;
+  font-size: var(--fs-sm);
+}
+.onb__link:hover:not(:disabled) {
+  color: var(--text);
+}
+.onb__link:disabled {
+  color: var(--text-3);
+  cursor: default;
+}
+.onb__card {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 30px;
+  border-radius: var(--radius-2xl);
+  background: var(--bg-elevated);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-highlight), var(--shadow-lg);
+  backdrop-filter: blur(var(--blur-strong)) saturate(1.6);
+  -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(1.6);
+  animation: rise-in var(--dur-slow) var(--ease);
+}
+@media (max-width: 480px) {
+  .onb__card {
+    padding: 22px 16px;
+  }
+}
+.onb__card h1 {
+  font-size: var(--fs-2xl);
+}
+.onb__card > p {
+  line-height: 1.55;
+  margin-top: -6px;
+}
+.onb__email {
+  color: var(--text);
+  word-break: break-all;
+}
+.onb__icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--grad);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    var(--glow-strong);
+  animation: float 5s ease-in-out infinite;
+}
+.onb__icon--party {
+  width: 76px;
+  height: 76px;
+  align-self: center;
+}
+.onb__avatar {
+  position: relative;
+  align-self: center;
+  padding: 4px;
+  border-radius: 50%;
+  background: var(--grad);
+  box-shadow: var(--glow-strong);
+  transition: transform var(--dur) var(--ease-spring);
+}
+.onb__avatar:hover {
+  transform: scale(1.04);
+}
+.onb__avatar .avatar__img,
+.onb__avatar .avatar__fallback {
+  border: 4px solid var(--bg-elevated-solid);
+}
+.onb__avatar-badge {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elevated-solid);
+  color: var(--accent-fg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+}
+.onb__name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: var(--fs-xl);
+  font-weight: 740;
+  margin-top: -6px;
+}
+.onb__pickers {
+  margin: 0 -16px;
+}
+.onb__pickers .palette-cards {
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+}
+.onb__people {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.onb__person {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 10px 12px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  min-width: 0;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease),
+    transform var(--dur) var(--ease);
+}
+.onb__person:hover {
+  transform: translateY(-2px);
+}
+.onb__person--on {
+  border-color: color-mix(in oklab, var(--accent) 55%, transparent);
+  background: var(--grad-soft);
+}
+.onb__person-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  font-weight: 650;
+  margin-top: 4px;
+}
+.onb__person-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-3);
+  color: var(--text-2);
+  transition: background var(--dur-fast) var(--ease);
+}
+.onb__person--on .onb__person-btn {
+  background: var(--grad);
+  color: #fff;
+}
+.onb__tips {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.onb__tips span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-weight: 560;
+}
+.onb__tips svg {
+  color: var(--accent-fg);
+}

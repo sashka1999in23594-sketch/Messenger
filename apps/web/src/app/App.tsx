@@ -6,6 +6,7 @@ import { applyPrefs, usePrefs } from '../shared/stores/prefs';
 import { useSession } from '../shared/stores/session';
 import { Aurora, ConfirmHost, Loading, Toasts } from '../shared/ui';
 import { AuthPage } from '../features/auth/AuthPage';
+import { Onboarding } from '../features/onboarding/Onboarding';
 import { AppRoutes } from './routes';
 import { bootstrapSession } from './session';
 
@@ -33,11 +34,13 @@ function PrefsSync() {
 
 function Gate() {
   const status = useSession((s) => s.status);
+  const onboarded = useSession((s) => s.me?.onboarded ?? true);
   useEffect(() => {
     void bootstrapSession();
   }, []);
   if (status === 'loading') return <Loading label="Omni загружается…" />;
   if (status === 'guest') return <AuthPage />;
+  if (!onboarded) return <Onboarding />;
   return <AppRoutes />;
 }
 

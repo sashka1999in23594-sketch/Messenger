@@ -27,8 +27,10 @@ services:
         value: "true"
       - key: APP_SECRET
         generateValue: true
-      # Почта (необязательно): smtp(s)://логин:пароль@сервер:порт
-      - key: SMTP_URL
+      # Почта: письма с кодами при регистрации, входе и восстановлении пароля.
+      # На бесплатном Render SMTP-порты закрыты — используйте HTTPS-API Brevo (300 писем/день бесплатно).
+      # MAIL_FROM — адрес, подтверждённый в Brevo как отправитель, например: Omni <you@gmail.com>
+      - key: BREVO_API_KEY
         sync: false
       - key: MAIL_FROM
         sync: false

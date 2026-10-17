@@ -89,3 +89,14 @@ export function useTitle(title: string | undefined) {
     if (title) document.title = `${title} · Omni`;
   }, [title]);
 }
+
+/** Обратный отсчёт в секундах (например, до повторной отправки письма). */
+export function useCountdown(): [number, (sec: number) => void] {
+  const [left, setLeft] = useState(0);
+  useEffect(() => {
+    if (left <= 0) return;
+    const t = setTimeout(() => setLeft((v) => v - 1), 1000);
+    return () => clearTimeout(t);
+  }, [left]);
+  return [left, setLeft];
+}

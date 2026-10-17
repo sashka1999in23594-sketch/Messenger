@@ -26,3 +26,11 @@ process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
 await app.listen({ host: config.host, port: config.port });
 app.log.info(`Omni API: http://${config.host}:${config.port}/api/v1 (web origin ${config.publicOrigin})`);
+const mailModes = {
+  brevo: 'Brevo API',
+  resend: 'Resend API',
+  smtp: 'SMTP',
+  dev: 'тестовый ящик (режим разработки)',
+  disabled: 'выключены — задайте BREVO_API_KEY, RESEND_API_KEY или SMTP_URL',
+} as const;
+app.log.info(`Письма: ${mailModes[config.mail.provider]}`);

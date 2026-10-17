@@ -1,0 +1,252 @@
+/* ─── Выбор темы: миниатюры приложения, палитры, акценты (настройки и знакомство) ─── */
+/* Миниатюра приложения — использует токены своей темы/палитры */
+.mini-app {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18% 1fr;
+  gap: 5px;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  padding: 6px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  isolation: isolate;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.mini-app--big {
+  width: 300px;
+  max-width: 100%;
+  flex: 0 0 auto;
+  border-radius: 18px;
+  padding: 8px;
+  gap: 7px;
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    var(--shadow-lg);
+}
+.mini-app__aurora {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: calc(var(--aurora-opacity) + 0.2);
+  background:
+    radial-gradient(60% 70% at 10% 0%, color-mix(in oklab, var(--aurora-1) 70%, transparent), transparent),
+    radial-gradient(60% 70% at 100% 100%, color-mix(in oklab, var(--aurora-2) 55%, transparent), transparent),
+    radial-gradient(40% 50% at 60% 40%, color-mix(in oklab, var(--aurora-3) 40%, transparent), transparent);
+}
+.mini-app__rail,
+.mini-app__main {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 9px;
+}
+.mini-app__rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 0;
+}
+.mini-app__logo {
+  width: 60%;
+  aspect-ratio: 1;
+  border-radius: 30%;
+  background: var(--grad);
+  margin-bottom: 2px;
+}
+.mini-app__dot {
+  width: 50%;
+  aspect-ratio: 1.2;
+  border-radius: 30%;
+  background: var(--surface-3);
+}
+.mini-app__dot--on {
+  background: var(--grad);
+}
+.mini-app__main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  min-width: 0;
+}
+.mini-app__bubble {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 9px;
+  max-width: 78%;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 550;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.mini-app--big .mini-app__bubble {
+  padding: 5px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+.mini-app__bubble--in {
+  width: 70%;
+  background: var(--bubble-in);
+  color: var(--bubble-in-text);
+}
+.mini-app__bubble--out {
+  width: 55%;
+  align-self: flex-end;
+  background: var(--grad);
+  color: #fff;
+}
+.mini-app__bubble--short {
+  width: 45%;
+}
+.mini-app--big .mini-app__bubble {
+  width: auto;
+}
+.mini-app__composer {
+  margin-top: auto;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.mini-app__composer > span:first-child {
+  flex: 1;
+  height: 10px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.mini-app--big .mini-app__composer > span:first-child {
+  height: 18px;
+  border-radius: 10px;
+}
+.mini-app__send {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--grad);
+}
+.mini-app--big .mini-app__send {
+  width: 18px;
+  height: 18px;
+}
+
+.palette-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  padding: 8px 16px 12px;
+}
+.palette-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 10px 12px;
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  color: var(--text);
+  border: 2px solid var(--border);
+  text-align: left;
+  overflow: hidden;
+  transition:
+    transform var(--dur) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.palette-card:hover {
+  transform: translateY(-2px);
+}
+.palette-card[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: var(--glow);
+}
+.palette-card__swatch {
+  position: relative;
+  width: 100%;
+  height: 54px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-tint);
+}
+.palette-card__swatch span {
+  position: absolute;
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(10px);
+}
+.palette-card__swatch span:nth-child(1) {
+  left: -15%;
+  top: -60%;
+  background: var(--aurora-1);
+}
+.palette-card__swatch span:nth-child(2) {
+  right: -20%;
+  bottom: -70%;
+  background: var(--aurora-2);
+}
+.palette-card__swatch span:nth-child(3) {
+  left: 35%;
+  top: 10%;
+  width: 40%;
+  background: var(--aurora-3);
+  opacity: 0.8;
+}
+.palette-card__label {
+  font-weight: 700;
+}
+.palette-card__hint {
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+.palette-card__check {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--grad);
+  color: #fff;
+  box-shadow: var(--glow);
+}
+
+.accent-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 16px 6px;
+}
+.accent-swatch {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: var(--grad);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 6px 16px -8px var(--accent);
+  transition: transform var(--dur) var(--ease-spring);
+}
+.accent-swatch:hover {
+  transform: scale(1.08);
+}
+.accent-swatch[aria-pressed='true'] {
+  box-shadow:
+    0 0 0 3px var(--panel-solid),
+    0 0 0 5px var(--accent),
+    var(--glow);
+}
+

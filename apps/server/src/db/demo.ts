@@ -65,7 +65,8 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
   try {
       // ── Пользователи ──────────────────────────────────────────────────────────
       for (const [username, displayName, bio, avatar] of people) {
-        const session = await s.auth.register({ username, displayName, password: DEMO_PASSWORD }, meta);
+        // Адреса из зарезервированного домена example.com: не подтверждены, писем на них не отправляем
+        const session = await s.auth.register({ username, displayName, email: `${username}@example.com`, password: DEMO_PASSWORD }, meta, { sendVerification: false });
         s.sessions.revoke(session.userId, session.sessionId);
         users[username] = { id: session.userId, username };
         const avatarMedia = await upload(session.userId, avatar ? `avatar-${avatar}.jpg` : 'photo-12.jpg');
@@ -310,6 +311,8 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
       s.stories.view(users.sasha!.id, s.stories.ofUser(users.sasha!.id, users.alice!.id)[0]!.id);
 
 
+    // Демо-аккаунты сразу готовы к работе — без экранов знакомства
+    db.run('UPDATE users SET onboarded_at = created_at WHERE onboarded_at IS NULL');
   } finally {
     Date.now = realNow;
   }

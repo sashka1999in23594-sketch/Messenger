@@ -25,9 +25,22 @@ const envSchema = z.object({
   DEMO_SEED: z.enum(['true', 'false', '1', '0', '']).default('false'),
   /** Адрес сервиса, который Render подставляет сам — используется, если PUBLIC_ORIGIN не задан */
   RENDER_EXTERNAL_URL: z.string().optional(),
+  /** Отправитель писем: «Имя <адрес>» */
+  MAIL_FROM: z.string().default('Omni <no-reply@omni.local>'),
+  /** Почта через HTTPS-API (работает и там, где SMTP-порты закрыты, например на бесплатном Render) */
+  BREVO_API_KEY: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
+  /** Или через SMTP: smtps://логин:пароль@smtp.example.com:465 */
+  SMTP_URL: z.string().optional(),
 });
 
 export type Config = ReturnType<typeof loadConfig>;
+
+/**
+ * Способ доставки писем: HTTPS-API (Brevo/Resend), SMTP, тестовый ящик в разработке
+ * или «выключено» (production без настроек — письма не отправляются).
+ */
+export type MailProvider = 'brevo' | 'resend' | 'smtp' | 'dev' | 'disabled';
 
 function loadDotEnv(file: string) {
   if (!existsSync(file)) return;
@@ -64,6 +77,15 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
     .map((o) => o.trim().replace(/\/$/, ''))
     .filter(Boolean);
   const isProd = env.NODE_ENV === 'production';
+  const from = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(env.MAIL_FROM);
+  const mail = {
+    fromName: from?.[1] || 'Omni',
+    fromEmail: (from?.[2] ?? env.MAIL_FROM).trim(),
+    provider: (env.BREVO_API_KEY ? 'brevo' : env.RESEND_API_KEY ? 'resend' : env.SMTP_URL ? 'smtp' : isProd ? 'disabled' : 'dev') as MailProvider,
+    brevoApiKey: env.BREVO_API_KEY ?? null,
+    resendApiKey: env.RESEND_API_KEY ?? null,
+    smtpUrl: env.SMTP_URL ?? null,
+  };
 
   return {
     env: env.NODE_ENV,
@@ -90,5 +112,6 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
     /** Cookies с флагом Secure — в production всегда (нужен HTTPS) */
     secureCookies: isProd,
     demoSeed: env.DEMO_SEED === 'true' || env.DEMO_SEED === '1',
+    mail,
   };
 }

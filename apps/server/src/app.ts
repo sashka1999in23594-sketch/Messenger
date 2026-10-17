@@ -42,6 +42,11 @@ export async function buildApp(config: Config, opts: { db?: Db } = {}): Promise<
   migrate(db, (m) => app.log.info(m));
   const hub = new RealtimeHub();
   const ctx: Ctx = { config, db, hub, services: createServices(db, config, hub) };
+  ctx.services.mail.logger = {
+    info: (obj: unknown, msg?: string) => app.log.info(obj, msg),
+    warn: (obj: unknown, msg?: string) => app.log.warn(obj, msg),
+    error: (obj: unknown, msg?: string) => app.log.error(obj, msg),
+  };
   app.decorate('ctx', ctx);
 
   await app.register(cookie, { hook: 'onRequest' });

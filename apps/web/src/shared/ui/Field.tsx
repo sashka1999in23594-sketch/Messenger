@@ -117,18 +117,21 @@ export function SettingRow({
   description,
   control,
   icon,
+  tile,
   onClick,
 }: {
   title: ReactNode;
   description?: ReactNode;
   control?: ReactNode;
   icon?: ReactNode;
+  /** Цвет плитки иконки: tile-blue, tile-red… */
+  tile?: string;
   onClick?: () => void;
 }) {
   const Tag = onClick ? 'button' : 'div';
   return (
     <Tag className="list-item" onClick={onClick} type={onClick ? 'button' : undefined}>
-      {icon && <span className="list-item__icon">{icon}</span>}
+      {icon && <span className={cn('list-item__icon', tile)}>{icon}</span>}
       <span className="list-item__body">
         <span className="list-item__title" style={{ display: 'block' }}>
           {title}
@@ -137,5 +140,63 @@ export function SettingRow({
       </span>
       {control && <span className="list-item__end">{control}</span>}
     </Tag>
+  );
+}
+
+/**
+ * Поле для 6-значного кода: шесть ячеек, автозаполнение из SMS/письма (one-time-code),
+ * вставка из буфера. Под капотом — одно обычное поле, поэтому работает с экранными дикторами.
+ */
+export function CodeInput({
+  value,
+  onChange,
+  onComplete,
+  length = 6,
+  error,
+  autoFocus,
+  label = 'Код подтверждения',
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onComplete?: (v: string) => void;
+  length?: number;
+  error?: string | null;
+  autoFocus?: boolean;
+  label?: string;
+}) {
+  const [focused, setFocused] = useState(false);
+  const digits = value.replace(/\D/g, '').slice(0, length);
+  return (
+    <div className="field">
+      <div className={cn('otp', error && 'otp--error', focused && 'otp--focus')}>
+        <input
+          className="otp__input"
+          value={digits}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          aria-label={label}
+          aria-invalid={!!error || undefined}
+          maxLength={length}
+          autoFocus={autoFocus}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          onChange={(e) => {
+            const v = e.target.value.replace(/\D/g, '').slice(0, length);
+            onChange(v);
+            if (v.length === length) onComplete?.(v);
+          }}
+        />
+        {Array.from({ length }, (_, i) => (
+          <span key={i} className={cn('otp__cell', digits[i] && 'otp__cell--filled', focused && i === Math.min(digits.length, length - 1) && 'otp__cell--active')} aria-hidden>
+            {digits[i] ?? ''}
+          </span>
+        ))}
+      </div>
+      {error && (
+        <span className="field__error" role="alert">
+          {error}
+        </span>
+      )}
+    </div>
   );
 }

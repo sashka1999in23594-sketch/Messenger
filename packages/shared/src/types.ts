@@ -92,10 +92,50 @@ export interface Me extends UserSummary {
   location: string | null;
   bannerUrl: string | null;
   createdAt: ISODate;
+  /** Включён хотя бы один второй фактор */
   twoFactorEnabled: boolean;
+  twoFactor: { totp: boolean; email: boolean };
+  email: string | null;
+  emailVerified: boolean;
+  emailPrefs: EmailPrefs;
+  /** Пройдено ли знакомство с приложением после регистрации */
+  onboarded: boolean;
   privacy: PrivacySettings;
   notifications: NotificationSettings;
   counters: Counters;
+}
+
+/** Какие письма присылать на почту. */
+export interface EmailPrefs {
+  /** Вход с нового устройства */
+  loginAlerts: boolean;
+  /** Смена пароля, почты, настроек 2FA */
+  securityAlerts: boolean;
+  /** Упоминания и ответы, пока вы не в сети */
+  mentions: boolean;
+  /** Еженедельная сводка */
+  digest: boolean;
+}
+
+/** Публичные настройки сервера для экрана входа. */
+export interface AuthConfig {
+  mail: {
+    /** Письма реально отправляются */
+    enabled: boolean;
+    /** Режим разработки: письма складываются в тестовый ящик */
+    dev: boolean;
+  };
+  /** Публичное демо с готовыми аккаунтами */
+  demo: boolean;
+}
+
+/** Письмо из тестового ящика (только в режиме разработки). */
+export interface DevMail {
+  id: string;
+  to: string;
+  subject: string;
+  text: string;
+  createdAt: ISODate;
 }
 
 export interface Counters {
@@ -138,9 +178,18 @@ export interface DeviceKey {
   createdAt: ISODate;
 }
 
+export type TwoFactorMethod = 'totp' | 'email';
+
 export type LoginResult =
   | { status: 'ok'; me: Me }
-  | { status: 'two_factor_required'; challengeId: string };
+  | {
+      status: 'two_factor_required';
+      challengeId: string;
+      methods: TwoFactorMethod[];
+      /** Замаскированный адрес, куда отправлен код: s***a@gmail.com */
+      emailHint: string | null;
+      emailSent: boolean;
+    };
 
 // ─── Медиа ──────────────────────────────────────────────────────────────────
 

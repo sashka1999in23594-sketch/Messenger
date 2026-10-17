@@ -34,6 +34,9 @@ export const LIMITS = {
   pageSizeMax: 100,
   searchQueryMax: 100,
   deviceNameMax: 64,
+  emailMax: 254,
+  /** Длина кода из письма */
+  emailCodeLength: 6,
   /** Максимальный размер зашифрованного сообщения (base64) */
   ciphertextMax: 64 * 1024,
 } as const;

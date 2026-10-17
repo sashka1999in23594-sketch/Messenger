@@ -142,7 +142,7 @@ export function uploadFile(file: Blob, filename: string, opts: UploadOptions = {
 
 export function errorMessage(err: unknown): string {
   if (err instanceof ApiError) {
-    if (err.retryAfter && (err.code === 'ACCOUNT_LOCKED' || err.code === 'RATE_LIMITED')) {
+    if (err.retryAfter && (err.code === 'ACCOUNT_LOCKED' || err.code === 'RATE_LIMITED') && !err.message.includes('через')) {
       const min = Math.ceil(err.retryAfter / 60);
       return `${err.message}. Повторите через ${min} мин.`;
     }

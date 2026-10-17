@@ -44,6 +44,7 @@ import {
   ListVideo,
   Lock,
   type LucideIcon,
+  Mail,
   Megaphone,
   MessageCircle,
   MessageSquare,
@@ -421,6 +422,7 @@ export const sections: NavSection[] = [
         children: [
           { id: 'settings.account.profile', label: 'Профиль', icon: PenLine, path: '/settings/account/profile', keywords: ['аватар', 'имя', 'био'] },
           { id: 'settings.account.username', label: 'Имя пользователя', icon: AtSign, path: '/settings/account/username' },
+          { id: 'settings.account.email', label: 'Почта', icon: Mail, path: '/settings/account/email', keywords: ['email', 'почта', 'письма', 'подтвердить'] },
           { id: 'settings.account.export', label: 'Экспорт данных', icon: Download, path: '/settings/account/export' },
           { id: 'settings.account.delete', label: 'Удаление аккаунта', icon: Trash2, path: '/settings/account/delete' },
         ],
@@ -445,7 +447,7 @@ export const sections: NavSection[] = [
         children: [
           { id: 'settings.security.overview', label: 'Проверка безопасности', icon: ShieldCheck, path: '/settings/security' },
           { id: 'settings.security.password', label: 'Пароль', icon: KeyRound, path: '/settings/security/password' },
-          { id: 'settings.security.2fa', label: 'Двухфакторная защита', icon: Smartphone, path: '/settings/security/2fa', keywords: ['2fa', 'totp', 'код'] },
+          { id: 'settings.security.2fa', label: 'Двухфакторная защита', icon: ShieldCheck, path: '/settings/security/2fa', keywords: ['2fa', 'totp', 'код', 'почта'] },
           { id: 'settings.security.sessions', label: 'Устройства и сеансы', icon: Smartphone, path: '/settings/security/sessions' },
           { id: 'settings.security.keys', label: 'Ключи шифрования', icon: Fingerprint, path: '/settings/security/keys', keywords: ['e2e'] },
           { id: 'settings.security.passcode', label: 'Код-пароль', icon: Lock, path: '/settings/security/passcode', keywords: ['pin', 'блокировка'] },
