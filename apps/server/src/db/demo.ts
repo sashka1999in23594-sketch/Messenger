@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { SPACE_PERMS } from '@omni/shared';
 import type { Config } from '../config.js';
 import { createServices } from '../context.js';
+import { dayKey, type StatMetric } from '../modules/stats/daily.js';
 import { RealtimeHub } from '../modules/realtime/hub.js';
 import type { Db } from './index.js';
 
@@ -393,6 +394,44 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
         commentsDisabled: false,
       });
 
+
+    // Канал Саши — чтобы в «Статистике» было что показать
+    const mine = s.chats.createChannel(users.sasha!.id, { title: 'Заметки разработчика', description: 'Как мы делаем SpaceUp', handle: 'sasha_dev', isPublic: true });
+    for (const u of names) if (u !== 'sasha' && u !== 'spaceup') s.chats.join(users[u]!.id, mine.id);
+    say('sasha', mine.id, 'Запустили каналы как в Telegram: реакции, комментарии и честные просмотры 👀');
+    say('sasha', mine.id, 'Следующее — статистика с графиками роста, как курс на бирже 📈');
+
+    // Демо-история статистики за 90 дней: случайное блуждание, которое
+    // сходится к текущим числам (ряды строятся назад от них)
+    Date.now = realNow;
+    const seedSeries = (gainedMetric: StatMetric, lostMetric: StatMetric, entityId: string, current: number) => {
+      // Идём от сегодняшнего значения назад: в среднем рост, но с отписками
+      const n = 90;
+      const drift = (current * 0.7) / n;
+      let v = current;
+      for (let i = n - 1; i >= 0; i--) {
+        let g = Math.random() < 0.3 + drift ? 1 + (Math.random() < 0.15 ? 1 : 0) : 0;
+        const l = Math.random() < 0.28 ? 1 : 0;
+        if (v - g + l < 0) g = v + l;
+        v = v - g + l;
+        const day = dayKey(realNow() - (n - 1 - i) * 86_400_000);
+        if (g) db.run('INSERT OR REPLACE INTO stat_daily (metric, entity_id, day, value) VALUES (:m, :e, :d, :v)', { m: gainedMetric, e: entityId, d: day, v: g });
+        if (l) db.run('INSERT OR REPLACE INTO stat_daily (metric, entity_id, day, value) VALUES (:m, :e, :d, :v)', { m: lostMetric, e: entityId, d: day, v: l });
+      }
+    };
+    const followers = db.value<number>("SELECT COUNT(*) FROM follows WHERE followee_id = :u AND status = 'accepted'", { u: users.sasha!.id }) ?? 0;
+    db.run("DELETE FROM stat_daily WHERE entity_id = :u AND metric IN ('followers_gained', 'followers_lost')", { u: users.sasha!.id });
+    seedSeries('followers_gained', 'followers_lost', users.sasha!.id, followers);
+    const subs = db.value<number>('SELECT member_count FROM chats WHERE id = :c', { c: mine.id }) ?? 0;
+    db.run("DELETE FROM stat_daily WHERE entity_id = :c AND metric IN ('channel_joins', 'channel_leaves')", { c: mine.id });
+    seedSeries('channel_joins', 'channel_leaves', mine.id, subs);
+    for (let i = 1; i < 90; i++) {
+      const day = dayKey(realNow() - i * 86_400_000);
+      const views = Math.round(20 + 15 * Math.sin(i / 6) + Math.random() * 25 + (90 - i) * 0.6);
+      db.run("INSERT OR REPLACE INTO stat_daily (metric, entity_id, day, value) VALUES ('channel_views', :c, :d, :v)", { c: mine.id, d: day, v: views });
+      const pv = Math.round(6 + Math.random() * 14 + (90 - i) * 0.15);
+      db.run("INSERT OR REPLACE INTO stat_daily (metric, entity_id, day, value) VALUES ('profile_views', :u, :d, :v)", { u: users.sasha!.id, d: day, v: pv });
+    }
 
     // Демо-аккаунты сразу готовы к работе — без экранов знакомства
     db.run('UPDATE users SET onboarded_at = created_at WHERE onboarded_at IS NULL');

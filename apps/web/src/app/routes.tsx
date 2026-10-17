@@ -35,6 +35,11 @@ const OpenSaved = lazyNamed(chats, 'OpenSaved');
 const FoldersPage = lazyNamed(chats, 'FoldersPage');
 const JoinPage = lazyNamed(chats, 'JoinPage');
 const CallsPage = lazyNamed(calls, 'CallsPage');
+const stats = () => import('../features/stats');
+const StatsPage = lazyNamed(stats, 'StatsPage');
+const ChannelsStatsPage = lazyNamed(stats, 'ChannelsStatsPage');
+const ChannelStatsPage = lazyNamed(stats, 'ChannelStatsPage');
+const SubscriptionsPage = lazyNamed(stats, 'SubscriptionsPage');
 
 const FeedPage = lazyNamed(feed, 'FeedPage');
 const ComposePage = lazyNamed(feed, 'ComposePage');
@@ -151,8 +156,7 @@ export function AppRoutes() {
           <Route path=":chatId" element={<ChatView />} />
         </Route>
         <Route path="join/:token" element={<JoinPage />} />
-        <Route path="calls" element={<CallsPage filter="all" />} />
-        <Route path="calls/missed" element={<CallsPage filter="missed" />} />
+        <Route path="calls" element={<Navigate to="/stats/calls" replace />} />
         <Route path="contacts/following" element={<FollowListPage which="following" />} />
         <Route path="contacts/followers" element={<FollowListPage which="followers" />} />
         <Route path="contacts/suggestions" element={<FollowListPage which="suggestions" />} />
@@ -218,6 +222,14 @@ export function AppRoutes() {
 
         {/* Поиск */}
         <Route path="search" element={<SearchPage />} />
+
+        {/* Статистика */}
+        <Route path="stats" element={<StatsPage />} />
+        <Route path="stats/channels" element={<ChannelsStatsPage />} />
+        <Route path="stats/channels/:id" element={<ChannelStatsPage />} />
+        <Route path="stats/subscriptions" element={<SubscriptionsPage />} />
+        <Route path="stats/calls" element={<CallsPage filter="all" />} />
+        <Route path="stats/calls/missed" element={<CallsPage filter="missed" />} />
 
         {/* Уведомления */}
         <Route path="notifications" element={<NotificationsPage />} />

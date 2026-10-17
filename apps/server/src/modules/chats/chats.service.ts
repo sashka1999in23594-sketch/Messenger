@@ -692,6 +692,7 @@ export class ChatsService {
           continue;
         }
         this.addMember(chatId, id, chat.type === 'channel' ? 'subscriber' : 'member');
+        if (chat.type === 'channel') bumpStat(this.db, 'channel_joins', chatId);
         added.push(id);
       }
     });
@@ -712,6 +713,7 @@ export class ChatsService {
     this.db.tx(() => {
       this.db.run('DELETE FROM chat_members WHERE chat_id = :c AND user_id = :u', { c: chatId, u: targetId });
       this.db.run('UPDATE chats SET member_count = member_count - 1 WHERE id = :id', { id: chatId });
+      if (chat.type === 'channel') bumpStat(this.db, 'channel_leaves', chatId);
     });
     if (chat.type === 'group') {
       this.systemMessage(chatId, userId, `удалил(а) из группы: ${this.users.summary(targetId)?.displayName ?? 'участника'}`);

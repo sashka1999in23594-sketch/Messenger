@@ -1,0 +1,325 @@
+/* ─── Статистика ────────────────────────────────────────────────────────── */
+.stats-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0;
+}
+.stats--refetch {
+  opacity: 0.6;
+  transition: opacity var(--dur) var(--ease);
+}
+.stats-hero,
+.stats-card {
+  border-radius: var(--radius-xl);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-highlight);
+}
+.stats-hero {
+  padding: 18px 16px 8px;
+}
+.stats-hero__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  padding: 0 4px 10px;
+}
+.stats-hero__label {
+  width: 100%;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-2);
+}
+.stats-hero__value {
+  font-size: 48px;
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.stats-card {
+  padding: 6px 0 8px;
+}
+.stats-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 6px;
+}
+.stats-card__head h2 {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+.stats-card .chart {
+  padding: 0 12px;
+}
+
+/* Изменение: цвет дублируется стрелкой и знаком */
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.delta--up {
+  color: var(--success);
+}
+.delta--down {
+  color: var(--danger);
+}
+.delta--flat {
+  color: var(--text-3);
+}
+.delta__suffix {
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: var(--radius-xl);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  min-width: 0;
+}
+.stat-tile__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+.stat-tile__value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+}
+.stat-tile__row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+.stat-tile__foot {
+  min-height: 20px;
+}
+.stat-tile__foot .delta {
+  flex-wrap: wrap;
+}
+
+.channel-stat {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  color: inherit;
+}
+.channel-stat:hover {
+  text-decoration: none;
+  background: var(--surface-hover);
+}
+.channel-stat__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.channel-stat__num {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+@media (max-width: 560px) {
+  .channel-stat {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .channel-stat .sparkline {
+    display: none;
+  }
+  .stats-hero__value {
+    font-size: 40px;
+  }
+}
+
+/* ─── Графики ─── */
+.chart {
+  position: relative;
+  min-width: 0;
+}
+.chart svg {
+  display: block;
+  max-width: 100%;
+  overflow: visible;
+}
+.chart svg:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+.chart__grid {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+}
+.chart__axis {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+.chart__tick {
+  fill: var(--text-3);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.chart__line {
+  fill: none;
+  stroke: var(--chart-1);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart__line--thin {
+  stroke-width: 1.75;
+}
+.chart__dot {
+  fill: var(--chart-1);
+  stroke: var(--chart-surface);
+  stroke-width: 2;
+}
+.chart__dot--small {
+  stroke-width: 1.5;
+}
+.chart__cross {
+  stroke: var(--text-3);
+  stroke-width: 1;
+}
+.chart__bar {
+  fill: var(--chart-1);
+  transition: opacity var(--dur-fast);
+}
+.chart__bar--2 {
+  fill: var(--chart-2);
+}
+.chart__col {
+  outline: none;
+}
+.chart__col--on .chart__bar {
+  opacity: 0.8;
+}
+.chart__col:focus-visible .chart__bar {
+  stroke: var(--text);
+  stroke-width: 1;
+}
+.chart-tip {
+  position: absolute;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated-solid);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-md);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.chart-tip b {
+  font-size: var(--fs-md);
+  color: var(--text);
+}
+.chart-tip__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.chart-legend {
+  display: flex;
+  gap: 14px;
+  padding: 0 0 6px 44px;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+.chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.chart-key {
+  display: inline-block;
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--chart-1);
+}
+.chart-key--2 {
+  background: var(--chart-2);
+}
+.chart-table {
+  margin: 4px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.chart-table summary {
+  cursor: pointer;
+  width: max-content;
+  padding: 4px 0;
+}
+.chart-table__scroll {
+  max-height: 240px;
+  overflow: auto;
+}
+.chart-table table,
+.top-posts {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.chart-table th,
+.chart-table td {
+  padding: 4px 8px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+}
+.chart-table th:first-child {
+  text-align: left;
+}
+.top-posts th,
+.top-posts td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+.top-posts th:first-child,
+.top-posts td:first-child {
+  text-align: left;
+  width: 100%;
+}
+.top-posts td:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.top-posts tr:last-child td {
+  border-bottom: 0;
+}
+.sparkline {
+  flex: 0 0 auto;
+}

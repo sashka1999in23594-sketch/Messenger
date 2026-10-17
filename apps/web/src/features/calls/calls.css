@@ -315,3 +315,35 @@
     bottom: calc(var(--safe-bottom) + 140px);
   }
 }
+
+/* ─── История звонков по дням ─── */
+.calls-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+.calls-summary b {
+  color: var(--text);
+  font-size: var(--fs-md);
+}
+.calls-summary--missed b {
+  color: var(--danger);
+}
+.calls-day {
+  margin-bottom: 16px;
+}
+.calls-day__title {
+  margin: 0 0 6px 6px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+}

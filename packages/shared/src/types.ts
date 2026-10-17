@@ -750,3 +750,41 @@ export interface SpaceInvite {
   user: UserSummary | null;
   createdAt: ISODate;
 }
+
+// ─── Статистика ─────────────────────────────────────────────────────────────
+
+/** Ряды по дням: значения выровнены по массиву days (UTC, «2026-10-17»). */
+export interface ChannelStats {
+  chat: Pick<ChatSummary, 'id' | 'title' | 'avatarUrl' | 'handle' | 'memberCount' | 'role'>;
+  /** Подписчиков на конец каждого дня */
+  subscribers: number[];
+  joins: number[];
+  leaves: number[];
+  /** Просмотры постов за день (каждый человек — один раз на пост) */
+  views: number[];
+  /** Постов за период */
+  posts: number;
+}
+
+export interface ChannelPostStat {
+  id: ID;
+  text: string | null;
+  kind: Message['kind'];
+  viewCount: number;
+  commentCount: number;
+  reactions: number;
+  createdAt: ISODate;
+}
+
+export interface StatsOverview {
+  days: string[];
+  followers: { total: number; series: number[]; gained: number[]; lost: number[] };
+  profileViews: { series: number[]; total: number; previousTotal: number };
+  channels: ChannelStats[];
+  calls: { total: number; missed: number; minutes: number; perDay: number[] };
+}
+
+export interface ChannelStatsDetails extends ChannelStats {
+  days: string[];
+  topPosts: ChannelPostStat[];
+}

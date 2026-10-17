@@ -20,6 +20,7 @@ import {
   Briefcase,
   Calendar,
   ChartColumn,
+  ChartSpline,
   CircleUser,
   Clapperboard,
   Clock,
@@ -52,6 +53,7 @@ import {
   Palette,
   PenLine,
   Phone,
+  PhoneMissed,
   Plus,
   Repeat2,
   ScrollText,
@@ -309,6 +311,28 @@ export const sections: NavSection[] = [
     ],
   },
   {
+    id: 'stats',
+    label: 'Статистика',
+    short: 'Статист.',
+    icon: ChartSpline,
+    path: '/stats',
+    description: 'Рост подписчиков, каналы, подписки и звонки',
+    children: [
+      { id: 'stats.overview', label: 'Обзор', icon: ChartSpline, path: '/stats', keywords: ['подписчики', 'рост', 'график', 'просмотры профиля'] },
+      { id: 'stats.channels', label: 'Каналы', icon: Megaphone, path: '/stats/channels', keywords: ['просмотры', 'охват', 'подписчики канала'] },
+      { id: 'stats.subscriptions', label: 'Подписки', icon: UserCheck, path: '/stats/subscriptions', keywords: ['на кого подписан', 'подписчики'] },
+      {
+        id: 'stats.calls',
+        label: 'Звонки',
+        icon: Phone,
+        children: [
+          { id: 'stats.calls.all', label: 'История звонков', icon: History, path: '/stats/calls', keywords: ['звонок', 'видеозвонок'] },
+          { id: 'stats.calls.missed', label: 'Пропущенные', icon: PhoneMissed, path: '/stats/calls/missed' },
+        ],
+      },
+    ],
+  },
+  {
     id: 'profile',
     label: 'Профиль',
     short: 'Профиль',
@@ -484,6 +508,8 @@ const SECTION_PREFIXES: [string, string][] = [
   ['/notifications', 'notifications'],
   ['/profile', 'profile'],
   ['/u/', 'profile'],
+  ['/stats', 'stats'],
+  ['/calls', 'stats'],
   ['/settings', 'settings'],
   ['/admin', 'settings'],
 ];

@@ -28,6 +28,7 @@ import {
   type UserRow,
   type UsersRepo,
 } from './users.repo.js';
+import { bumpStat } from '../stats/daily.js';
 
 /** Курсор по смещению — для списков, где порядок не совпадает с id. */
 export const offsetCursor = {
@@ -78,8 +79,21 @@ export class UsersService {
     return u;
   }
 
+  /** Просмотры профиля для статистики: один человек считается не чаще раза в полчаса. */
+  private recentViews = new Map<string, number>();
+  private countProfileView(viewerId: string, ownerId: string): void {
+    if (viewerId === ownerId) return;
+    const key = `${viewerId}:${ownerId}`;
+    const now = Date.now();
+    if ((this.recentViews.get(key) ?? 0) > now - 30 * 60_000) return;
+    if (this.recentViews.size > 50_000) this.recentViews.clear();
+    this.recentViews.set(key, now);
+    bumpStat(this.db, 'profile_views', ownerId);
+  }
+
   profile(viewerId: string, idOrUsername: string): UserProfile {
     const u = this.requireUser(idOrUsername);
+    this.countProfileView(viewerId, u.id);
     const relationship = this.policy.relationship(viewerId, u.id);
     const stats = this.db.get<{ followers: number; following: number; posts: number }>(
       `SELECT
@@ -285,6 +299,7 @@ export class UsersService {
       s: status,
       now: Date.now(),
     });
+    if (status === 'accepted') bumpStat(this.db, 'followers_gained', target.id);
     const me = this.repo.byId(viewerId)!;
     this.notifications.notify({
       userId: target.id,
@@ -298,11 +313,15 @@ export class UsersService {
   }
 
   unfollow(viewerId: string, targetId: string): void {
+    const r = this.db.run("DELETE FROM follows WHERE follower_id = :a AND followee_id = :b AND status = 'accepted'", { a: viewerId, b: targetId });
+    if (r.changes) bumpStat(this.db, 'followers_lost', targetId);
     this.db.run('DELETE FROM follows WHERE follower_id = :a AND followee_id = :b', { a: viewerId, b: targetId });
     this.db.run('DELETE FROM post_subscriptions WHERE user_id = :a AND author_id = :b', { a: viewerId, b: targetId });
   }
 
   removeFollower(userId: string, followerId: string): void {
+    const r = this.db.run("DELETE FROM follows WHERE follower_id = :a AND followee_id = :b AND status = 'accepted'", { a: followerId, b: userId });
+    if (r.changes) bumpStat(this.db, 'followers_lost', userId);
     this.db.run('DELETE FROM follows WHERE follower_id = :a AND followee_id = :b', { a: followerId, b: userId });
     this.db.run('DELETE FROM post_subscriptions WHERE user_id = :a AND author_id = :b', { a: followerId, b: userId });
   }
@@ -325,6 +344,7 @@ export class UsersService {
         { f: followerId, u: userId },
       );
       if (r.changes) {
+        bumpStat(this.db, 'followers_gained', userId);
         const me = this.repo.byId(userId)!;
         this.notifications.notify({
           userId: followerId,
@@ -384,6 +404,11 @@ export class UsersService {
         b: targetId,
         now: Date.now(),
       });
+      // Подписки в обе стороны снимаются — и учитываются в статистике как отписки
+      for (const [a, b] of [[userId, targetId], [targetId, userId]] as const) {
+        const r = this.db.run("DELETE FROM follows WHERE follower_id = :a AND followee_id = :b AND status = 'accepted'", { a, b });
+        if (r.changes) bumpStat(this.db, 'followers_lost', b);
+      }
       this.db.run(
         'DELETE FROM follows WHERE (follower_id = :a AND followee_id = :b) OR (follower_id = :b AND followee_id = :a)',
         { a: userId, b: targetId },
