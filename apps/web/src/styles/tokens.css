@@ -81,6 +81,23 @@
   --call-green: #22c55e;
   --call-red: #ef4444;
 
+  /* Цвета обоев чатов (не зависят от темы) */
+  --wp-sunset-a: #ff8a5b;
+  --wp-sunset-b: #ff3d7f;
+  --wp-sunset-c: #7c3aed;
+  --wp-ocean-a: #06b6d4;
+  --wp-ocean-b: #3b82f6;
+  --wp-ocean-c: #1e3a8a;
+  --wp-forest-a: #10b981;
+  --wp-forest-b: #84cc16;
+  --wp-forest-c: #064e3b;
+  --wp-night-a: #1e1b4b;
+  --wp-night-b: #0b1026;
+  --wp-star: #ffffff;
+  --wp-candy-a: #f472b6;
+  --wp-candy-b: #facc15;
+  --wp-candy-c: #38bdf8;
+
   --blur: 22px;
   --blur-strong: 34px;
 }

@@ -11,9 +11,11 @@ import { members } from '../../shared/lib/format';
 import { Avatar, Button, ButtonLink, EmptyState, ListSkeleton, Loading, PageHeader } from '../../shared/ui';
 import { cn } from '../../shared/lib/format';
 import { useBareLayout } from '../../app/layout/Shell';
+import { usePrefs } from '../../shared/stores/prefs';
 import { ChatInfo } from './ChatInfo';
 import { ChatList } from './ChatList';
 import { useChatUi } from './store';
+import { ChatWallpaper } from './wallpapers';
 import './chats.css';
 
 let lastFolder = 'all';
@@ -24,19 +26,20 @@ export function ChatsLayout() {
   const navigate = useNavigate();
   const infoOpen = useChatUi((s) => s.infoOpen);
   const setInfo = useChatUi((s) => s.setInfo);
+  const msgScale = usePrefs((s) => s.messageScale ?? 100);
   if (routeFolder) lastFolder = routeFolder;
   const folder = routeFolder ?? (chatId ? lastFolder : pathname === '/chats' ? 'all' : lastFolder);
-  const hasDetail = !!chatId || /^\/chats\/(new|discover|saved)/.test(pathname);
+  const hasDetail = !!chatId || /^\/chats\/(new|discover|saved|folders)/.test(pathname);
   useBareLayout(true);
   useEffect(() => {
     if (!chatId) setInfo(false);
   }, [chatId, setInfo]);
 
   return (
-    <div className={cn('chats', hasDetail && 'chats--detail', infoOpen && chatId && 'chats--info')}>
+    <div className={cn('chats', hasDetail && 'chats--detail', infoOpen && chatId && 'chats--info')} style={{ '--msg-scale': msgScale / 100 } as React.CSSProperties}>
       <ChatList folder={folder} activeId={chatId ?? null} onFolder={(f) => navigate(f === 'all' ? '/chats' : `/chats/folder/${f}`)} />
       <section className="chats__detail">
-        <div className="chat-wallpaper" aria-hidden />
+        <ChatWallpaper chatId={chatId} />
         <Outlet />
       </section>
       {infoOpen && chatId && <ChatInfo chatId={chatId} onClose={() => setInfo(false)} />}

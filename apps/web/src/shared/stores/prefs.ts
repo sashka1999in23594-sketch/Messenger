@@ -9,6 +9,7 @@ export type Theme = 'system' | 'light' | 'dark';
 export type Palette = 'aurora' | 'sunset' | 'ocean' | 'forest' | 'sakura' | 'midnight' | 'graphite';
 export type Accent = 'auto' | 'violet' | 'blue' | 'cyan' | 'green' | 'yellow' | 'orange' | 'red' | 'pink' | 'purple';
 export type AuroraMode = 'animated' | 'static' | 'off';
+export type Wallpaper = 'aurora' | 'plain' | 'mesh' | 'sunset' | 'ocean' | 'forest' | 'night' | 'candy' | 'grid' | 'waves';
 
 /** Настройки, которые влияют на внешний вид и применяются к <html>. */
 export type VisualPrefs = Pick<PrefsState, 'theme' | 'palette' | 'accent' | 'fontScale' | 'density' | 'reduceMotion' | 'glass' | 'aurora'>;
@@ -24,6 +25,11 @@ interface PrefsState {
   density: 'comfortable' | 'compact';
   reduceMotion: boolean;
   enterToSend: boolean;
+  /** Обои переписки: общие и отдельные для чатов */
+  wallpaper: Wallpaper;
+  chatWallpapers: Record<string, Wallpaper>;
+  /** Размер текста сообщений, % */
+  messageScale: number;
   autoplayVideo: boolean;
   dataSaver: boolean;
   navCollapsed: boolean;
@@ -56,6 +62,9 @@ export const usePrefs = create<PrefsState>()(
       density: 'comfortable',
       reduceMotion: false,
       enterToSend: true,
+      wallpaper: 'aurora',
+      chatWallpapers: {},
+      messageScale: 100,
       autoplayVideo: true,
       dataSaver: false,
       navCollapsed: false,

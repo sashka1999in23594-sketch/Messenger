@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import { Accessibility, Bell, Database, Flag, Info, Keyboard, Languages, MessageCircle, Settings, Zap } from 'lucide-react';
+import { Accessibility, Bell, Database, Flag, Info, Keyboard, Languages, MessageCircle, Palette, Settings, Zap } from 'lucide-react';
 import { APP_NAME, REPORT_REASON_LABELS, type ReportReason } from '@omni/shared';
 import { sections } from '../../app/navigation';
 import { api } from '../../shared/api/client';
@@ -11,6 +11,7 @@ import { toast } from '../../shared/stores/ui';
 import { fileSize, fullDate } from '../../shared/lib/format';
 import { Button, confirm, EmptyState, Notice, PageHeader, SettingRow, Switch } from '../../shared/ui';
 import { Panel, SettingsPage, useNotificationPrefs } from './common';
+import { useWallpaper, WallpaperPicker } from '../chats/wallpapers';
 
 export function SettingsHome() {
   const settings = sections.find((s) => s.id === 'settings')!;
@@ -88,8 +89,69 @@ export function NotificationSettingsPage() {
   );
 }
 
-export function ChatSettings({ section }: { section: 'input' | 'media' }) {
+function ChatPreview() {
+  const wp = useWallpaper(null);
+  const scale = usePrefs((s) => s.messageScale ?? 100);
+  return (
+    <div className="wp-preview" style={{ '--msg-scale': scale / 100 } as React.CSSProperties}>
+      <div className="chat-wallpaper" data-wp={wp} aria-hidden />
+      <div className="wp-preview__msg">Привет! Как тебе новые обои? 🌌</div>
+      <div className="wp-preview__msg wp-preview__msg--out">Огонь, особенно «Звёзды» ✨</div>
+      <div className="wp-preview__msg">Размер текста тоже можно подобрать</div>
+    </div>
+  );
+}
+
+function WallpaperSettings() {
   const prefs = usePrefs();
+  const own = Object.keys(prefs.chatWallpapers ?? {}).length;
+  return (
+    <SettingsPage title="Обои и текст" icon={<Palette size={22} />}>
+      <ChatPreview />
+      <Panel title="Обои для всех чатов">
+        <div style={{ padding: '4px 16px 16px' }}>
+          <WallpaperPicker value={prefs.wallpaper ?? 'aurora'} onChange={(w) => w && prefs.set({ wallpaper: w })} />
+        </div>
+      </Panel>
+      <Panel title="Размер текста сообщений" footer="Влияет только на переписку. Общий масштаб интерфейса — в «Оформление → Текст».">
+        <div className="row gap-3" style={{ padding: '12px 16px 16px' }}>
+          <span className="small">А</span>
+          <input
+            type="range"
+            className="grow"
+            min={80}
+            max={140}
+            step={5}
+            value={prefs.messageScale ?? 100}
+            onChange={(e) => prefs.set({ messageScale: Number(e.target.value) })}
+            aria-label="Размер текста сообщений"
+          />
+          <span style={{ fontSize: 22 }}>А</span>
+          <span className="small muted" style={{ width: 44, textAlign: 'right' }}>
+            {prefs.messageScale ?? 100}%
+          </span>
+        </div>
+      </Panel>
+      {own > 0 && (
+        <Panel>
+          <SettingRow
+            title="Свои обои у чатов"
+            description={`Задано для ${own} ${own === 1 ? 'чата' : 'чатов'}`}
+            control={
+              <Button size="sm" variant="secondary" onClick={() => prefs.set({ chatWallpapers: {} })}>
+                Сбросить
+              </Button>
+            }
+          />
+        </Panel>
+      )}
+    </SettingsPage>
+  );
+}
+
+export function ChatSettings({ section }: { section: 'input' | 'media' | 'wallpaper' }) {
+  const prefs = usePrefs();
+  if (section === 'wallpaper') return <WallpaperSettings />;
   return section === 'input' ? (
     <SettingsPage title="Отправка сообщений" icon={<Keyboard size={22} />}>
       <Panel footer="На телефоне Enter всегда переносит строку — отправка кнопкой.">

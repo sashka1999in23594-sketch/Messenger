@@ -131,13 +131,7 @@ export const sections: NavSection[] = [
           { id: 'messenger.folders.groups', label: 'Группы', icon: Users, path: '/chats/folder/groups' },
           { id: 'messenger.folders.channels', label: 'Каналы', icon: Megaphone, path: '/chats/folder/channels' },
           { id: 'messenger.folders.archived', label: 'Архив', icon: Archive, path: '/chats/folder/archived' },
-          {
-            id: 'messenger.folders.custom',
-            label: 'Свои папки',
-            icon: Plus,
-            path: '/chats/folders/custom',
-            planned: ['Папки с любыми чатами', 'Правила автосортировки', 'Синхронизация между устройствами'],
-          },
+          { id: 'messenger.folders.custom', label: 'Свои папки', icon: Plus, path: '/chats/folders', keywords: ['папка', 'фильтр', 'сортировка'] },
         ],
       },
       { id: 'messenger.secret', label: 'Секретные чаты', icon: Lock, path: '/chats/folder/secret', keywords: ['e2e', 'шифрование'] },
@@ -472,6 +466,7 @@ export const sections: NavSection[] = [
         label: 'Чаты и медиа',
         icon: MessageCircle,
         children: [
+          { id: 'settings.chats.wallpaper', label: 'Обои и текст', icon: Palette, path: '/settings/chats/wallpaper', keywords: ['фон', 'обои', 'размер текста', 'пузыри'] },
           { id: 'settings.chats.input', label: 'Отправка сообщений', icon: Keyboard, path: '/settings/chats/input' },
           { id: 'settings.chats.media', label: 'Медиа и трафик', icon: Image, path: '/settings/chats/media' },
           { id: 'settings.chats.stickers', label: 'Стикеры и эмодзи', icon: Star, path: '/settings/chats/stickers', planned: ['Наборы стикеров', 'Свои эмодзи', 'GIF-поиск'] },

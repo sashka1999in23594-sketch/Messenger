@@ -281,26 +281,6 @@
   }
 }
 
-/* ─── Обои переписки ─── */
-.chat-wallpaper {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(80% 60% at 100% 0%, color-mix(in oklab, var(--accent-2) 16%, transparent), transparent 70%),
-    radial-gradient(70% 60% at 0% 100%, color-mix(in oklab, var(--accent) 18%, transparent), transparent 70%);
-}
-.chat-wallpaper::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0.5;
-  background-image: radial-gradient(color-mix(in oklab, var(--text) 9%, transparent) 1px, transparent 1.4px);
-  background-size: 22px 22px;
-  mask-image: linear-gradient(180deg, transparent, #000 30%, #000 80%, transparent);
-}
-
 /* ─── Переписка ─── */
 .chat-header {
   display: flex;
@@ -593,6 +573,7 @@
 }
 .bubble__text {
   white-space: pre-wrap;
+  font-size: calc(var(--fs-md) * var(--msg-scale, 1));
 }
 .msg--out .rich a,
 .msg--out .rich .mention,
@@ -1448,4 +1429,173 @@
   min-width: 16px;
   font-size: 10px;
   padding: 0 4px;
+}
+
+/* ─── Свои папки ─── */
+.folder-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+}
+@media (max-width: 720px) {
+  .folder-editor {
+    grid-template-columns: 1fr;
+  }
+}
+.folder-emoji {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+  gap: 4px;
+}
+.folder-emoji__cell {
+  height: 38px;
+  border-radius: var(--radius-sm);
+  font-size: 20px;
+  display: grid;
+  place-items: center;
+  transition:
+    background var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease-spring);
+}
+.folder-emoji__cell:hover {
+  background: var(--surface-hover);
+  transform: scale(1.1);
+}
+.folder-emoji__cell--active {
+  background: var(--accent-soft-strong);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.folder-chats {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 380px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 4px;
+}
+.folder-chats__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  text-align: left;
+  min-width: 0;
+  transition: background var(--dur-fast) var(--ease);
+}
+.folder-chats__item:hover {
+  background: var(--surface-hover);
+}
+.folder-chats__item--on {
+  background: var(--accent-soft);
+}
+.folder-chats__check {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--border-strong);
+  display: grid;
+  place-items: center;
+  color: var(--accent-fg);
+}
+.folder-chats__item--on .folder-chats__check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.folder-row__emoji {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.chip--ghost {
+  background: transparent;
+  border-style: dashed;
+}
+
+/* ─── Пригласительные ссылки ─── */
+.invite-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.invite-card--dead {
+  opacity: 0.55;
+}
+.invite-card__icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--grad);
+  color: var(--accent-fg);
+}
+.join-page {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: var(--space-8) var(--space-4);
+}
+.join-card {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  padding: var(--space-8) var(--space-6);
+  border-radius: var(--radius-2xl);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-highlight), var(--shadow-lg);
+  backdrop-filter: blur(var(--blur-strong));
+  -webkit-backdrop-filter: blur(var(--blur-strong));
+  animation: rise-in var(--dur-slow) var(--ease);
+}
+.join-card__kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 650;
+}
+.join-card__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.join-card__desc {
+  color: var(--text-2);
+  white-space: pre-wrap;
+  margin: 0 0 var(--space-2);
+}
+
+/* ─── Настройки чата в панели информации ─── */
+.info-settings {
+  margin: 12px;
+}
+.info-settings .select {
+  width: auto;
+  min-width: 130px;
 }

@@ -272,4 +272,17 @@ describe('звонки', () => {
     await b.client.post(`/users/${a.user.id}/block`);
     expect((await a.client.post('/calls', { chatId: dm.body.id })).status).toBe(403);
   });
+
+  it('пропущенные: только входящие без ответа', async () => {
+    const a = await registerUser(app);
+    const b = await registerUser(app);
+    const dm = await a.client.post('/chats/direct', { userId: b.user.id });
+    const call = await a.client.post('/calls', { chatId: dm.body.id });
+    // Звонящий передумал — у собеседника это пропущенный
+    expect((await a.client.post(`/calls/${call.body.id}/hangup`)).body.status).toBe('cancelled');
+    const missedB = (await b.client.get('/calls?filter=missed')).body.items as { id: string }[];
+    expect(missedB.map((c) => c.id)).toEqual([call.body.id]);
+    expect((await a.client.get('/calls?filter=missed')).body.items).toEqual([]);
+    expect((await a.client.get('/calls')).body.items).toHaveLength(1);
+  });
 });

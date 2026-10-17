@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { AtSign, Bell, BellOff, Crown, Image, Lock, Pencil, Shield, Timer, UserMinus, UserPlus, Users, X } from 'lucide-react';
-import { SECRET_TTL_OPTIONS, type ChatMember, type ChatSummary, type MediaItem, type Paginated, type UserSummary } from '@omni/shared';
+import { AtSign, Bell, BellOff, Crown, FolderPlus, Hourglass, Image, Link2, Lock, Paintbrush, Pencil, Shield, Timer, UserMinus, UserPlus, Users, X } from 'lucide-react';
+import { SECRET_TTL_OPTIONS, SLOW_MODE_OPTIONS, type ChatMember, type ChatSummary, type MediaItem, type Paginated, type UserSummary } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { qk, queryClient } from '../../shared/api/query';
 import { fingerprint } from '../../shared/crypto/e2e';
+import { usePrefs } from '../../shared/stores/prefs';
 import { useMe } from '../../shared/stores/session';
 import { toast } from '../../shared/stores/ui';
 import { members as membersLabel } from '../../shared/lib/format';
-import { Avatar, Button, IconButton, Input, Lightbox, Menu, Modal, Notice, RichText, Textarea, UserName, useMenu, Verified } from '../../shared/ui';
+import { Avatar, Button, IconButton, Input, Lightbox, Menu, Modal, Notice, RichText, SettingRow, Textarea, UserName, useMenu, Verified } from '../../shared/ui';
 import { patchChat } from './cache';
 import { useSecretChat } from './secret';
 import { UserPicker } from './dialogs';
+import { AddToFolderDialog } from './folders';
+import { InvitesDialog } from './invites';
+import { setChatWallpaper, WALLPAPERS, WallpaperPicker } from './wallpapers';
 
 function ttlLabel(sec: number): string {
   if (sec === 0) return 'Выключен';
@@ -21,6 +25,90 @@ function ttlLabel(sec: number): string {
   if (sec < 86400) return `${sec / 3600} ч`;
   if (sec < 604800) return `${sec / 86400} дн`;
   return '1 неделя';
+}
+
+function slowLabel(sec: number): string {
+  if (sec === 0) return 'Выключен';
+  if (sec < 60) return `${sec} с`;
+  if (sec < 3600) return `${sec / 60} мин`;
+  return '1 час';
+}
+
+/** Настройки чата: автоудаление, медленный режим, ссылки, обои, папки. */
+function ChatSettingsBlock({ chat }: { chat: ChatSummary }) {
+  const [dialog, setDialog] = useState<'invites' | 'wallpaper' | 'folder' | null>(null);
+  const globalWp = usePrefs((s) => s.wallpaper ?? 'aurora');
+  const ownWp = usePrefs((s) => s.chatWallpapers?.[chat.id] ?? null);
+  const isAdmin = chat.role === 'owner' || chat.role === 'admin';
+  const shared = chat.type === 'group' || chat.type === 'channel';
+  const update = useMutation({
+    mutationFn: (body: { ttlSeconds?: number; slowModeSec?: number }) => api.patch<ChatSummary>(`/chats/${chat.id}`, body),
+    onSuccess: (c) => {
+      queryClient.setQueryData(qk.chat(chat.id), c);
+      toast({ text: 'Сохранено', kind: 'success' });
+    },
+    onError: (e) => toast({ text: errorMessage(e), kind: 'error' }),
+  });
+  if (!chat.role) return null;
+  const canTtl = chat.type !== 'secret' && (!shared || isAdmin);
+  return (
+    <div className="panel info-settings">
+      <div className="panel__title">Настройки чата</div>
+      {canTtl && (
+        <SettingRow
+          icon={<Hourglass size={18} />}
+          tile="tile-orange"
+          title="Автоудаление"
+          description="Для новых сообщений"
+          control={
+            <select className="select" value={chat.ttlSeconds} onChange={(e) => update.mutate({ ttlSeconds: Number(e.target.value) })} aria-label="Автоудаление">
+              {SECRET_TTL_OPTIONS.filter((s) => s === 0 || s >= 60).map((s) => (
+                <option key={s} value={s}>
+                  {ttlLabel(s)}
+                </option>
+              ))}
+            </select>
+          }
+        />
+      )}
+      {chat.type === 'group' && isAdmin && (
+        <SettingRow
+          icon={<Timer size={18} />}
+          tile="tile-cyan"
+          title="Медленный режим"
+          description="Пауза между сообщениями"
+          control={
+            <select className="select" value={chat.slowModeSec} onChange={(e) => update.mutate({ slowModeSec: Number(e.target.value) })} aria-label="Медленный режим">
+              {SLOW_MODE_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {slowLabel(s)}
+                </option>
+              ))}
+            </select>
+          }
+        />
+      )}
+      {shared && isAdmin && <SettingRow icon={<Link2 size={18} />} tile="tile-blue" title="Пригласительные ссылки" description="Срок, лимит, отзыв" onClick={() => setDialog('invites')} />}
+      <SettingRow
+        icon={<Paintbrush size={18} />}
+        tile="tile-pink"
+        title="Обои"
+        description={ownWp ? WALLPAPERS.find((w) => w.id === ownWp)?.label : 'Как во всех чатах'}
+        onClick={() => setDialog('wallpaper')}
+      />
+      <SettingRow icon={<FolderPlus size={18} />} tile="tile-violet" title="Добавить в папку" onClick={() => setDialog('folder')} />
+      {dialog === 'invites' && <InvitesDialog chat={chat} onClose={() => setDialog(null)} />}
+      {dialog === 'folder' && <AddToFolderDialog chat={chat} onClose={() => setDialog(null)} />}
+      {dialog === 'wallpaper' && (
+        <Modal open onClose={() => setDialog(null)} title="Обои этого чата">
+          <WallpaperPicker value={ownWp} inherit={globalWp} onChange={(w) => setChatWallpaper(chat.id, w)} />
+          <p className="small muted" style={{ marginTop: 12 }}>
+            Обои хранятся на этом устройстве. Общие обои для всех чатов — в настройках «Чаты и медиа».
+          </p>
+        </Modal>
+      )}
+    </div>
+  );
 }
 
 function SecretBlock({ chat }: { chat: ChatSummary }) {
@@ -210,6 +298,7 @@ export function ChatInfo({ chatId, onClose }: { chatId: string; onClose: () => v
       </div>
 
       {chat.type === 'secret' && <SecretBlock chat={chat} />}
+      <ChatSettingsBlock chat={chat} />
 
       {showTabs && (
         <div className="tabs" style={{ padding: '0 8px' }}>

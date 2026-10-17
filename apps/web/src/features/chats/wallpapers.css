@@ -1,0 +1,189 @@
+/* ─── Обои переписки ─────────────────────────────────────────────────────────
+ * Один элемент .chat-wallpaper[data-wp] — и в переписке, и в превью настроек.
+ */
+.chat-wallpaper {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(80% 60% at 100% 0%, color-mix(in oklab, var(--accent-2) 16%, transparent), transparent 70%),
+    radial-gradient(70% 60% at 0% 100%, color-mix(in oklab, var(--accent) 18%, transparent), transparent 70%);
+}
+.chat-wallpaper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  background-image: radial-gradient(color-mix(in oklab, var(--text) 9%, transparent) 1px, transparent 1.4px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(180deg, transparent, #000 30%, #000 80%, transparent);
+}
+.chat-wallpaper[data-wp='plain'] {
+  background: none;
+}
+.chat-wallpaper[data-wp='plain']::after {
+  display: none;
+}
+.chat-wallpaper[data-wp='mesh'] {
+  background:
+    radial-gradient(60% 50% at 15% 20%, color-mix(in oklab, var(--accent) 34%, transparent), transparent 70%),
+    radial-gradient(55% 45% at 85% 30%, color-mix(in oklab, var(--accent-2) 30%, transparent), transparent 70%),
+    radial-gradient(60% 50% at 50% 95%, color-mix(in oklab, var(--accent-deep) 34%, transparent), transparent 70%);
+}
+.chat-wallpaper[data-wp='mesh']::after {
+  display: none;
+}
+.chat-wallpaper[data-wp='sunset'] {
+  background:
+    radial-gradient(70% 60% at 85% 10%, color-mix(in oklab, var(--wp-sunset-a) 45%, transparent), transparent 70%),
+    radial-gradient(60% 55% at 10% 60%, color-mix(in oklab, var(--wp-sunset-b) 38%, transparent), transparent 70%),
+    radial-gradient(70% 60% at 70% 100%, color-mix(in oklab, var(--wp-sunset-c) 40%, transparent), transparent 70%);
+}
+.chat-wallpaper[data-wp='ocean'] {
+  background:
+    radial-gradient(70% 60% at 10% 10%, color-mix(in oklab, var(--wp-ocean-a) 40%, transparent), transparent 70%),
+    radial-gradient(60% 55% at 90% 50%, color-mix(in oklab, var(--wp-ocean-b) 36%, transparent), transparent 70%),
+    radial-gradient(80% 60% at 30% 100%, color-mix(in oklab, var(--wp-ocean-c) 50%, transparent), transparent 70%);
+}
+.chat-wallpaper[data-wp='ocean']::after,
+.chat-wallpaper[data-wp='waves']::after {
+  opacity: 0.35;
+  background-image: repeating-radial-gradient(circle at 50% 120%, transparent 0 22px, color-mix(in oklab, var(--text) 8%, transparent) 22px 23px);
+  background-size: auto;
+}
+.chat-wallpaper[data-wp='forest'] {
+  background:
+    radial-gradient(70% 60% at 90% 0%, color-mix(in oklab, var(--wp-forest-b) 30%, transparent), transparent 70%),
+    radial-gradient(70% 60% at 0% 40%, color-mix(in oklab, var(--wp-forest-a) 34%, transparent), transparent 70%),
+    radial-gradient(90% 60% at 50% 100%, color-mix(in oklab, var(--wp-forest-c) 55%, transparent), transparent 70%);
+}
+.chat-wallpaper[data-wp='night'] {
+  background: linear-gradient(180deg, var(--wp-night-a), var(--wp-night-b));
+}
+.chat-wallpaper[data-wp='night']::after {
+  opacity: 0.9;
+  mask-image: none;
+  background-image:
+    radial-gradient(1.2px 1.2px at 12% 18%, var(--wp-star), transparent),
+    radial-gradient(1px 1px at 72% 12%, var(--wp-star), transparent),
+    radial-gradient(1.4px 1.4px at 42% 48%, var(--wp-star), transparent),
+    radial-gradient(1px 1px at 88% 62%, var(--wp-star), transparent),
+    radial-gradient(1.2px 1.2px at 22% 82%, var(--wp-star), transparent),
+    radial-gradient(1px 1px at 58% 88%, var(--wp-star), transparent),
+    radial-gradient(1.6px 1.6px at 92% 30%, var(--wp-star), transparent);
+  background-size: 260px 260px;
+}
+.chat-wallpaper[data-wp='candy'] {
+  background:
+    radial-gradient(45% 40% at 20% 25%, color-mix(in oklab, var(--wp-candy-a) 40%, transparent), transparent 70%),
+    radial-gradient(45% 40% at 80% 35%, color-mix(in oklab, var(--wp-candy-b) 32%, transparent), transparent 70%),
+    radial-gradient(50% 45% at 45% 90%, color-mix(in oklab, var(--wp-candy-c) 36%, transparent), transparent 70%);
+}
+.chat-wallpaper[data-wp='candy']::after {
+  opacity: 0.6;
+  background-image: radial-gradient(color-mix(in oklab, var(--text) 14%, transparent) 2px, transparent 2.5px);
+  background-size: 34px 34px;
+  background-position: 0 0;
+}
+.chat-wallpaper[data-wp='grid'] {
+  background: radial-gradient(80% 70% at 50% 0%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 70%);
+}
+.chat-wallpaper[data-wp='grid']::after {
+  opacity: 1;
+  background-image:
+    linear-gradient(color-mix(in oklab, var(--text) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--text) 6%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+.chat-wallpaper[data-wp='waves'] {
+  background:
+    radial-gradient(80% 60% at 50% 110%, color-mix(in oklab, var(--accent) 26%, transparent), transparent 70%),
+    radial-gradient(60% 50% at 100% 0%, color-mix(in oklab, var(--accent-2) 18%, transparent), transparent 70%);
+}
+
+/* Выбор обоев */
+.wp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: var(--space-3);
+}
+.wp-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  text-align: center;
+}
+.wp-tile__preview {
+  position: relative;
+  isolation: isolate;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--chat-bg);
+  border: 1px solid var(--border);
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur) var(--ease);
+}
+.wp-tile:hover .wp-tile__preview {
+  transform: translateY(-2px);
+}
+.wp-tile--active .wp-tile__preview {
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 4px var(--accent);
+}
+.wp-tile--active {
+  color: var(--text);
+  font-weight: 650;
+}
+.wp-tile__bubble {
+  position: absolute;
+  height: 12px;
+  border-radius: 7px;
+  background: var(--bubble-in);
+  border: 1px solid var(--border);
+}
+.wp-tile__bubble--out {
+  background: var(--bubble-out);
+  border: 0;
+}
+
+/* Превью переписки в настройках */
+.wp-preview {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-5) var(--space-4);
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: var(--chat-bg);
+  border: 1px solid var(--border);
+  min-height: 190px;
+  justify-content: center;
+}
+.wp-preview__msg {
+  align-self: flex-start;
+  max-width: 78%;
+  padding: 8px 12px;
+  border-radius: 18px 18px 18px 6px;
+  background: var(--bubble-in);
+  color: var(--bubble-in-text);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  font-size: calc(var(--fs-md) * var(--msg-scale, 1));
+}
+.wp-preview__msg--out {
+  align-self: flex-end;
+  border-radius: 18px 18px 6px 18px;
+  background: var(--bubble-out);
+  color: var(--bubble-out-text);
+  border: 0;
+}

@@ -1477,3 +1477,11 @@ a.list-item:hover {
 .badge--mention {
   font-weight: 800;
 }
+
+/* Подсветка совпадений в результатах поиска */
+.search-mark {
+  background: var(--accent-soft-strong);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 0 2px;
+}

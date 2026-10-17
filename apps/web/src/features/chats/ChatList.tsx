@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import { Archive, ArchiveRestore, Bell, BellOff, Lock, Megaphone, Menu as MenuIcon, PanelLeftOpen, Pin, PinOff, Search, SquarePen, Trash2, Users, X } from 'lucide-react';
+import { Archive, ArchiveRestore, Bell, BellOff, FolderPlus, Lock, Megaphone, Menu as MenuIcon, PanelLeftOpen, Pin, PinOff, Search, SlidersHorizontal, SquarePen, Trash2, Users, X } from 'lucide-react';
 import type { ChatSummary } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { flatPages, qk, queryClient, useCursorList } from '../../shared/api/query';
@@ -12,6 +12,7 @@ import { toast, useUi } from '../../shared/stores/ui';
 import { activityLabel, chatTime, cn, messageLabel } from '../../shared/lib/format';
 import { Avatar, confirm, EmptyState, IconButton, ListSkeleton, LoadMore, Menu, useMenu, Verified } from '../../shared/ui';
 import { patchChat, forgetChat } from './cache';
+import { AddToFolderDialog, useFolders } from './folders';
 
 export const FOLDERS: { id: string; label: string }[] = [
   { id: 'all', label: 'Все' },
@@ -42,6 +43,7 @@ function ChatItem({ chat, active, myId }: { chat: ChatSummary; active: boolean; 
   const typing = useRealtime((s) => s.typing[chat.id]);
   const presence = useRealtime((s) => (chat.peer ? s.presence[chat.peer.id] : undefined));
   const muted = !!chat.mutedUntil;
+  const [toFolder, setToFolder] = useState(false);
 
   const prefs = useMutation({
     mutationFn: (body: Record<string, unknown>) => api.patch<ChatSummary>(`/chats/${chat.id}/prefs`, body),
@@ -123,10 +125,12 @@ function ChatItem({ chat, active, myId }: { chat: ChatSummary; active: boolean; 
             icon: chat.archived ? <ArchiveRestore size={18} /> : <Archive size={18} />,
             onClick: () => prefs.mutate({ archived: !chat.archived }),
           },
+          { label: 'Добавить в папку…', icon: <FolderPlus size={18} />, onClick: () => setToFolder(true) },
           'separator',
           { label: chat.type === 'group' || chat.type === 'channel' ? 'Покинуть' : 'Удалить чат', icon: <Trash2 size={18} />, danger: true, onClick: () => void remove() },
         ]}
       />
+      {toFolder && <AddToFolderDialog chat={chat} onClose={() => setToFolder(false)} />}
     </>
   );
 }
@@ -140,6 +144,7 @@ export function ChatList({ folder, activeId, onFolder }: { folder: string; activ
   const setNavOpen = useUi((s) => s.setNavOpen);
   const setPalette = useUi((s) => s.setPalette);
   const list = useCursorList<ChatSummary>(qk.chats(folder), `/chats?folder=${folder}`);
+  const custom = useFolders().data?.items ?? [];
   const chats = flatPages(list.data);
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -182,11 +187,26 @@ export function ChatList({ folder, activeId, onFolder }: { folder: string; activ
           )}
         </div>
         <div className="chips" role="tablist" aria-label="Папки">
-          {FOLDERS.map((f) => (
+          {FOLDERS.slice(0, 1).map((f) => (
             <button key={f.id} role="tab" aria-selected={folder === f.id} className={cn('chip', folder === f.id && 'chip--active')} onClick={() => onFolder(f.id)}>
               {f.label}
             </button>
           ))}
+          {/* Свои папки — сразу после «Все», как в Telegram */}
+          {custom.map((f) => (
+            <button key={f.id} role="tab" aria-selected={folder === f.id} className={cn('chip', folder === f.id && 'chip--active')} onClick={() => onFolder(f.id)}>
+              <span aria-hidden>{f.emoji}</span> {f.name}
+              {f.unreadCount > 0 && <span className="badge">{f.unreadCount > 99 ? '99+' : f.unreadCount}</span>}
+            </button>
+          ))}
+          {FOLDERS.slice(1).map((f) => (
+            <button key={f.id} role="tab" aria-selected={folder === f.id} className={cn('chip', folder === f.id && 'chip--active')} onClick={() => onFolder(f.id)}>
+              {f.label}
+            </button>
+          ))}
+          <button className="chip chip--ghost" onClick={() => navigate('/chats/folders')} aria-label="Настроить папки" title="Настроить папки">
+            <SlidersHorizontal size={14} />
+          </button>
         </div>
       </div>
       <div className="chats__scroll">

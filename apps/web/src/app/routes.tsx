@@ -29,6 +29,8 @@ const ChatView = lazyNamed(chats, 'ChatView');
 const NewChatPage = lazyNamed(chats, 'NewChatPage');
 const DiscoverChannels = lazyNamed(chats, 'DiscoverChannels');
 const OpenSaved = lazyNamed(chats, 'OpenSaved');
+const FoldersPage = lazyNamed(chats, 'FoldersPage');
+const JoinPage = lazyNamed(chats, 'JoinPage');
 const CallsPage = lazyNamed(calls, 'CallsPage');
 
 const FeedPage = lazyNamed(feed, 'FeedPage');
@@ -114,9 +116,11 @@ export function AppRoutes() {
           <Route path="folder/:folder" element={<NoChatSelected />} />
           <Route path="saved" element={<OpenSaved />} />
           <Route path="discover" element={<DiscoverChannels />} />
+          <Route path="folders" element={<FoldersPage />} />
           <Route path="new/:kind" element={<NewChatPage />} />
           <Route path=":chatId" element={<ChatView />} />
         </Route>
+        <Route path="join/:token" element={<JoinPage />} />
         <Route path="calls" element={<CallsPage filter="all" />} />
         <Route path="calls/missed" element={<CallsPage filter="missed" />} />
         <Route path="contacts/following" element={<FollowListPage which="following" />} />
@@ -222,6 +226,7 @@ export function AppRoutes() {
         <Route path="settings/appearance/density" element={<AppearanceSettings section="density" />} />
         <Route path="settings/chats/input" element={<ChatSettings section="input" />} />
         <Route path="settings/chats/media" element={<ChatSettings section="media" />} />
+        <Route path="settings/chats/wallpaper" element={<ChatSettings section="wallpaper" />} />
         <Route path="settings/data" element={<DataSettings />} />
         <Route path="settings/language" element={<LanguageSettings />} />
         <Route path="settings/accessibility" element={<AccessibilitySettings />} />

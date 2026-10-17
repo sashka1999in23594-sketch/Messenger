@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Hash, Search, TrendingUp } from 'lucide-react';
-import type { SearchResults } from '@omni/shared';
+import { Hash, MessageCircle, Search, TrendingUp } from 'lucide-react';
+import type { MessageSearchHit, SearchResults } from '@omni/shared';
 import { api } from '../../shared/api/client';
 import { useDebounced } from '../../shared/hooks';
-import { cn, members } from '../../shared/lib/format';
+import { chatTime, cn, members } from '../../shared/lib/format';
 import { Avatar, EmptyState, ListSkeleton, PageHeader, UserRow } from '../../shared/ui';
 import { FollowButton, TrendsBox, WhoToFollow } from '../feed';
 import { PostCard } from '../posts/PostCard';
@@ -18,7 +18,47 @@ const TYPES = [
   { id: 'chats', label: 'Каналы' },
   { id: 'communities', label: 'Сообщества' },
   { id: 'hashtags', label: 'Хэштеги' },
+  { id: 'messages', label: 'Сообщения' },
 ] as const;
+
+/** Фрагмент вокруг первого совпадения с подсветкой найденных слов */
+function Snippet({ text, q }: { text: string; q: string }) {
+  const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const lower = text.toLowerCase();
+  const first = Math.min(...terms.map((t) => lower.indexOf(t)).filter((i) => i >= 0), text.length);
+  const start = first > 60 ? first - 40 : 0;
+  const cut = (start ? '…' : '') + text.slice(start, start + 200) + (text.length > start + 200 ? '…' : '');
+  const re = new RegExp(`(${terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+  return (
+    <>
+      {cut.split(re).map((part, i) => (i % 2 ? <mark key={i} className="search-mark">{part}</mark> : part))}
+    </>
+  );
+}
+
+function MessageHits({ hits, q }: { hits: MessageSearchHit[]; q: string }) {
+  return (
+    <>
+      {hits.map(({ message: m, chat }) => (
+        <Link key={m.id} className="list-item" to={`/chats/${chat.id}?m=${m.seq}`}>
+          <Avatar src={chat.avatarUrl} name={chat.title} id={chat.id} size={44} />
+          <span className="list-item__body">
+            <span className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
+              <span className="list-item__title ellipsis">{chat.title}</span>
+              <span className="xs faint" style={{ flex: '0 0 auto' }}>
+                {chatTime(m.createdAt)}
+              </span>
+            </span>
+            <span className="list-item__sub clamp-2">
+              {m.sender && chat.type !== 'direct' && <b>{m.sender.displayName.split(' ')[0]}: </b>}
+              <Snippet text={m.text ?? ''} q={q} />
+            </span>
+          </span>
+        </Link>
+      ))}
+    </>
+  );
+}
 
 export function SearchPage() {
   const [params, setParams] = useSearchParams();
@@ -34,16 +74,26 @@ export function SearchPage() {
   const res = useQuery({
     queryKey: ['search', debounced, type],
     queryFn: () => api.get<SearchResults>(`/search?q=${encodeURIComponent(debounced)}&type=${type}&limit=${type === 'all' ? 6 : 30}`),
-    enabled: debounced.length > 0,
+    enabled: debounced.length > 0 && type !== 'messages',
   });
-  const r = res.data;
-  const empty = r && !r.users.length && !r.posts.length && !r.chats.length && !r.communities.length && !r.hashtags.length;
+  const withMessages = type === 'all' || type === 'messages';
+  const msgs = useQuery({
+    queryKey: ['search-messages', debounced],
+    queryFn: () => api.get<{ items: MessageSearchHit[] }>(`/messages/search?q=${encodeURIComponent(debounced)}`),
+    enabled: debounced.length > 1 && withMessages,
+  });
+  const hits = withMessages ? (msgs.data?.items ?? []) : [];
+  const r = type === 'messages' ? undefined : res.data;
+  const empty =
+    type === 'messages'
+      ? msgs.data && !hits.length
+      : r && !r.users.length && !r.posts.length && !r.chats.length && !r.communities.length && !r.hashtags.length && !hits.length;
   return (
     <div className="scroll">
       <div className="page">
         <div className="input-group" style={{ marginBottom: 12 }}>
           <Search size={18} className="input-group__icon" />
-          <input className="input" style={{ minHeight: 50, fontSize: 'var(--fs-lg)', borderRadius: 999 }} placeholder="Поиск людей, публикаций, каналов, #тегов" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
+          <input className="input" style={{ minHeight: 50, fontSize: 'var(--fs-lg)', borderRadius: 999 }} placeholder="Люди, публикации, каналы, #теги и сообщения" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
         </div>
         <div className="chips" style={{ marginBottom: 16 }}>
           {TYPES.map((t) => (
@@ -57,14 +107,27 @@ export function SearchPage() {
             <TrendsBox />
             <WhoToFollow />
           </div>
-        ) : res.isLoading ? (
+        ) : (type === 'messages' ? msgs.isLoading : res.isLoading) ? (
           <ListSkeleton />
         ) : empty ? (
           <EmptyState icon={<Search size={28} />} title={`По запросу «${debounced}» ничего нет`} text="Проверьте написание или попробуйте другие слова" />
         ) : (
-          r && (
+          (r || hits.length > 0) && (
             <div className="col gap-4">
-              {r.users.length > 0 && (
+              {hits.length > 0 && (
+                <div className="panel">
+                  <div className="panel__title row">
+                    <MessageCircle size={14} /> Сообщения в ваших чатах
+                  </div>
+                  <MessageHits hits={type === 'all' ? hits.slice(0, 5) : hits} q={debounced} />
+                  {type === 'all' && hits.length > 5 && (
+                    <button type="button" className="list-item muted small" style={{ justifyContent: 'center' }} onClick={() => setParams({ q: debounced, type: 'messages' })}>
+                      Все совпадения в сообщениях ({hits.length})
+                    </button>
+                  )}
+                </div>
+              )}
+              {r && r.users.length > 0 && (
                 <div className="panel">
                   <div className="panel__title">Люди</div>
                   {r.users.map((u) => (
@@ -72,7 +135,7 @@ export function SearchPage() {
                   ))}
                 </div>
               )}
-              {r.hashtags.length > 0 && (
+              {r && r.hashtags.length > 0 && (
                 <div className="panel">
                   <div className="panel__title">Хэштеги</div>
                   {r.hashtags.map((h) => (
@@ -86,7 +149,7 @@ export function SearchPage() {
                   ))}
                 </div>
               )}
-              {r.chats.length > 0 && (
+              {r && r.chats.length > 0 && (
                 <div className="panel">
                   <div className="panel__title">Каналы и группы</div>
                   {r.chats.map((c) => (
@@ -102,7 +165,7 @@ export function SearchPage() {
                   ))}
                 </div>
               )}
-              {r.communities.length > 0 && (
+              {r && r.communities.length > 0 && (
                 <div className="panel">
                   <div className="panel__title">Сообщества</div>
                   {r.communities.map((c) => (
@@ -118,7 +181,7 @@ export function SearchPage() {
                   ))}
                 </div>
               )}
-              {r.posts.length > 0 && (
+              {r && r.posts.length > 0 && (
                 <div className="panel">
                   <div className="panel__title">Публикации</div>
                   {r.posts.map((p) => (
