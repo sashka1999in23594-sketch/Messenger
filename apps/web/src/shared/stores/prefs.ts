@@ -60,6 +60,8 @@ interface PrefsState {
   spellcheck: boolean;
   /** Куда попадать при открытии приложения */
   startPage: StartPage;
+  /** Режим «Пространство»: окна на бесконечном поле вместо обычного интерфейса */
+  spaceMode?: boolean;
   sounds: SoundPrefs;
   quietHours: QuietHours;
   /** Системные уведомления, когда вкладка в фоне */

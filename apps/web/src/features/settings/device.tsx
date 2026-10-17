@@ -1,10 +1,13 @@
 /** Настройки этого устройства: звуки, «Не беспокоить», шрифт и углы, поведение, энергосбережение. */
 import { useState } from 'react';
-import { BatteryCharging, BellRing, Gauge, Home, Moon, Play, Type, Volume2 } from 'lucide-react';
+import { BatteryCharging, BellRing, Gauge, Hand, Home, Maximize2, Minus, Moon, MousePointer2, Orbit, Play, RotateCcw, Type, Volume2, X } from 'lucide-react';
 import { playSound } from '../../shared/lib/sounds';
 import { isQuietNow, usePrefs, type Corners, type FontFamily, type StartPage } from '../../shared/stores/prefs';
 import { cn } from '../../shared/lib/format';
 import { Button, Notice, SettingRow, Switch } from '../../shared/ui';
+import { useMediaQuery } from '../../shared/hooks';
+import { toast } from '../../shared/stores/ui';
+import { useDesktop } from '../desktop/store';
 import { Panel, SettingsPage } from './common';
 
 export function SoundsSettings() {
@@ -217,6 +220,44 @@ export function PowerSettings() {
         <SettingRow title="Экономия трафика" description="Не загружать видео заранее" control={<Switch checked={prefs.dataSaver} onChange={(v) => prefs.set({ dataSaver: v })} label="Экономия трафика" />} />
       </Panel>
       <Notice icon={<BellRing size={16} />}>Звуки и уведомления не зависят от режима экономии — их можно настроить в разделе «Уведомления».</Notice>
+    </SettingsPage>
+  );
+}
+
+/** «Пространство»: окна разделов на поле с точками — как рабочий стол компьютера. */
+export function SpaceModeSettings() {
+  const prefs = usePrefs();
+  const wide = useMediaQuery('(min-width: 900px)');
+  const reset = () => {
+    useDesktop.getState().reset();
+    toast({ text: 'Расположение окон сброшено', kind: 'success' });
+  };
+  return (
+    <SettingsPage title="Пространство" subtitle="Окна разделов на бесконечном поле — как рабочий стол компьютера" icon={<Orbit size={22} />}>
+      {!wide && <Notice kind="warning">Пространство работает на экранах от 900 пикселей — на планшете в альбомной ориентации и на компьютере.</Notice>}
+      <Panel>
+        <SettingRow
+          icon={<Orbit size={18} />}
+          tile="tile-violet"
+          title="Включить Пространство"
+          description="Слева — разделы, по центру — поле с окнами. Обычный интерфейс вернётся одной кнопкой"
+          control={<Switch checked={!!prefs.spaceMode} disabled={!wide} onChange={(v) => prefs.set({ spaceMode: v })} label="Пространство" />}
+        />
+      </Panel>
+      <Panel title="Как пользоваться">
+        <SettingRow icon={<MousePointer2 size={18} />} tile="tile-blue" title="Колесо мыши на пустом поле" description="Приблизить и отдалить. Ctrl и колесо — масштаб в любом месте, Ctrl 0 — вернуть 100%" />
+        <SettingRow icon={<Hand size={18} />} tile="tile-cyan" title="Перетаскивание и два пальца" description="Тяните пустое место, чтобы двигать поле. Сведите или разведите пальцы — масштаб" />
+        <SettingRow icon={<Minus size={18} />} tile="tile-green" title="Свернуть" description="Окно уходит в панель слева и остаётся открытым — нажмите на раздел, чтобы вернуть" />
+        <SettingRow icon={<Maximize2 size={18} />} tile="tile-orange" title="На весь экран" description="Кнопка в заголовке или двойной щелчок по нему. Края окна можно тянуть" />
+        <SettingRow icon={<X size={18} />} tile="tile-red" title="Закрыть" description="Shift и щелчок по разделу — открыть ещё одно окно того же раздела" />
+      </Panel>
+      <Panel footer="Окна, их размеры и масштаб запоминаются на этом устройстве.">
+        <div style={{ padding: 16 }}>
+          <Button variant="secondary" icon={<RotateCcw size={16} />} onClick={reset}>
+            Сбросить расположение окон
+          </Button>
+        </div>
+      </Panel>
     </SettingsPage>
   );
 }

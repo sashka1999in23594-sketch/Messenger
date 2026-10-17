@@ -17,6 +17,7 @@ interface Entry {
 /** Отдельные настройки внутри страниц */
 const ITEMS: [title: string, path: string, where: string, keywords?: string][] = [
   ['Тёмная и светлая тема', '/settings/appearance/theme', 'Оформление', 'ночь день система'],
+  ['Режим «Пространство»', '/settings/space', 'Пространство', 'окна рабочий стол масштаб колесо'],
   ['Палитра «северного сияния»', '/settings/appearance/theme', 'Оформление', 'закат океан лес сакура'],
   ['Цвет акцента', '/settings/appearance/accent', 'Оформление', 'цвет кнопок'],
   ['Матовое стекло', '/settings/power', 'Энергосбережение', 'прозрачность размытие blur'],

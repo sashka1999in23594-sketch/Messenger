@@ -179,7 +179,7 @@ export function ChatList({
               <MenuIcon size={22} />
             </IconButton>
           </span>
-          <span className="desktop-only">
+          <span className="desktop-only shell-nav-toggle">
             <IconButton label="Разделы мессенджера" onClick={() => setNavOpen(true)}>
               <PanelLeftOpen size={20} />
             </IconButton>

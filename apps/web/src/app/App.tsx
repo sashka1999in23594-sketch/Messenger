@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter } from 'react-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '../shared/api/query';
 import { applyPrefs, usePrefs } from '../shared/stores/prefs';
+import { useMediaQuery } from '../shared/hooks';
 import { useSession } from '../shared/stores/session';
 import { Aurora, ConfirmHost, Loading, Toasts } from '../shared/ui';
 import { AuthPage } from '../features/auth/AuthPage';
@@ -34,28 +35,42 @@ function PrefsSync() {
   return null;
 }
 
+const Desktop = lazy(() => import('../features/desktop/Desktop').then((m) => ({ default: m.Desktop })));
+
 function Gate() {
   const status = useSession((s) => s.status);
   const onboarded = useSession((s) => s.me?.onboarded ?? true);
+  // «Пространство» — только на экранах, где помещаются окна (планшет и компьютер)
+  const spaceMode = usePrefs((s) => s.spaceMode ?? false);
+  const wide = useMediaQuery('(min-width: 900px)');
   useEffect(() => {
     void bootstrapSession();
   }, []);
   if (status === 'loading') return <Loading label="SpaceUp загружается…" />;
-  if (status === 'guest') return <AuthPage />;
-  if (!onboarded) return <Onboarding />;
-  return <AppRoutes />;
+  if (status === 'guest') return <BrowserRouter><AuthPage /></BrowserRouter>;
+  if (!onboarded) return <BrowserRouter><Onboarding /></BrowserRouter>;
+  // У каждого окна свой роутер, поэтому рабочий стол живёт вне общего BrowserRouter
+  if (spaceMode && wide)
+    return (
+      <Suspense fallback={<Loading label="Открываем Пространство…" />}>
+        <Desktop />
+      </Suspense>
+    );
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
 }
 
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <PrefsSync />
-        <Aurora />
-        <Gate />
-        <Toasts />
-        <ConfirmHost />
-      </BrowserRouter>
+      <PrefsSync />
+      <Aurora />
+      <Gate />
+      <Toasts />
+      <ConfirmHost />
     </QueryClientProvider>
   );
 }

@@ -50,6 +50,7 @@ import {
   MessageSquare,
   MessagesSquare,
   Newspaper,
+  Orbit,
   Palette,
   PenLine,
   Phone,
@@ -431,6 +432,7 @@ export const sections: NavSection[] = [
           { id: 'settings.appearance.font', label: 'Шрифт и углы', icon: Type, path: '/settings/appearance/font', keywords: ['шрифт', 'скругление', 'засечки'] },
         ],
       },
+      { id: 'settings.space', label: 'Пространство', icon: Orbit, path: '/settings/space', keywords: ['окна', 'рабочий стол', 'масштаб', 'режим', 'поле'] },
       { id: 'settings.behavior', label: 'Поведение', icon: Gauge, path: '/settings/behavior', keywords: ['стартовая страница', 'орфография', 'enter', 'эмодзи'] },
       { id: 'settings.power', label: 'Энергосбережение', icon: BatteryCharging, path: '/settings/power', keywords: ['батарея', 'экономия', 'анимации'] },
       {

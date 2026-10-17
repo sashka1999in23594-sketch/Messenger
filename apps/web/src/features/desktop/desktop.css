@@ -1,0 +1,281 @@
+/* ─── «Пространство»: док слева, поле с точками, окна ───────────────────── */
+.desk {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  overflow: hidden;
+  user-select: none;
+}
+.desk__field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  background-image: radial-gradient(circle, var(--desk-dot) 1.2px, transparent 1.6px);
+}
+.desk__field:active {
+  cursor: grabbing;
+}
+.desk__world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  transform-origin: 0 0;
+}
+.desk__hint {
+  position: absolute;
+  left: 50%;
+  bottom: 32px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(640px, 90%);
+  padding: 12px 18px;
+  border-radius: var(--radius-full);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-md);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  pointer-events: none;
+}
+
+/* ─── Док ─── */
+.dock {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 0;
+  z-index: 2;
+  background: var(--panel);
+  border-right: 1px solid var(--panel-border);
+  backdrop-filter: blur(var(--blur-strong)) saturate(1.5);
+  -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(1.5);
+}
+.dock__logo {
+  display: grid;
+  place-items: center;
+  margin-bottom: 6px;
+}
+.dock__apps {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.dock-app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 64px;
+  padding: 7px 0 5px;
+  border-radius: var(--radius-md);
+  color: var(--text-2);
+}
+.dock-app:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.dock-app__label {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.dock-app--running::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 8px;
+  margin-top: -4px;
+  border-radius: 0 3px 3px 0;
+  background: var(--text-3);
+}
+.dock-app--active {
+  color: var(--text);
+  background: var(--accent-soft);
+}
+.dock-app--active::before {
+  height: 22px;
+  margin-top: -11px;
+  background: var(--accent);
+}
+.dock-app__badge {
+  position: absolute;
+  top: 2px;
+  right: 8px;
+}
+.dock__tools {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.dock-tool {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+}
+.dock-tool:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.dock-tool--zoom {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Окна ─── */
+.desk-win {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-xl);
+  background: var(--bg-elevated-solid);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  user-select: text;
+  cursor: default;
+  touch-action: auto;
+}
+.desk-win[hidden] {
+  display: none;
+}
+.desk-win--max {
+  border-radius: 0;
+  border: 0;
+}
+.desk-win__bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 6px 0 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.desk-win__bar:active {
+  cursor: grabbing;
+}
+.desk-win--max .desk-win__bar {
+  cursor: default;
+}
+.desk-win__icon {
+  flex: 0 0 auto;
+  color: var(--accent-fg);
+}
+.desk-win__title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  color: var(--text);
+}
+.desk-win__controls {
+  display: flex;
+  gap: 2px;
+}
+.desk-win__btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+}
+.desk-win__btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.desk-win__btn:disabled {
+  opacity: 0.35;
+}
+.desk-win__btn--close:hover {
+  background: var(--danger) !important;
+  color: var(--accent-text) !important;
+}
+.desk-win__content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+/* Разделы внутри окна занимают окно целиком, без внешних отступов оболочки */
+.desk-win__content > .chats {
+  gap: 0;
+}
+.desk-win__content .chats__list,
+.desk-win__content .chats__detail,
+.desk-win__content .chats__info {
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.desk-win__grip {
+  position: absolute;
+  z-index: 2;
+  touch-action: none;
+}
+.desk-win__grip--e {
+  top: 42px;
+  right: 0;
+  bottom: 14px;
+  width: 8px;
+  cursor: ew-resize;
+}
+.desk-win__grip--w {
+  top: 42px;
+  left: 0;
+  bottom: 14px;
+  width: 8px;
+  cursor: ew-resize;
+}
+.desk-win__grip--s {
+  left: 14px;
+  right: 14px;
+  bottom: 0;
+  height: 8px;
+  cursor: ns-resize;
+}
+.desk-win__grip--se {
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+}
+.desk-win__grip--sw {
+  left: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  cursor: nesw-resize;
+}
+/* Кнопки оболочки (дерево разделов) в окне не нужны — разделы в доке */
+.desk-win .shell-nav-toggle {
+  display: none;
+}

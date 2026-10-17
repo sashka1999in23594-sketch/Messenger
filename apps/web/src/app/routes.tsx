@@ -1,4 +1,4 @@
-import { lazy, type ComponentType } from 'react';
+import { lazy, type ComponentType, type ReactElement } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { Shell } from './layout/Shell';
 import { ComingSoon } from '../features/misc/ComingSoon';
@@ -116,6 +116,7 @@ const QuietSettings = lazyNamed(settings, 'QuietSettings');
 const FontSettings = lazyNamed(settings, 'FontSettings');
 const BehaviorSettings = lazyNamed(settings, 'BehaviorSettings');
 const PowerSettings = lazyNamed(settings, 'PowerSettings');
+const SpaceModeSettings = lazyNamed(settings, 'SpaceModeSettings');
 
 /** Стартовая страница — из настроек «Поведение» (устаревшие значения ведут на главную) */
 function StartRedirect() {
@@ -123,10 +124,11 @@ function StartRedirect() {
   return <Navigate to={start && START_PAGES.includes(start) ? start : '/home'} replace />;
 }
 
-export function AppRoutes() {
+/** Все экраны приложения. layout — оболочка: обычная (Shell) или окно «Пространства». */
+export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
   return (
     <Routes>
-      <Route element={<Shell />}>
+      <Route element={layout ?? <Shell />}>
         <Route index element={<StartRedirect />} />
         {/* Главная — лента: зашёл и сразу листаешь */}
         <Route path="home" element={<FeedPage mode="" />} />
@@ -276,6 +278,7 @@ export function AppRoutes() {
         <Route path="settings/appearance/font" element={<FontSettings />} />
         <Route path="settings/behavior" element={<BehaviorSettings />} />
         <Route path="settings/power" element={<PowerSettings />} />
+        <Route path="settings/space" element={<SpaceModeSettings />} />
         <Route path="settings/appearance" element={<Navigate to="/settings/appearance/theme" replace />} />
         <Route path="settings/appearance/theme" element={<AppearanceSettings section="theme" />} />
         <Route path="settings/appearance/accent" element={<AppearanceSettings section="accent" />} />
