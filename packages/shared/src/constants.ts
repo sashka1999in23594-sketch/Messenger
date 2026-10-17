@@ -44,6 +44,19 @@ export const LIMITS = {
   voiceMaxSec: 600,
   roundMaxSec: 60,
   scheduledMax: 100,
+  statusTextMax: 70,
+  profileLinksMax: 5,
+  linkTitleMax: 40,
+  highlightsMax: 50,
+  highlightTitleMax: 32,
+  draftsMax: 100,
+  listsMax: 50,
+  listMembersMax: 500,
+  listNameMax: 40,
+  collectionsMax: 100,
+  mutedWordsMax: 200,
+  mutedWordMax: 60,
+  closeFriendsMax: 1000,
   /** Длина кода из письма */
   emailCodeLength: 6,
   /** Максимальный размер зашифрованного сообщения (base64) */
@@ -66,6 +79,9 @@ export const SECRET_TTL_OPTIONS = [0, 5, 30, 60, 300, 3600, 86400, 604800] as co
 export const SLOW_MODE_OPTIONS = [0, 10, 30, 60, 300, 900, 3600] as const;
 
 export const STORY_TTL_HOURS = 24;
+
+/** Быстрые реакции на истории */
+export const STORY_REACTIONS = ['❤️', '🔥', '😂', '😮', '😢', '👏'] as const;
 
 /** Поддерживаемые типы загружаемых файлов (проверяются по сигнатуре содержимого). */
 export const IMAGE_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const;

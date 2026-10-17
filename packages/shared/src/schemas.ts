@@ -220,6 +220,8 @@ export const notificationSettingsSchema = z
     reposts: z.boolean(),
     communities: z.boolean(),
     security: z.boolean(),
+    subscriptions: z.boolean(),
+    stories: z.boolean(),
     showPreviews: z.boolean(),
   })
   .partial();
@@ -421,6 +423,82 @@ export const viewSchema = z.object({ progressSec: z.number().min(0).max(86400 * 
 export const createStorySchema = z.object({
   mediaId: id,
   text: text(LIMITS.storyTextMax).optional(),
+  audience: z.enum(['all', 'close']).default('all'),
+  allowReplies: z.boolean().default(true),
+});
+
+const emojiSchema = z
+  .string()
+  .min(1)
+  .max(32)
+  .refine((v) => /^\p{Extended_Pictographic}/u.test(v), 'Нужен эмодзи');
+
+export const storyReactionSchema = z.object({ emoji: emojiSchema.nullable() });
+
+export const highlightSchema = z.object({
+  title: requiredText(LIMITS.highlightTitleMax),
+  storyIds: z.array(id).min(1, 'Выберите хотя бы одну историю').max(100),
+  coverStoryId: id.nullable().optional(),
+});
+
+export const closeFriendsSchema = z.object({ userIds: z.array(id).max(LIMITS.closeFriendsMax) });
+
+// ─── Профиль: статус, ссылки, закреп ────────────────────────────────────────
+
+export const statusSchema = z.object({
+  emoji: emojiSchema,
+  text: text(LIMITS.statusTextMax).default(''),
+  /** Через сколько часов снять статус (0 — не снимать) */
+  durationHours: z.number().int().min(0).max(24 * 30).default(0),
+});
+
+export const profileLinksSchema = z.object({
+  links: z
+    .array(
+      z.object({
+        title: text(LIMITS.linkTitleMax).default(''),
+        url: httpUrl.refine((v) => v !== '', 'Укажите ссылку'),
+      }),
+    )
+    .max(LIMITS.profileLinksMax, `Не более ${LIMITS.profileLinksMax} ссылок`),
+});
+
+export const pinPostSchema = z.object({ postId: id.nullable() });
+
+// ─── Черновики, списки, коллекции, скрытые слова ────────────────────────────
+
+export const draftSchema = z.object({
+  kind: z.enum(['note', 'photo', 'video', 'short']).default('note'),
+  text: text(LIMITS.postMax).default(''),
+  title: text(LIMITS.titleMax).optional(),
+  mediaIds: z.array(id).max(LIMITS.mediaPerPost).default([]),
+  visibility: z.enum(['public', 'followers', 'private']).default('public'),
+  commentsDisabled: z.boolean().default(false),
+  /** Опубликовать в это время (ISO). null/не указано — просто черновик */
+  publishAt: z.string().datetime({ offset: true }).nullable().optional(),
+});
+export type DraftInput = z.infer<typeof draftSchema>;
+
+export const userListSchema = z.object({
+  name: requiredText(LIMITS.listNameMax),
+  description: text(300).default(''),
+  emoji: z.string().trim().max(16).default('📋'),
+  isPrivate: z.boolean().default(true),
+});
+
+export const listMembersSchema = z.object({ userIds: z.array(id).min(1).max(100) });
+
+export const collectionSchema = z.object({
+  name: requiredText(LIMITS.listNameMax),
+  emoji: z.string().trim().max(16).default('🔖'),
+});
+
+export const collectionItemSchema = z.object({ postId: id });
+
+export const mutedWordSchema = z.object({
+  word: requiredText(LIMITS.mutedWordMax).transform((v) => v.toLowerCase()),
+  /** Срок в часах (0 — навсегда) */
+  durationHours: z.number().int().min(0).max(24 * 365).default(0),
 });
 
 export const createPlaylistSchema = z.object({

@@ -19,6 +19,8 @@ const TEXT: Record<NotificationType, string> = {
   mention: 'упомянул(а) вас',
   repost: 'сделал(а) репост',
   community_join: 'вступил(а) в ваше сообщество',
+  new_post: 'опубликовал(а) новое',
+  story_reaction: 'отреагировал(а) на вашу историю',
   security: 'Безопасность',
 };
 
@@ -32,6 +34,8 @@ const ICON: Record<NotificationType, React.ReactNode> = {
   mention: <AtSign size={16} />,
   repost: <Repeat2 size={16} />,
   community_join: <Users size={16} />,
+  new_post: <Bell size={16} />,
+  story_reaction: <Heart size={16} />,
   security: <Shield size={16} />,
 };
 
@@ -104,6 +108,7 @@ export function NotificationsPage() {
             { to: '/notifications/mentions', label: 'Упоминания' },
             { to: '/notifications/replies', label: 'Ответы' },
             { to: '/notifications/likes', label: 'Отметки' },
+            { to: '/notifications/posts', label: 'Новое у авторов' },
             { to: '/notifications/follows', label: 'Подписчики' },
             { to: '/notifications/requests', label: 'Заявки', count: counters?.followRequests },
             { to: '/notifications/security', label: 'Безопасность' },

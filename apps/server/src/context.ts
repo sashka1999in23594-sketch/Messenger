@@ -32,6 +32,10 @@ import { SearchService } from './modules/search/search.service.js';
 import { StoriesService } from './modules/stories/stories.service.js';
 import { UsersRepo } from './modules/users/users.repo.js';
 import { UsersService } from './modules/users/users.service.js';
+import { CollectionsService } from './modules/social/collections.service.js';
+import { DraftsService } from './modules/social/drafts.service.js';
+import { ListsService } from './modules/social/lists.service.js';
+import { MutedWordsService } from './modules/social/muted-words.js';
 
 export function createServices(db: Db, config: Config, hub: RealtimeHub) {
   const media = new MediaService(db, config);
@@ -55,7 +59,11 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub) {
   const calls = new CallsService(db, callsRepo, chats, usersRepo, policy, hub);
   const posts = new PostsService(db, usersRepo, policy, media, notifications);
   const comments = new CommentsService(db, usersRepo, policy, posts, notifications);
-  const stories = new StoriesService(db, usersRepo, policy, media);
+  const drafts = new DraftsService(db, media, posts);
+  const lists = new ListsService(db, usersRepo, posts);
+  const collections = new CollectionsService(db, media, posts);
+  const mutedWords = new MutedWordsService(db);
+  const stories = new StoriesService(db, usersRepo, policy, media, notifications);
   const communities = new CommunitiesService(db, usersRepo, media, notifications);
   const search = new SearchService(db, usersRepo, posts, chats, communities);
   const reports = new ReportsService(db);
@@ -93,6 +101,10 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub) {
     scheduled,
     posts,
     comments,
+    drafts,
+    lists,
+    collections,
+    mutedWords,
     stories,
     communities,
     search,

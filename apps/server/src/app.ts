@@ -19,6 +19,7 @@ import { callsRoutes } from './modules/calls/calls.routes.js';
 import { keysRoutes } from './modules/keys/keys.routes.js';
 import { mediaRoutes } from './modules/media/media.routes.js';
 import { miscRoutes } from './modules/misc.routes.js';
+import { socialRoutes } from './modules/social/social.routes.js';
 import { postsRoutes } from './modules/posts/posts.routes.js';
 import { RealtimeHub } from './modules/realtime/hub.js';
 import { wsRoutes } from './modules/realtime/ws.routes.js';
@@ -76,6 +77,7 @@ export async function buildApp(config: Config, opts: { db?: Db } = {}): Promise<
       await api.register(postsRoutes);
       await api.register(mediaRoutes);
       await api.register(miscRoutes);
+      await api.register(socialRoutes);
       await api.register(wsRoutes);
     },
     { prefix: API_PREFIX },

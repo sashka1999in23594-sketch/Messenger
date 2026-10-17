@@ -1,7 +1,7 @@
 /** Маршруты небольших модулей: истории, сообщества, уведомления, поиск, жалобы, модерация. */
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { createCommunitySchema, createStorySchema, pagination, reportSchema, searchSchema } from '@omni/shared';
+import { closeFriendsSchema, createCommunitySchema, createStorySchema, highlightSchema, pagination, reportSchema, searchSchema, storyReactionSchema } from '@omni/shared';
 import { parse } from '../lib/errors.js';
 import { requireAuth, requireRole } from '../http/request.js';
 
@@ -21,8 +21,39 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
     return { ok: true };
   });
   app.get<P>('/stories/:id/viewers', async (req) => ({ items: stories.viewers(requireAuth(req).userId, req.params.id) }));
+  app.get<P>('/stories/:id', async (req) => stories.get(requireAuth(req).userId, req.params.id));
+  app.post<P>('/stories/:id/react', { config: { rateLimit: { max: 120, timeWindow: '1 minute' } } }, async (req) =>
+    stories.react(requireAuth(req).userId, req.params.id, parse(storyReactionSchema, req.body).emoji),
+  );
   app.delete<P>('/stories/:id', async (req) => {
     stories.remove(requireAuth(req).userId, req.params.id);
+    return { ok: true };
+  });
+  app.get('/me/stories/archive', async (req) => {
+    const q = parse(pagination, req.query);
+    return stories.archive(requireAuth(req).userId, q.cursor, q.limit);
+  });
+
+  // «Актуальное»
+  app.get<P>('/users/:id/highlights', async (req) => ({ items: stories.highlights(requireAuth(req).userId, req.params.id) }));
+  app.get<P>('/highlights/:id', async (req) => stories.highlightStories(requireAuth(req).userId, req.params.id));
+  app.get<P>('/highlights/:id/story-ids', async (req) => ({ items: stories.highlightStoryIds(requireAuth(req).userId, req.params.id) }));
+  app.post('/highlights', async (req, reply) => reply.status(201).send(stories.createHighlight(requireAuth(req).userId, parse(highlightSchema, req.body))));
+  app.put<P>('/highlights/:id', async (req) => stories.updateHighlight(requireAuth(req).userId, req.params.id, parse(highlightSchema, req.body)));
+  app.delete<P>('/highlights/:id', async (req) => {
+    stories.deleteHighlight(requireAuth(req).userId, req.params.id);
+    return { ok: true };
+  });
+
+  // «Близкие друзья»
+  app.get('/me/close-friends', async (req) => ({ items: stories.closeFriends(requireAuth(req).userId) }));
+  app.post('/me/close-friends', async (req) => {
+    const userId = requireAuth(req).userId;
+    for (const id of parse(closeFriendsSchema, req.body).userIds) stories.setCloseFriend(userId, id, true);
+    return { items: stories.closeFriends(userId) };
+  });
+  app.delete<P>('/me/close-friends/:id', async (req) => {
+    stories.setCloseFriend(requireAuth(req).userId, req.params.id, false);
     return { ok: true };
   });
 
@@ -63,7 +94,7 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // ─── Уведомления ──────────────────────────────────────────────────────────
-  const notifQuery = pagination.extend({ filter: z.enum(['all', 'mentions', 'replies', 'follows', 'likes', 'security']).default('all') });
+  const notifQuery = pagination.extend({ filter: z.enum(['all', 'mentions', 'replies', 'follows', 'likes', 'posts', 'security']).default('all') });
   app.get('/notifications', async (req) => {
     const q = parse(notifQuery, req.query);
     return notifications.list(requireAuth(req).userId, q.filter, q.cursor, q.limit);

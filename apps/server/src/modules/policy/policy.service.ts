@@ -98,6 +98,25 @@ export class Policy {
     return true;
   }
 
+  /** viewer в списке «Близкие друзья» у owner */
+  isCloseFriend(ownerId: string, viewerId: string): boolean {
+    return !!this.db.get('SELECT 1 FROM close_friends WHERE owner_id = :o AND friend_id = :v', { o: ownerId, v: viewerId });
+  }
+
+  /** История видна: доступен контент автора, а «для близких» — только близким друзьям */
+  canViewStory(viewerId: string, author: UserRow, audience: string): boolean {
+    if (viewerId === author.id) return true;
+    if (!this.canViewContent(viewerId, author)) return false;
+    return audience !== 'close' || this.isCloseFriend(author.id, viewerId);
+  }
+
+  /** SQL-условие видимости историй (таблица stories s). Параметр :v обязателен. */
+  static visibleStoriesSql(): string {
+    return `(s.author_id = :v OR (
+      s.audience = 'all' OR EXISTS (SELECT 1 FROM close_friends cf WHERE cf.owner_id = s.author_id AND cf.friend_id = :v)
+    ))`;
+  }
+
   canViewCommunity(viewerId: string, communityId: string): boolean {
     const row = this.db.get<{ visibility: string; member: number }>(
       `SELECT c.visibility, EXISTS(SELECT 1 FROM community_members m WHERE m.community_id = c.id AND m.user_id = :v) AS member

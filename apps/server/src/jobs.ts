@@ -19,6 +19,7 @@ export function startJobs(app: FastifyInstance): () => void {
 
   every(5_000, 'expire-messages', () => services.chats.sweepExpired());
   every(10_000, 'scheduled-messages', () => services.scheduled.sendDue((err) => app.log.warn({ err }, 'scheduled message failed')));
+  every(30_000, 'scheduled-posts', () => services.drafts.publishDue((err) => app.log.warn({ err }, 'scheduled post failed')));
   every(3600_000, 'purge-sessions', () => services.sessions.purgeExpired());
   every(3600_000, 'purge-stories', () => services.stories.purgeExpired());
   every(600_000, 'purge-login-challenges', () => db.run('DELETE FROM login_challenges WHERE expires_at < :now', { now: Date.now() }).changes);

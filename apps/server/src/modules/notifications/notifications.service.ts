@@ -30,6 +30,8 @@ const PREF_FOR: Record<NotificationType, keyof ReturnType<typeof notificationPre
   mention: 'mentions',
   repost: 'reposts',
   community_join: 'communities',
+  new_post: 'subscriptions',
+  story_reaction: 'stories',
   security: 'security',
 };
 
@@ -113,7 +115,8 @@ export class NotificationService {
       mentions: ['mention'],
       replies: ['comment', 'reply'],
       follows: ['follow', 'follow_request', 'follow_accepted'],
-      likes: ['like', 'repost'],
+      likes: ['like', 'repost', 'story_reaction'],
+      posts: ['new_post'],
       security: ['security'],
     };
     const filterTypes = types[filter];

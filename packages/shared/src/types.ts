@@ -56,6 +56,29 @@ export interface UserProfile extends UserSummary {
   /** Можно ли смотреть посты (закрытый профиль без подписки — нельзя) */
   canViewContent: boolean;
   canMessage: boolean;
+  status: UserStatus | null;
+  links: ProfileLink[];
+  pinnedPostId: ID | null;
+  /** Ваши подписки, которые тоже подписаны на этого человека */
+  mutualFollowers: { count: number; sample: UserSummary[] };
+  /** Вы получаете уведомления о его новых публикациях («колокольчик») */
+  subscribed: boolean;
+  /** Он в вашем списке «Близкие друзья» */
+  closeFriend: boolean;
+  /** Кольцо историй вокруг аватара: есть непросмотренные / все просмотрены / нет историй */
+  storyRing: 'unseen' | 'seen' | null;
+}
+
+/** Статус рядом с именем: эмодзи + короткий текст, можно на время. */
+export interface UserStatus {
+  emoji: string;
+  text: string;
+  until: ISODate | null;
+}
+
+export interface ProfileLink {
+  title: string;
+  url: string;
 }
 
 export interface Presence {
@@ -82,6 +105,10 @@ export interface NotificationSettings {
   reposts: boolean;
   communities: boolean;
   security: boolean;
+  /** Новые публикации авторов с «колокольчиком» */
+  subscriptions: boolean;
+  /** Реакции на ваши истории */
+  stories: boolean;
   showPreviews: boolean;
 }
 
@@ -103,6 +130,9 @@ export interface Me extends UserSummary {
   privacy: PrivacySettings;
   notifications: NotificationSettings;
   counters: Counters;
+  status: UserStatus | null;
+  links: ProfileLink[];
+  pinnedPostId: ID | null;
 }
 
 /** Какие письма присылать на почту. */
@@ -432,6 +462,8 @@ export interface Post {
   commentsDisabled: boolean;
   stats: PostStats;
   viewer: PostViewerState;
+  /** Закреплён в профиле автора (только во вкладке профиля) */
+  pinned?: boolean;
   createdAt: ISODate;
   editedAt: ISODate | null;
 }
@@ -450,6 +482,8 @@ export interface Comment {
   deleted: boolean;
 }
 
+export type StoryAudience = 'all' | 'close';
+
 export interface Story {
   id: ID;
   author: UserSummary;
@@ -457,9 +491,81 @@ export interface Story {
   text: string | null;
   createdAt: ISODate;
   expiresAt: ISODate;
+  /** Срок истёк — история видна только в архиве и «Актуальном» */
+  expired: boolean;
   viewed: boolean;
+  /** «Все подписчики» или только «Близкие друзья» */
+  audience: StoryAudience;
+  allowReplies: boolean;
+  /** Ваша реакция на чужую историю */
+  myReaction: string | null;
   /** Только для своих историй */
   viewCount: number | null;
+  reactionCount: number | null;
+}
+
+export interface StoryViewerInfo {
+  user: UserSummary;
+  reaction: string | null;
+  viewedAt: ISODate;
+}
+
+/** «Актуальное» в профиле — подборка историй, которая не исчезает. */
+export interface StoryHighlight {
+  id: ID;
+  title: string;
+  cover: MediaItem | null;
+  count: number;
+  createdAt: ISODate;
+}
+
+export interface PostDraft {
+  id: ID;
+  kind: PostKind;
+  title: string | null;
+  text: string;
+  media: MediaItem[];
+  visibility: Visibility;
+  commentsDisabled: boolean;
+  /** Запланированная публикация; null — обычный черновик */
+  publishAt: ISODate | null;
+  /** Почему не удалось опубликовать по расписанию */
+  error: string | null;
+  createdAt: ISODate;
+  updatedAt: ISODate;
+}
+
+/** Список авторов со своей лентой (как списки в X). */
+export interface UserList {
+  id: ID;
+  name: string;
+  description: string;
+  emoji: string;
+  isPrivate: boolean;
+  memberCount: number;
+  owner: UserSummary;
+  /** Есть ли в списке человек, о котором спрашивали (?memberOf=) */
+  hasMember?: boolean;
+  createdAt: ISODate;
+}
+
+/** Коллекция сохранённых публикаций. */
+export interface Collection {
+  id: ID;
+  name: string;
+  emoji: string;
+  count: number;
+  cover: MediaItem | null;
+  /** Есть ли в коллекции публикация, о которой спрашивали (?postId=) */
+  hasPost?: boolean;
+  createdAt: ISODate;
+}
+
+export interface MutedWord {
+  id: ID;
+  word: string;
+  until: ISODate | null;
+  createdAt: ISODate;
 }
 
 export interface StoryGroup {
@@ -516,13 +622,15 @@ export type NotificationType =
   | 'mention'
   | 'repost'
   | 'community_join'
+  | 'new_post'
+  | 'story_reaction'
   | 'security';
 
 export interface AppNotification {
   id: ID;
   type: NotificationType;
   actor: UserSummary | null;
-  entityType: 'post' | 'comment' | 'user' | 'community' | 'session' | 'message' | 'call' | null;
+  entityType: 'post' | 'comment' | 'user' | 'community' | 'session' | 'message' | 'call' | 'story' | null;
   entityId: ID | null;
   /** Ссылка внутри приложения, куда ведёт уведомление */
   link: string | null;

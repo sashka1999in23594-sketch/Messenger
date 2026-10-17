@@ -5,7 +5,7 @@
  * поэтому новый формат (например, аудио или прямые эфиры) добавляется без
  * переделки остальных модулей.
  */
-import type { CreatePostInput, Hashtag, HistoryEntry, MediaKind, Paginated, Playlist, Post, PostKind } from '@omni/shared';
+import type { CreatePostInput, Hashtag, HistoryEntry, MediaKind, Paginated, Playlist, Post, PostKind, UserSummary } from '@omni/shared';
 import { extractHashtags, extractMentions } from '@omni/shared';
 import type { Db } from '../../db/index.js';
 import { bool, Db as DbClass, iso, isoOrNull } from '../../db/index.js';
@@ -14,6 +14,7 @@ import { newId } from '../../lib/ids.js';
 import type { MediaService } from '../media/media.service.js';
 import type { NotificationService } from '../notifications/notifications.service.js';
 import { Policy } from '../policy/policy.service.js';
+import { mutedWordsFilter } from '../social/muted-words.js';
 import { privacyOf, type UsersRepo } from '../users/users.repo.js';
 import { offsetCursor } from '../users/users.service.js';
 
@@ -45,7 +46,7 @@ const MEDIA_RULES: Record<PostKind, { kinds: MediaKind[]; min: number; max: numb
   short: { kinds: ['video'], min: 1, max: 1 },
 };
 
-const BASE_FROM = `FROM posts p JOIN users u ON u.id = p.author_id LEFT JOIN communities c ON c.id = p.community_id`;
+export const BASE_FROM = `FROM posts p JOIN users u ON u.id = p.author_id LEFT JOIN communities c ON c.id = p.community_id`;
 /** Вовлечённость с затуханием по времени (как в HN/Reddit): свежие и обсуждаемые — выше. */
 const SCORE_SQL = `((p.like_count * 2.0 + p.comment_count * 3.0 + p.repost_count * 4.0 + p.view_count * 0.05 + 1.0)
   * (CASE WHEN EXISTS (SELECT 1 FROM follows ff WHERE ff.follower_id = :viewer AND ff.followee_id = p.author_id AND ff.status = 'accepted') THEN 1.7 ELSE 1.0 END)
@@ -111,7 +112,37 @@ export class PostsService {
       if (input.communityId) this.db.run('UPDATE communities SET post_count = post_count + 1 WHERE id = :c', { c: input.communityId });
     });
     this.notifyMentions(userId, id, input.text);
+    this.notifySubscribers(userId, id, input.title || input.text);
     return this.get(userId, id);
+  }
+
+  /** «Колокольчик»: подписчикам на уведомления — о новой публикации (если она им видна) */
+  private notifySubscribers(authorId: string, postId: string, preview: string): void {
+    const post = this.row(postId);
+    const author = this.users.byId(authorId);
+    if (!post || !author) return;
+    const subs = this.db.all<{ user_id: string }>('SELECT user_id FROM post_subscriptions WHERE author_id = :a LIMIT 5000', { a: authorId });
+    for (const { user_id } of subs) {
+      if (!this.policy.canViewPost(user_id, post, author)) continue;
+      this.notifications.notify({ userId: user_id, type: 'new_post', actorId: authorId, entityType: 'post', entityId: postId, link: `/post/${postId}`, preview });
+    }
+  }
+
+  /** Кто оценил публикацию (видят все, кому видна публикация) */
+  likers(viewerId: string, postId: string, cursor: string | undefined, limit: number): Paginated<UserSummary> {
+    this.viewable(viewerId, postId);
+    const rows = this.db.all<{ user_id: string; created_at: number }>(
+      `SELECT l.user_id, l.created_at FROM post_likes l JOIN users u ON u.id = l.user_id AND u.deleted_at IS NULL
+       WHERE l.post_id = :p AND (:cursor IS NULL OR l.created_at < :cursor)
+         AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = :v AND b.blocked_id = l.user_id) OR (b.blocker_id = l.user_id AND b.blocked_id = :v))
+       ORDER BY l.created_at DESC LIMIT :limit`,
+      { p: postId, v: viewerId, cursor: cursor ? Number(cursor) : null, limit: limit + 1 },
+    );
+    const map = this.users.summaries(rows.map((r) => r.user_id));
+    return {
+      items: rows.slice(0, limit).map((r) => map.get(r.user_id)).filter((u): u is UserSummary => !!u),
+      nextCursor: rows.length > limit ? String(rows[limit - 1]!.created_at) : null,
+    };
   }
 
   private repost(userId: string, originalId: string, text: string, visibility: Post['visibility']): Post {
@@ -230,6 +261,7 @@ export class PostsService {
       this.db.run('DELETE FROM post_hashtags WHERE post_id = :id', { id });
       if (p.repost_of_id) this.db.run('UPDATE posts SET repost_count = max(repost_count - 1, 0) WHERE id = :o', { o: p.repost_of_id });
       if (p.community_id) this.db.run('UPDATE communities SET post_count = max(post_count - 1, 0) WHERE id = :c', { c: p.community_id });
+      this.db.run('UPDATE users SET pinned_post_id = NULL WHERE pinned_post_id = :id', { id });
     });
   }
 
@@ -308,8 +340,9 @@ export class PostsService {
   }
 
   feed(viewerId: string, mode: FeedMode, kind: PostKind | 'all', cursor: string | undefined, limit: number): Paginated<Post> {
-    const params: Record<string, unknown> = { viewer: viewerId, now: Date.now(), kind: kind === 'all' ? null : kind, limit: limit + 1 };
-    const kindSql = '(:kind IS NULL OR p.kind = :kind)';
+    const muted = mutedWordsFilter(this.db, viewerId);
+    const params: Record<string, unknown> = { ...muted.params, viewer: viewerId, now: Date.now(), kind: kind === 'all' ? null : kind, limit: limit + 1 };
+    const kindSql = `(:kind IS NULL OR p.kind = :kind) ${muted.sql}`;
     const visible = Policy.visiblePostsSql();
 
     if (mode === 'following' || mode === 'latest') {
@@ -373,11 +406,22 @@ export class PostsService {
         nextCursor: rows.length > limit ? String(rows[limit - 1]!.liked_at) : null,
       };
     }
+    // Закреплённая публикация — первой во вкладке «Публикации»
+    const pinnedId = tab === 'posts' ? author.pinned_post_id : null;
+    if (pinnedId) {
+      where += ' AND p.id != :pinned';
+      params.pinned = pinnedId;
+    }
     const rows = this.db.all<PostRow>(
       `SELECT p.* ${BASE_FROM} WHERE ${visible} AND ${where} AND (:cursor IS NULL OR p.id < :cursor) ORDER BY p.id DESC LIMIT :limit`,
       params,
     );
-    return { items: this.toDto(rows.slice(0, limit), viewerId), nextCursor: rows.length > limit ? (rows[limit - 1]?.id ?? null) : null };
+    const items = this.toDto(rows.slice(0, limit), viewerId);
+    if (pinnedId && !cursor) {
+      const pinnedRow = this.db.get<PostRow>(`SELECT p.* ${BASE_FROM} WHERE ${visible} AND p.id = :pinned AND p.author_id = :u`, params);
+      if (pinnedRow) items.unshift({ ...this.toDto([pinnedRow], viewerId)[0]!, pinned: true });
+    }
+    return { items, nextCursor: rows.length > limit ? (rows[limit - 1]?.id ?? null) : null };
   }
 
   communityPosts(viewerId: string, communityId: string, cursor: string | undefined, limit: number): Paginated<Post> {
@@ -440,6 +484,8 @@ export class PostsService {
       this.db.run('INSERT OR IGNORE INTO bookmarks (user_id, post_id, created_at) VALUES (:u, :p, :now)', { u: viewerId, p: postId, now: Date.now() });
     } else {
       this.db.run('DELETE FROM bookmarks WHERE user_id = :u AND post_id = :p', { u: viewerId, p: postId });
+      // Убрали из закладок — убираем и из коллекций
+      this.db.run('DELETE FROM collection_items WHERE post_id = :p AND collection_id IN (SELECT id FROM collections WHERE owner_id = :u)', { u: viewerId, p: postId });
     }
   }
 

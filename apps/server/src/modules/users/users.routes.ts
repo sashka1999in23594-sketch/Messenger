@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { emailPrefsSchema, notificationSettingsSchema, pagination, privacySettingsSchema, updateProfileSchema } from '@omni/shared';
+import { emailPrefsSchema, notificationSettingsSchema, pagination, pinPostSchema, privacySettingsSchema, profileLinksSchema, statusSchema, updateProfileSchema } from '@omni/shared';
 import { parse } from '../../lib/errors.js';
 import { requireAuth } from '../../http/request.js';
 
@@ -12,6 +12,19 @@ export async function usersRoutes(app: FastifyInstance): Promise<void> {
   app.patch('/me/profile', async (req) => {
     const auth = requireAuth(req);
     return services.users.updateProfile(auth.userId, parse(updateProfileSchema, req.body));
+  });
+
+  app.put('/me/status', async (req) => services.users.setStatus(requireAuth(req).userId, parse(statusSchema, req.body)));
+  app.delete('/me/status', async (req) => services.users.setStatus(requireAuth(req).userId, null));
+  app.put('/me/links', async (req) => services.users.setLinks(requireAuth(req).userId, parse(profileLinksSchema, req.body).links));
+  app.put('/me/pinned-post', async (req) => services.users.pinPost(requireAuth(req).userId, parse(pinPostSchema, req.body).postId));
+  app.post<{ Params: { id: string } }>('/users/:id/subscribe', async (req) => {
+    services.users.subscribe(requireAuth(req).userId, req.params.id, true);
+    return { ok: true };
+  });
+  app.delete<{ Params: { id: string } }>('/users/:id/subscribe', async (req) => {
+    services.users.subscribe(requireAuth(req).userId, req.params.id, false);
+    return { ok: true };
   });
 
   app.patch('/me/privacy', async (req) => {

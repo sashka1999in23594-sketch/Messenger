@@ -305,10 +305,52 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
         ['olga', 'photo-9.jpg'],
       ] as const) {
         const m = await upload(users[u]!.id, file, file.endsWith('.mp4') ? { durationSec: 8 } : {});
-        s.stories.create(users[u]!.id, { mediaId: m.id, text: u === 'olga' ? 'Сегодня на ужин 🍓' : undefined });
+        s.stories.create(users[u]!.id, { mediaId: m.id, text: u === 'olga' ? 'Сегодня на ужин 🍓' : undefined, audience: 'all', allowReplies: true });
         tick(40);
       }
       s.stories.view(users.sasha!.id, s.stories.ofUser(users.sasha!.id, users.alice!.id)[0]!.id);
+
+      // «Близкие друзья»: alice показывает историю только им, sasha в списке
+      s.stories.setCloseFriend(users.alice!.id, users.sasha!.id, true);
+      s.stories.setCloseFriend(users.sasha!.id, users.alice!.id, true);
+      s.stories.setCloseFriend(users.sasha!.id, users.boris!.id, true);
+      const cf = await upload(users.alice!.id, 'photo-3.jpg');
+      s.stories.create(users.alice!.id, { mediaId: cf.id, text: 'Только для своих 💚', audience: 'close', allowReplies: true });
+
+      // Истории sasha: одна «вчерашняя» (уже в архиве) и одна свежая — обе в «Актуальном»
+      clock = realNow() - 30 * 3600 * 1000;
+      const old1 = await upload(users.sasha!.id, 'photo-7.jpg');
+      const oldStory = s.stories.create(users.sasha!.id, { mediaId: old1.id, text: 'Как всё начиналось', audience: 'all', allowReplies: true });
+      clock = realNow() - 2 * 3600 * 1000;
+      const new1 = await upload(users.sasha!.id, 'photo-11.jpg');
+      const freshStory = s.stories.create(users.sasha!.id, { mediaId: new1.id, text: 'Omni 1.0 скоро 🚀', audience: 'all', allowReplies: true });
+      s.stories.createHighlight(users.sasha!.id, { title: 'Omni', storyIds: [oldStory.id, freshStory.id], coverStoryId: freshStory.id });
+      s.stories.view(users.alice!.id, freshStory.id);
+      s.stories.view(users.boris!.id, freshStory.id);
+      s.stories.react(users.alice!.id, freshStory.id, '🔥');
+
+      // Профиль: статус, ссылки, закреплённая публикация, «колокольчик»
+      s.users.setStatus(users.sasha!.id, { emoji: '🚀', text: 'Запускаю Omni', durationHours: 0 });
+      s.users.setStatus(users.alice!.id, { emoji: '📸', text: 'На съёмке до вечера', durationHours: 0 });
+      s.users.setLinks(users.sasha!.id, [
+        { title: 'GitHub', url: 'https://github.com/' },
+        { title: 'Блог', url: 'https://example.com/blog' },
+      ]);
+      s.users.pinPost(users.sasha!.id, notePosts[notes.findIndex(([u]) => u === 'sasha')]!);
+      s.users.subscribe(users.sasha!.id, users.alice!.id, true);
+
+      // Списки, коллекции, черновики
+      const devs = s.lists.create(users.sasha!.id, { name: 'Разработка', description: 'Код, безопасность и дизайн', emoji: '🧑‍💻', isPrivate: false });
+      s.lists.addMembers(users.sasha!.id, devs.id, [users.boris!.id, users.elena!.id, users.nikita!.id]);
+      const ideas = s.collections.create(users.sasha!.id, { name: 'Идеи для Omni', emoji: '💡' });
+      for (const pid of [notePosts[6]!, notePosts[4]!, photoPosts[0]!]) s.collections.setItem(users.sasha!.id, ideas.id, pid, true);
+      s.drafts.create(users.sasha!.id, {
+        kind: 'note',
+        text: 'Черновик: рассказать про звонки и папки в Omni…',
+        mediaIds: [],
+        visibility: 'public',
+        commentsDisabled: false,
+      });
 
 
     // Демо-аккаунты сразу готовы к работе — без экранов знакомства

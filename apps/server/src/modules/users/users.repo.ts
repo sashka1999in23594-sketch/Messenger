@@ -1,6 +1,6 @@
-import type { EmailPrefs, NotificationSettings, PrivacySettings, UserSummary } from '@omni/shared';
+import type { EmailPrefs, NotificationSettings, PrivacySettings, ProfileLink, UserStatus, UserSummary } from '@omni/shared';
 import type { Db } from '../../db/index.js';
-import { bool, json } from '../../db/index.js';
+import { bool, isoOrNull, json } from '../../db/index.js';
 import type { MediaService } from '../media/media.service.js';
 
 export interface UserRow {
@@ -33,6 +33,11 @@ export interface UserRow {
   email_2fa: number;
   email_prefs: string;
   onboarded_at: number | null;
+  status_emoji: string | null;
+  status_text: string | null;
+  status_until: number | null;
+  links: string;
+  pinned_post_id: string | null;
 }
 
 export const DEFAULT_PRIVACY: Omit<PrivacySettings, 'isPrivate' | 'showInSearch'> = {
@@ -52,8 +57,26 @@ export const DEFAULT_NOTIFICATIONS: NotificationSettings = {
   reposts: true,
   communities: true,
   security: true,
+  subscriptions: true,
+  stories: true,
   showPreviews: true,
 };
+
+/** Статус пользователя, если он задан и не истёк */
+export function statusOf(row: UserRow, now = Date.now()): UserStatus | null {
+  if (!row.status_emoji) return null;
+  if (row.status_until && row.status_until <= now) return null;
+  return { emoji: row.status_emoji, text: row.status_text ?? '', until: isoOrNull(row.status_until) };
+}
+
+export function linksOf(row: UserRow): ProfileLink[] {
+  try {
+    const v = JSON.parse(row.links || '[]') as unknown;
+    return Array.isArray(v) ? (v as ProfileLink[]).filter((l) => l && typeof l.url === 'string') : [];
+  } catch {
+    return [];
+  }
+}
 
 export function privacyOf(row: UserRow): PrivacySettings {
   return {

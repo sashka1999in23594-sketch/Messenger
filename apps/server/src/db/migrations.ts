@@ -584,4 +584,115 @@ END;
 INSERT INTO messages_fts(messages_fts) VALUES ('rebuild');
 `,
   },
+  {
+    version: '004_social',
+    sql: /* sql */ `
+-- ── Истории: аудитория, реакции, «Близкие друзья», «Актуальное» ────────────
+ALTER TABLE stories ADD COLUMN audience TEXT NOT NULL DEFAULT 'all';
+ALTER TABLE stories ADD COLUMN allow_replies INTEGER NOT NULL DEFAULT 1;
+
+CREATE TABLE story_reactions (
+  story_id   TEXT NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  emoji      TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (story_id, user_id)
+);
+
+CREATE TABLE close_friends (
+  owner_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  friend_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (owner_id, friend_id)
+);
+
+CREATE TABLE story_highlights (
+  id          TEXT PRIMARY KEY,
+  owner_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title       TEXT NOT NULL,
+  cover_story_id TEXT REFERENCES stories(id) ON DELETE SET NULL,
+  position    INTEGER NOT NULL DEFAULT 0,
+  created_at  INTEGER NOT NULL
+);
+CREATE INDEX story_highlights_owner ON story_highlights(owner_id, position);
+
+CREATE TABLE story_highlight_items (
+  highlight_id TEXT NOT NULL REFERENCES story_highlights(id) ON DELETE CASCADE,
+  story_id     TEXT NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+  added_at     INTEGER NOT NULL,
+  PRIMARY KEY (highlight_id, story_id)
+);
+
+-- ── Профиль: статус, ссылки, закреплённая публикация ────────────────────────
+ALTER TABLE users ADD COLUMN status_emoji TEXT;
+ALTER TABLE users ADD COLUMN status_text TEXT;
+ALTER TABLE users ADD COLUMN status_until INTEGER;
+ALTER TABLE users ADD COLUMN links TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE users ADD COLUMN pinned_post_id TEXT;
+
+-- ── Черновики и отложенные публикации ───────────────────────────────────────
+CREATE TABLE post_drafts (
+  id          TEXT PRIMARY KEY,
+  author_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  payload     TEXT NOT NULL,
+  publish_at  INTEGER,
+  error       TEXT,
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
+);
+CREATE INDEX post_drafts_author ON post_drafts(author_id, updated_at DESC);
+CREATE INDEX post_drafts_due ON post_drafts(publish_at) WHERE publish_at IS NOT NULL;
+
+-- ── Списки авторов ──────────────────────────────────────────────────────────
+CREATE TABLE user_lists (
+  id          TEXT PRIMARY KEY,
+  owner_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  emoji       TEXT NOT NULL DEFAULT '📋',
+  is_private  INTEGER NOT NULL DEFAULT 1,
+  created_at  INTEGER NOT NULL
+);
+CREATE INDEX user_lists_owner ON user_lists(owner_id, created_at);
+CREATE TABLE user_list_members (
+  list_id  TEXT NOT NULL REFERENCES user_lists(id) ON DELETE CASCADE,
+  user_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  added_at INTEGER NOT NULL,
+  PRIMARY KEY (list_id, user_id)
+);
+
+-- ── Коллекции закладок ──────────────────────────────────────────────────────
+CREATE TABLE collections (
+  id          TEXT PRIMARY KEY,
+  owner_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  emoji       TEXT NOT NULL DEFAULT '🔖',
+  created_at  INTEGER NOT NULL
+);
+CREATE INDEX collections_owner ON collections(owner_id, created_at);
+CREATE TABLE collection_items (
+  collection_id TEXT NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+  post_id       TEXT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  added_at      INTEGER NOT NULL,
+  PRIMARY KEY (collection_id, post_id)
+);
+
+-- ── Скрытые слова и «колокольчик» (уведомлять о новых публикациях) ──────────
+CREATE TABLE muted_words (
+  id          TEXT PRIMARY KEY,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  word        TEXT NOT NULL,
+  until       INTEGER,
+  created_at  INTEGER NOT NULL,
+  UNIQUE (user_id, word)
+);
+CREATE TABLE post_subscriptions (
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  author_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, author_id)
+);
+CREATE INDEX post_subscriptions_author ON post_subscriptions(author_id);
+`,
+  },
 ];
