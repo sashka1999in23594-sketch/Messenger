@@ -1,0 +1,34 @@
+/**
+ * Протокол WebSocket (/api/v1/ws). Сервер присылает события, клиент — только
+ * лёгкие сигналы (набор текста, пинг). Все изменения данных идут через REST,
+ * поэтому протокол легко масштабировать (Redis pub/sub, NATS) без изменения клиента.
+ */
+import type { AppNotification, Counters, ID, Message } from './types.js';
+
+export type ServerEvent =
+  | { t: 'hello'; userId: ID; serverTime: string }
+  | { t: 'message.new'; chatId: ID; message: Message }
+  | { t: 'message.updated'; chatId: ID; message: Message }
+  | { t: 'message.deleted'; chatId: ID; messageId: ID }
+  /** Изменились метаданные чата — клиент перезапрашивает его */
+  | { t: 'chat.changed'; chatId: ID }
+  /** Вас удалили из чата или чат удалён */
+  | { t: 'chat.removed'; chatId: ID }
+  | { t: 'typing'; chatId: ID; userId: ID; displayName: string }
+  | { t: 'read'; chatId: ID; userId: ID; seq: number }
+  | { t: 'presence'; userId: ID; online: boolean; lastSeenAt: string | null }
+  | { t: 'notification.new'; notification: AppNotification }
+  | { t: 'counters'; counters: Counters }
+  /** Текущий сеанс завершён с другого устройства — клиент выходит */
+  | { t: 'session.revoked' }
+  | { t: 'pong' };
+
+export type ClientEvent =
+  | { t: 'typing'; chatId: ID }
+  | { t: 'ping' }
+  | { t: 'presence.subscribe'; userIds: ID[] };
+
+export const WS_PATH = '/api/v1/ws';
+/** Интервал heartbeat — соединение без ответа дольше 2× закрывается */
+export const WS_HEARTBEAT_MS = 25_000;
+export const TYPING_TTL_MS = 5_000;

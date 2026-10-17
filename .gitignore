@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+# runtime data (database, uploads)
+apps/server/data/
+data/
+playwright-report/
+test-results/
+*.tsbuildinfo

@@ -1,0 +1,33 @@
+{
+  "name": "@omni/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Веб-клиент Omni (PWA): адаптивный интерфейс для телефона, планшета и компьютера.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@omni/shared": "0.1.0",
+    "@tanstack/react-query": "^5.90.2",
+    "lucide-react": "^0.546.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router": "^7.9.4",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.0.4",
+    "typescript": "~5.9.3",
+    "vite": "^7.1.10",
+    "vitest": "^5.0.5"
+  }
+}

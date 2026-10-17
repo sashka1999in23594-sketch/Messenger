@@ -1,0 +1,21 @@
+{
+  "name": "@omni/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Общий код клиента и сервера: схемы валидации, типы API, константы, события реального времени.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.5"
+  }
+}
