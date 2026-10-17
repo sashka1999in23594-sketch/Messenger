@@ -8,6 +8,7 @@ import { flatPages, qk, useCursorList } from '../../shared/api/query';
 import { useDebounced } from '../../shared/hooks';
 import { clockTime, dayLabel } from '../../shared/lib/format';
 import { toast } from '../../shared/stores/ui';
+import { useMe } from '../../shared/stores/session';
 import { Avatar, Button, EmptyState, Modal, RichText, Spinner, UserName } from '../../shared/ui';
 import type { LocalMessage } from './cache';
 
@@ -97,7 +98,19 @@ export function InChatSearch({ chatId, onClose }: { chatId: string; onClose: () 
 export function UserPicker({ multiple, onPick, picked = [], exclude = [] }: { multiple?: boolean; onPick: (u: UserSummary) => void; picked?: string[]; exclude?: string[] }) {
   const [q, setQ] = useState('');
   const debounced = useDebounced(q.trim(), 250);
-  const suggestions = useQuery({ queryKey: ['suggest-contacts'], queryFn: () => api.get<{ items: UserSummary[] }>('/users/suggestions') });
+  const me = useMe();
+  // Без запроса показываем контакты (подписки), затем рекомендации
+  const suggestions = useQuery({
+    queryKey: ['picker-contacts', me.id],
+    queryFn: async () => {
+      const [following, suggested] = await Promise.all([
+        api.get<{ items: UserSummary[] }>(`/users/${me.id}/following?limit=50`),
+        api.get<{ items: UserSummary[] }>('/users/suggestions'),
+      ]);
+      const seen = new Set<string>();
+      return { items: [...following.items, ...suggested.items].filter((u) => !seen.has(u.id) && seen.add(u.id)) };
+    },
+  });
   const search = useQuery({
     queryKey: ['user-search', debounced],
     queryFn: () => api.get<{ users: UserSummary[] }>(`/search?type=users&limit=20&q=${encodeURIComponent(debounced)}`),
@@ -110,7 +123,7 @@ export function UserPicker({ multiple, onPick, picked = [], exclude = [] }: { mu
         <Search size={16} className="input-group__icon" />
         <input className="input" placeholder="Имя или @username" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
-      {!debounced && <div className="section-nav__group-label" style={{ paddingLeft: 4 }}>Рекомендации</div>}
+      {!debounced && <div className="section-nav__group-label" style={{ paddingLeft: 4 }}>Контакты и рекомендации</div>}
       {(search.isFetching || suggestions.isLoading) && <Spinner />}
       {users
         .filter((u) => !exclude.includes(u.id))

@@ -29,7 +29,7 @@
   overflow-y: auto;
   min-height: 0;
 }
-@media (max-width: 1399px) {
+@media (max-width: 1599px) {
   .chats--info {
     grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
   }

@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Omni — мессенджер и социальная платформа «всё в одном»: чаты, лента, видео, клипы, фото, истории, сообщества.",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "type": "module",
   "workspaces": [
     "packages/*",

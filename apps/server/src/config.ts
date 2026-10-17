@@ -79,7 +79,8 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
     },
     logLevel: env.LOG_LEVEL,
     trustProxy: env.TRUST_PROXY,
-    webDist: env.WEB_DIST ? path.resolve(env.WEB_DIST) : null,
+    // В production по умолчанию раздаём собранный клиент из apps/web/dist (один origin)
+    webDist: env.WEB_DIST ? path.resolve(env.WEB_DIST) : isProd && existsSync(path.resolve('../web/dist')) ? path.resolve('../web/dist') : null,
     sessionTtlMs: env.SESSION_DAYS * 24 * 3600 * 1000,
     /** Cookies с флагом Secure — в production всегда (нужен HTTPS) */
     secureCookies: isProd,

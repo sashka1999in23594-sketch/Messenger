@@ -1,0 +1,26 @@
+# Быстрый запуск: APP_SECRET=$(openssl rand -base64 48) docker compose up -d
+# Перед публикацией в интернет поставьте перед сервисом обратный прокси с HTTPS
+# (Caddy/Nginx/Traefik) и укажите TRUST_PROXY=1 и PUBLIC_ORIGIN=https://ваш-домен.
+services:
+  omni:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      APP_SECRET: ${APP_SECRET:?Задайте APP_SECRET (openssl rand -base64 48)}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:4000}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+      LOG_LEVEL: info
+    volumes:
+      - omni-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  omni-data:

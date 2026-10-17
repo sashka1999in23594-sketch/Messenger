@@ -21,8 +21,10 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          react: ['react', 'react-dom', 'react-router'],
+          react: ['react', 'react-dom', 'react-dom/client', 'react-router'],
           query: ['@tanstack/react-query', 'zustand'],
+          zod: ['zod'],
+          icons: ['lucide-react'],
         },
       },
     },
