@@ -9,6 +9,8 @@ import { useSession } from '../../shared/stores/session';
 import { cn, timeAgo } from '../../shared/lib/format';
 import { Avatar, Button, EmptyState, ListSkeleton, LoadMore, PageHeader, TabLinks, UserRow } from '../../shared/ui';
 
+export const notificationText = (t: NotificationType) => TEXT[t];
+
 const TEXT: Record<NotificationType, string> = {
   follow: 'подписался(-ась) на вас',
   follow_request: 'хочет подписаться на вас',

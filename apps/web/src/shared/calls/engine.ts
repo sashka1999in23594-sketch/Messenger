@@ -12,6 +12,7 @@ import { api, errorMessage } from '../api/client';
 import { realtime } from '../realtime/socket';
 import { useSession } from '../stores/session';
 import { toast } from '../stores/ui';
+import { isQuietNow, usePrefs } from '../stores/prefs';
 
 export type CallPhase = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'active' | 'ended';
 
@@ -58,6 +59,9 @@ const send = (signal: CallSignal) => {
 /** Мелодия: входящий — двойной сигнал, исходящий — длинные гудки. */
 function startRing(kind: 'in' | 'out') {
   ring?.stop();
+  const { sounds, quietHours } = usePrefs.getState();
+  // Мелодия входящего выключена или «Не беспокоить» — звоним беззвучно (экран всё равно покажется)
+  if (kind === 'in' && (sounds?.calls === false || isQuietNow(quietHours))) return;
   let ctx: AudioContext | null = null;
   try {
     ctx = new AudioContext();
@@ -70,7 +74,7 @@ function startRing(kind: 'in' | 'out') {
     o.frequency.value = freq;
     o.type = 'sine';
     g.gain.setValueAtTime(0, at);
-    g.gain.linearRampToValueAtTime(kind === 'in' ? 0.12 : 0.06, at + 0.02);
+    g.gain.linearRampToValueAtTime((kind === 'in' ? 0.2 : 0.1) * (sounds?.volume ?? 0.6), at + 0.02);
     g.gain.linearRampToValueAtTime(0, at + dur);
     o.connect(g).connect(ctx!.destination);
     o.start(at);

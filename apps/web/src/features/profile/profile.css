@@ -226,7 +226,7 @@ a.profile__stat:hover {
   border: 1px solid var(--border);
 }
 .profile__bell--on {
-  color: var(--accent-text);
+  color: var(--accent-fg);
   background: var(--accent-soft);
   border-color: transparent;
 }

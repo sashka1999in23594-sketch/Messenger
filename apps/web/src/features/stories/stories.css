@@ -47,7 +47,7 @@
   height: 22px;
   border-radius: var(--radius-full);
   background: var(--grad);
-  color: var(--accent-fg);
+  color: var(--accent-text);
   border: 2.5px solid var(--panel-solid);
   box-shadow: var(--glow);
   display: grid;
@@ -459,7 +459,7 @@
   display: grid;
   place-items: center;
   background: var(--grad);
-  color: var(--accent-fg);
+  color: var(--accent-text);
 }
 .story-audience__opt--close .story-audience__dot {
   background: var(--story-close);
@@ -517,7 +517,7 @@
   font-size: var(--fs-2xs);
   font-weight: 700;
   background: var(--grad);
-  color: var(--accent-fg);
+  color: var(--accent-text);
 }
 .story-thumb__close {
   left: auto;
@@ -536,7 +536,7 @@
   background: var(--story-shade);
   display: grid;
   place-items: center;
-  color: var(--accent-fg);
+  color: var(--accent-text);
 }
 .story-thumb--selected .story-thumb__check {
   background: var(--accent);

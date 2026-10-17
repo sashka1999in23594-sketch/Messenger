@@ -138,6 +138,7 @@ export function Composer({
   onSchedule: (data: ComposerSubmit, at: Date) => Promise<void>;
   secret: boolean;
 }) {
+  const spellcheck = usePrefs((s) => s.spellcheck ?? true);
   const [text, setText] = useState(() => drafts.get(chat.id) ?? '');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -417,6 +418,7 @@ export function Composer({
                 ref={input}
                 className="composer__input"
                 rows={1}
+                spellCheck={spellcheck}
                 value={text}
                 placeholder={secret ? 'Зашифрованное сообщение' : chat.type === 'channel' ? 'Публикация в канал' : 'Сообщение'}
                 onChange={(e) => onChange(e.target.value, e.target.selectionStart)}

@@ -245,3 +245,119 @@
   gap: 12px;
   padding: 10px 16px 12px;
 }
+
+/* ─── Выбор вариантов карточками (шрифт, углы) ─── */
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  padding: 4px 16px 16px;
+}
+.choice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  text-align: left;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.choice-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+}
+.choice-card--on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.choice-card__big {
+  font-size: 34px;
+  line-height: 1.1;
+  font-weight: 650;
+}
+.corner-demo {
+  width: 64px;
+  height: 44px;
+  padding: 6px;
+  margin-bottom: 4px;
+  background: var(--grad);
+  display: flex;
+}
+.corner-demo span {
+  flex: 1;
+  background: var(--bg-elevated-solid);
+  opacity: 0.85;
+}
+
+/* ─── Поиск по настройкам ─── */
+.settings-search {
+  position: relative;
+  margin-bottom: var(--space-5);
+}
+.settings-search .input {
+  min-height: 52px;
+  padding-left: 46px;
+  border-radius: var(--radius-full);
+  font-size: var(--fs-lg);
+}
+.settings-search__icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  pointer-events: none;
+}
+.settings-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.settings-result {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  color: inherit;
+  transition: background var(--dur-fast) var(--ease);
+}
+.settings-result:hover,
+.settings-result:focus-visible {
+  background: var(--surface-hover);
+}
+.settings-result__path {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.settings-quick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: var(--space-5);
+}
+.settings-quick__item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: inherit;
+  font-weight: 650;
+  font-size: var(--fs-sm);
+  transition:
+    transform var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.settings-quick__item:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+}

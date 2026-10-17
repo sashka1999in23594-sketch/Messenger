@@ -1511,7 +1511,7 @@ a.list-item:hover {
   border: 2px solid var(--border-strong);
   display: grid;
   place-items: center;
-  color: var(--accent-fg);
+  color: var(--accent-text);
 }
 .pick-row--on .pick-row__check {
   background: var(--accent);
@@ -1532,4 +1532,17 @@ a.list-item:hover {
 .emoji-pick--on {
   background: var(--accent-soft-strong);
   box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+/* Карточки-ссылки не подчёркиваются при наведении */
+.home-action:hover,
+.explore-cat:hover,
+.explore-channel:hover,
+.settings-quick__item:hover,
+.settings-result:hover,
+.list-card:hover,
+.collection-card:hover,
+.home-hero a:hover,
+.whats-new__list a:hover {
+  text-decoration: none;
 }

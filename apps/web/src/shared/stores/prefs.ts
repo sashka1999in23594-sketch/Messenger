@@ -10,9 +10,30 @@ export type Palette = 'aurora' | 'sunset' | 'ocean' | 'forest' | 'sakura' | 'mid
 export type Accent = 'auto' | 'violet' | 'blue' | 'cyan' | 'green' | 'yellow' | 'orange' | 'red' | 'pink' | 'purple';
 export type AuroraMode = 'animated' | 'static' | 'off';
 export type Wallpaper = 'aurora' | 'plain' | 'mesh' | 'sunset' | 'ocean' | 'forest' | 'night' | 'candy' | 'grid' | 'waves';
+export type FontFamily = 'inter' | 'system' | 'rounded' | 'serif' | 'mono';
+export type Corners = 'sharp' | 'normal' | 'round';
+export type StartPage = '/home' | '/chats' | '/feed' | '/photos' | '/shorts';
+
+export interface SoundPrefs {
+  /** Входящие сообщения и уведомления */
+  messages: boolean;
+  /** Звук отправки */
+  sent: boolean;
+  /** Мелодия звонка */
+  calls: boolean;
+  /** Громкость 0…1 */
+  volume: number;
+}
+
+export interface QuietHours {
+  enabled: boolean;
+  /** Время «с» и «до», ЧЧ:ММ по местному времени */
+  from: string;
+  to: string;
+}
 
 /** Настройки, которые влияют на внешний вид и применяются к <html>. */
-export type VisualPrefs = Pick<PrefsState, 'theme' | 'palette' | 'accent' | 'fontScale' | 'density' | 'reduceMotion' | 'glass' | 'aurora'>;
+export type VisualPrefs = Pick<PrefsState, 'theme' | 'palette' | 'accent' | 'fontScale' | 'density' | 'reduceMotion' | 'glass' | 'aurora' | 'fontFamily' | 'corners'>;
 
 interface PrefsState {
   theme: Theme;
@@ -22,6 +43,8 @@ interface PrefsState {
   glass: boolean;
   aurora: AuroraMode;
   fontScale: number;
+  fontFamily: FontFamily;
+  corners: Corners;
   density: 'comfortable' | 'compact';
   reduceMotion: boolean;
   enterToSend: boolean;
@@ -30,6 +53,18 @@ interface PrefsState {
   chatWallpapers: Record<string, Wallpaper>;
   /** Размер текста сообщений, % */
   messageScale: number;
+  /** Сообщение из одних эмодзи — крупно */
+  jumboEmoji: boolean;
+  /** Проверка орфографии в полях ввода */
+  spellcheck: boolean;
+  /** Куда попадать при открытии приложения */
+  startPage: StartPage;
+  sounds: SoundPrefs;
+  quietHours: QuietHours;
+  /** Системные уведомления, когда вкладка в фоне */
+  desktopNotify: boolean;
+  /** Недавние поисковые запросы */
+  recentSearches: string[];
   autoplayVideo: boolean;
   dataSaver: boolean;
   navCollapsed: boolean;
@@ -59,12 +94,21 @@ export const usePrefs = create<PrefsState>()(
       glass: true,
       aurora: 'animated',
       fontScale: 1,
+      fontFamily: 'inter',
+      corners: 'normal',
       density: 'comfortable',
       reduceMotion: false,
       enterToSend: true,
       wallpaper: 'aurora',
       chatWallpapers: {},
       messageScale: 100,
+      jumboEmoji: true,
+      spellcheck: true,
+      startPage: '/home',
+      sounds: { messages: true, sent: true, calls: true, volume: 0.6 },
+      quietHours: { enabled: false, from: '23:00', to: '08:00' },
+      desktopNotify: false,
+      recentSearches: [],
       autoplayVideo: true,
       dataSaver: false,
       navCollapsed: false,
@@ -111,6 +155,21 @@ export function applyPrefs(p: VisualPrefs) {
   d.dataset.glass = p.glass ? 'on' : 'off';
   d.dataset.aurora = p.reduceMotion && p.aurora === 'animated' ? 'static' : p.aurora;
   d.style.setProperty('--font-scale', String(p.fontScale));
+  d.dataset.font = p.fontFamily ?? 'inter';
+  d.dataset.corners = p.corners ?? 'normal';
   const bg = getComputedStyle(d).getPropertyValue('--bg').trim() || (theme === 'dark' ? '#07080f' : '#eef0f8');
   document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', bg));
+}
+
+/** Сейчас «Не беспокоить» по расписанию? (интервал может переходить через полночь) */
+export function isQuietNow(q: QuietHours | undefined, now = new Date()): boolean {
+  if (!q?.enabled) return false;
+  const toMin = (t: string) => {
+    const [h, m] = t.split(':').map(Number);
+    return (h ?? 0) * 60 + (m ?? 0);
+  };
+  const cur = now.getHours() * 60 + now.getMinutes();
+  const from = toMin(q.from);
+  const to = toMin(q.to);
+  return from <= to ? cur >= from && cur < to : cur >= from || cur < to;
 }

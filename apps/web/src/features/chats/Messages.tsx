@@ -4,6 +4,7 @@ import { REACTIONS, type ChatSummary } from '@omni/shared';
 import { Avatar, EmojiPicker, Menu, MediaGrid, RichText, useMenu, type MenuEntry } from '../../shared/ui';
 import { CallMessage, PollMessage, RoundMessage, VoiceMessage } from './bubbles';
 import { clockTime, cn, dayLabel, isJumboEmoji } from '../../shared/lib/format';
+import { usePrefs } from '../../shared/stores/prefs';
 import { useInfiniteScroll } from '../../shared/hooks';
 import type { LocalMessage } from './cache';
 import { useDecrypted, type SecretState } from './secret';
@@ -64,7 +65,8 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
   const secretPlain = useDecrypted(chat.id, msg.id, msg.clientId, msg.encrypted, secret).text;
   const plain = msg.kind === 'encrypted' ? secretPlain : msg.text;
   const isAdmin = chat.role === 'owner' || chat.role === 'admin';
-  const jumbo = !hasMedia && !msg.replyTo && !msg.forwardedFrom && isJumboEmoji(plain);
+  const jumboOn = usePrefs((s) => s.jumboEmoji ?? true);
+  const jumbo = jumboOn && !hasMedia && !msg.replyTo && !msg.forwardedFrom && isJumboEmoji(plain);
   const mediaOnly = hasMedia && !plain && !msg.replyTo && !msg.forwardedFrom;
   const canEdit = out && !msg.local && Date.now() - Date.parse(msg.createdAt) < EDIT_WINDOW && (msg.kind === 'text' || (msg.kind === 'encrypted' && secretPlain !== null));
   const canPin = !msg.local && msg.kind !== 'call' && (chat.type === 'direct' || chat.type === 'saved' || chat.type === 'secret' || isAdmin);

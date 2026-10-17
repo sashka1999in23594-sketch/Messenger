@@ -7,6 +7,7 @@ import { api, errorMessage } from '../../shared/api/client';
 import { qk, queryClient } from '../../shared/api/query';
 import { startCall } from '../../shared/calls/engine';
 import { encryptMessage } from '../../shared/crypto/e2e';
+import { playSound } from '../../shared/lib/sounds';
 import { realtime } from '../../shared/realtime/socket';
 import { useRealtime } from '../../shared/stores/realtime';
 import { useMe } from '../../shared/stores/session';
@@ -131,6 +132,7 @@ export function ChatView() {
         const msg = await api.post<Message>(`/chats/${chatId}/messages`, body);
         pending.delete(body.clientId);
         onIncomingMessage(msg, me.id);
+        playSound('sent');
       } catch (e) {
         patchMessage(chatId, (m) => m.clientId === body.clientId, (m) => ({ ...m, local: { status: 'failed', error: errorMessage(e) } }));
         toast({ text: errorMessage(e), kind: 'error' });

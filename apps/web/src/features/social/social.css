@@ -144,7 +144,7 @@
   padding: 3px 10px;
   border-radius: var(--radius-full);
   background: var(--accent-soft);
-  color: var(--accent-text);
+  color: var(--accent-fg);
   font-size: var(--fs-xs);
   font-weight: 650;
 }

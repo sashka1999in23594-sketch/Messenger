@@ -9,6 +9,12 @@
  */
 import {
   Accessibility,
+  LayoutDashboard,
+  House,
+  BatteryCharging,
+  Gauge,
+  Moon,
+  Volume2,
   Archive,
   AtSign,
   Bell,
@@ -111,6 +117,18 @@ export interface NavSection extends NavNode {
 }
 
 export const sections: NavSection[] = [
+  {
+    id: 'home',
+    label: 'Главная',
+    short: 'Главная',
+    icon: House,
+    path: '/home',
+    description: 'Сводка: непрочитанное, уведомления, звонки и запланированное',
+    children: [
+      { id: 'home.overview', label: 'Сводка', icon: LayoutDashboard, path: '/home', keywords: ['главная', 'дашборд', 'сегодня'] },
+      { id: 'home.whatsnew', label: 'Что нового', icon: Sparkles, path: '/home/whats-new', keywords: ['обновления', 'новые функции'] },
+    ],
+  },
   {
     id: 'messenger',
     label: 'Мессенджер',
@@ -451,7 +469,16 @@ export const sections: NavSection[] = [
           { id: 'settings.security.log', label: 'Журнал безопасности', icon: ScrollText, path: '/settings/security/log' },
         ],
       },
-      { id: 'settings.notifications', label: 'Уведомления', icon: Bell, path: '/settings/notifications' },
+      {
+        id: 'settings.notifications',
+        label: 'Уведомления и звуки',
+        icon: Bell,
+        children: [
+          { id: 'settings.notifications.what', label: 'Что присылать', icon: Bell, path: '/settings/notifications', keywords: ['уведомления', 'пуш'] },
+          { id: 'settings.notifications.sounds', label: 'Звуки', icon: Volume2, path: '/settings/notifications/sounds', keywords: ['громкость', 'мелодия', 'рингтон'] },
+          { id: 'settings.notifications.quiet', label: 'Не беспокоить', icon: Moon, path: '/settings/notifications/quiet', keywords: ['тихие часы', 'ночь', 'расписание'] },
+        ],
+      },
       {
         id: 'settings.appearance',
         label: 'Оформление',
@@ -461,8 +488,11 @@ export const sections: NavSection[] = [
           { id: 'settings.appearance.accent', label: 'Цвет акцента', icon: Palette, path: '/settings/appearance/accent' },
           { id: 'settings.appearance.text', label: 'Размер текста', icon: Type, path: '/settings/appearance/text' },
           { id: 'settings.appearance.density', label: 'Плотность', icon: LayoutGrid, path: '/settings/appearance/density' },
+          { id: 'settings.appearance.font', label: 'Шрифт и углы', icon: Type, path: '/settings/appearance/font', keywords: ['шрифт', 'скругление', 'засечки'] },
         ],
       },
+      { id: 'settings.behavior', label: 'Поведение', icon: Gauge, path: '/settings/behavior', keywords: ['стартовая страница', 'орфография', 'enter', 'эмодзи'] },
+      { id: 'settings.power', label: 'Энергосбережение', icon: BatteryCharging, path: '/settings/power', keywords: ['батарея', 'экономия', 'анимации'] },
       {
         id: 'settings.chats',
         label: 'Чаты и медиа',

@@ -1512,7 +1512,7 @@
   place-items: center;
   border-radius: var(--radius-full);
   background: var(--grad);
-  color: var(--accent-fg);
+  color: var(--accent-text);
 }
 .join-page {
   min-height: 100%;
@@ -1544,7 +1544,7 @@
   padding: 4px 10px;
   border-radius: var(--radius-full);
   background: var(--accent-soft);
-  color: var(--accent-text);
+  color: var(--accent-fg);
   font-size: var(--fs-xs);
   font-weight: 650;
 }

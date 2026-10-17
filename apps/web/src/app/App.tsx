@@ -20,15 +20,17 @@ function PrefsSync() {
   const reduceMotion = usePrefs((s) => s.reduceMotion);
   const glass = usePrefs((s) => s.glass);
   const aurora = usePrefs((s) => s.aurora);
+  const fontFamily = usePrefs((s) => s.fontFamily);
+  const corners = usePrefs((s) => s.corners);
   useEffect(() => {
-    const p = { theme, palette, accent, fontScale, density, reduceMotion, glass, aurora };
+    const p = { theme, palette, accent, fontScale, density, reduceMotion, glass, aurora, fontFamily, corners };
     applyPrefs(p);
     if (theme !== 'system') return;
     const mql = matchMedia('(prefers-color-scheme: dark)');
     const onChange = () => applyPrefs(p);
     mql.addEventListener('change', onChange);
     return () => mql.removeEventListener('change', onChange);
-  }, [theme, palette, accent, fontScale, density, reduceMotion, glass, aurora]);
+  }, [theme, palette, accent, fontScale, density, reduceMotion, glass, aurora, fontFamily, corners]);
   return null;
 }
 

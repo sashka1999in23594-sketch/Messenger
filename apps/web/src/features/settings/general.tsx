@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import { Accessibility, Bell, Database, Flag, Info, Keyboard, Languages, MessageCircle, Palette, Settings, Zap } from 'lucide-react';
+import { Accessibility, BatteryCharging, Bell, Database, Flag, Info, Keyboard, Languages, Lock, MessageCircle, Moon, Palette, Settings, ShieldCheck, Volume2, Zap } from 'lucide-react';
 import { APP_NAME, REPORT_REASON_LABELS, type ReportReason } from '@omni/shared';
 import { sections } from '../../app/navigation';
 import { api } from '../../shared/api/client';
@@ -12,13 +12,35 @@ import { fileSize, fullDate } from '../../shared/lib/format';
 import { Button, confirm, EmptyState, Notice, PageHeader, SettingRow, Switch } from '../../shared/ui';
 import { Panel, SettingsPage, useNotificationPrefs } from './common';
 import { useWallpaper, WallpaperPicker } from '../chats/wallpapers';
+import { SettingsSearch } from './search';
+
+const QUICK: { to: string; label: string; icon: React.ReactNode; tile: string }[] = [
+  { to: '/settings/appearance/theme', label: 'Оформление', icon: <Palette size={18} />, tile: 'tile-violet' },
+  { to: '/settings/notifications', label: 'Уведомления', icon: <Bell size={18} />, tile: 'tile-red' },
+  { to: '/settings/privacy/profile', label: 'Приватность', icon: <Lock size={18} />, tile: 'tile-blue' },
+  { to: '/settings/security', label: 'Безопасность', icon: <ShieldCheck size={18} />, tile: 'tile-green' },
+  { to: '/settings/chats/wallpaper', label: 'Обои чатов', icon: <MessageCircle size={18} />, tile: 'tile-pink' },
+  { to: '/settings/power', label: 'Энергосбережение', icon: <BatteryCharging size={18} />, tile: 'tile-lime' },
+];
 
 export function SettingsHome() {
   const settings = sections.find((s) => s.id === 'settings')!;
+  const [searching, setSearching] = useState(false);
   return (
     <div className="scroll">
       <div className="page page--wide">
-        <PageHeader title="Настройки" subtitle="Всё, что можно настроить в Omni. Подсказка: Ctrl+K найдёт любую настройку по названию" icon={<Settings size={22} />} />
+        <PageHeader title="Настройки" subtitle="Всё, что можно настроить в Omni — более 70 параметров" icon={<Settings size={22} />} />
+        <SettingsSearch onActive={setSearching} />
+        {!searching && (
+          <div className="settings-quick">
+            {QUICK.map((q) => (
+              <Link key={q.to} to={q.to} className="settings-quick__item">
+                <span className={`list-item__icon ${q.tile}`}>{q.icon}</span>
+                {q.label}
+              </Link>
+            ))}
+          </div>
+        )}
         <div className="settings-grid">
           {settings.children
             .filter((n) => !n.adminOnly)
@@ -51,6 +73,7 @@ export function SettingsHome() {
 
 export function NotificationSettingsPage() {
   const { prefs, update } = useNotificationPrefs();
+  const navigate = useNavigate();
   const [perm, setPerm] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'denied');
   const rows: [keyof typeof prefs, string, string][] = [
     ['messages', 'Сообщения', 'Всплывающие уведомления о новых сообщениях'],
@@ -60,6 +83,8 @@ export function NotificationSettingsPage() {
     ['reposts', 'Репосты и цитаты', ''],
     ['follows', 'Новые подписчики', 'И заявки на подписку'],
     ['communities', 'Сообщества', 'Новые участники ваших сообществ'],
+    ['subscriptions', 'Новые публикации', 'От авторов, у которых вы включили «колокольчик»'],
+    ['stories', 'Реакции на истории', 'Кто отреагировал на ваши истории'],
   ];
   return (
     <SettingsPage title="Уведомления" icon={<Bell size={22} />}>
@@ -72,7 +97,9 @@ export function NotificationSettingsPage() {
       <Panel title="Приватность уведомлений">
         <SettingRow title="Показывать текст" description="Если выключено — только «Новое сообщение»" control={<Switch checked={prefs.showPreviews} onChange={(v) => update({ showPreviews: v })} label="Превью" />} />
       </Panel>
-      <Panel title="Уведомления браузера" footer="Push-уведомления при закрытой вкладке появятся вместе с Web Push (в плане развития).">
+      <Panel title="На этом устройстве">
+        <SettingRow icon={<Volume2 size={18} />} tile="tile-blue" title="Звуки" description="Сообщения, отправка, звонки, громкость" onClick={() => navigate('/settings/notifications/sounds')} />
+        <SettingRow icon={<Moon size={18} />} tile="tile-indigo" title="Не беспокоить" description="Тихие часы по расписанию и системные уведомления" onClick={() => navigate('/settings/notifications/quiet')} />
         <SettingRow
           title="Разрешение браузера"
           description={perm === 'granted' ? 'Разрешено' : perm === 'denied' ? 'Запрещено в настройках браузера' : 'Не запрошено'}

@@ -8,6 +8,8 @@ import { useRealtime } from '../shared/stores/realtime';
 import { useSession } from '../shared/stores/session';
 import { toast } from '../shared/stores/ui';
 import { handleCallEvent, restoreIncomingCall } from '../shared/calls/engine';
+import { desktopNotify, playSound } from '../shared/lib/sounds';
+import { isQuietNow, usePrefs } from '../shared/stores/prefs';
 import { activeChat, forgetChat, onIncomingMessage, patchChat, patchMessage, removeMessage } from '../features/chats/cache';
 
 type Navigate = (to: string) => void;
@@ -27,14 +29,16 @@ function handle(event: ServerEvent): void {
       useRealtime.getState().clearTyping(event.chatId, event.message.sender?.id ?? '');
       const fromOther = event.message.sender && event.message.sender.id !== me.id;
       // «Без звука»: сообщение приходит, но не всплывает
-      if (fromOther && activeChat.id !== event.chatId && event.message.kind !== 'system' && !event.message.silent) {
+      const visibleChat = activeChat.id === event.chatId && !document.hidden;
+      if (fromOther && !visibleChat && event.message.kind !== 'system' && !event.message.silent) {
         const chat = queryClient.getQueryData<{ mutedUntil: string | null; title: string }>(qk.chat(event.chatId));
-        if (!chat?.mutedUntil && me.notifications.messages) {
+        // «Не беспокоить» по расписанию: сообщения приходят, но без всплывашек и звука
+        if (!chat?.mutedUntil && me.notifications.messages && !isQuietNow(usePrefs.getState().quietHours)) {
           const preview = me.notifications.showPreviews ? excerpt(messageLabel(event.message.kind, event.message.text), 80) || 'Медиа' : 'Новое сообщение';
-          toast({
-            text: `${event.message.sender!.displayName}: ${preview}`,
-            action: { label: 'Открыть', onClick: () => navigateFn(`/chats/${event.chatId}`) },
-          });
+          const open = () => navigateFn(`/chats/${event.chatId}`);
+          if (activeChat.id !== event.chatId) toast({ text: `${event.message.sender!.displayName}: ${preview}`, action: { label: 'Открыть', onClick: open } });
+          playSound('message');
+          desktopNotify(event.message.sender!.displayName, preview, open);
         }
       }
       break;
@@ -66,6 +70,12 @@ function handle(event: ServerEvent): void {
       break;
     case 'notification.new':
       void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      if (event.notification.type !== 'security') {
+        playSound('notify');
+        desktopNotify('Omni', `${event.notification.actor?.displayName ?? ''} ${event.notification.preview ?? ''}`.trim() || 'Новое уведомление', () =>
+          navigateFn(event.notification.link ?? '/notifications'),
+        );
+      }
       if (event.notification.type === 'security') {
         toast({ text: event.notification.preview ?? 'Событие безопасности', kind: 'error', action: { label: 'Проверить', onClick: () => navigateFn('/settings/security/sessions') } });
       }

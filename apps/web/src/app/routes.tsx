@@ -2,6 +2,7 @@ import { lazy, type ComponentType } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { Shell } from './layout/Shell';
 import { ComingSoon } from '../features/misc/ComingSoon';
+import { usePrefs } from '../shared/stores/prefs';
 
 /**
  * Каждый модуль загружается отдельным чанком при первом заходе в раздел —
@@ -24,6 +25,7 @@ const notifications = () => import('../features/notifications');
 const settings = () => import('../features/settings');
 const calls = () => import('../features/calls');
 const social = () => import('../features/social');
+const home = () => import('../features/home');
 
 const ChatsLayout = lazyNamed(chats, 'ChatsLayout');
 const NoChatSelected = lazyNamed(chats, 'NoChatSelected');
@@ -34,6 +36,8 @@ const OpenSaved = lazyNamed(chats, 'OpenSaved');
 const FoldersPage = lazyNamed(chats, 'FoldersPage');
 const JoinPage = lazyNamed(chats, 'JoinPage');
 const CallsPage = lazyNamed(calls, 'CallsPage');
+const HomePage = lazyNamed(home, 'HomePage');
+const WhatsNewPage = lazyNamed(home, 'WhatsNewPage');
 
 const FeedPage = lazyNamed(feed, 'FeedPage');
 const ComposePage = lazyNamed(feed, 'ComposePage');
@@ -109,12 +113,25 @@ const ShortcutsSettings = lazyNamed(settings, 'ShortcutsSettings');
 const AboutSettings = lazyNamed(settings, 'AboutSettings');
 const AdminReports = lazyNamed(settings, 'AdminReports');
 const ServicesHome = lazyNamed(settings, 'ServicesHome');
+const SoundsSettings = lazyNamed(settings, 'SoundsSettings');
+const QuietSettings = lazyNamed(settings, 'QuietSettings');
+const FontSettings = lazyNamed(settings, 'FontSettings');
+const BehaviorSettings = lazyNamed(settings, 'BehaviorSettings');
+const PowerSettings = lazyNamed(settings, 'PowerSettings');
+
+/** Стартовая страница — из настроек «Поведение» */
+function StartRedirect() {
+  const start = usePrefs((s) => s.startPage ?? '/home');
+  return <Navigate to={start} replace />;
+}
 
 export function AppRoutes() {
   return (
     <Routes>
       <Route element={<Shell />}>
-        <Route index element={<Navigate to="/chats" replace />} />
+        <Route index element={<StartRedirect />} />
+        <Route path="home" element={<HomePage />} />
+        <Route path="home/whats-new" element={<WhatsNewPage />} />
         {/* После входа адреса страницы входа больше не нужны */}
         <Route path="login" element={<Navigate to="/" replace />} />
         <Route path="register" element={<Navigate to="/" replace />} />
@@ -236,6 +253,11 @@ export function AppRoutes() {
         <Route path="settings/security/passcode" element={<PasscodeSettings />} />
         <Route path="settings/security/log" element={<SecurityLogSettings />} />
         <Route path="settings/notifications" element={<NotificationSettingsPage />} />
+        <Route path="settings/notifications/sounds" element={<SoundsSettings />} />
+        <Route path="settings/notifications/quiet" element={<QuietSettings />} />
+        <Route path="settings/appearance/font" element={<FontSettings />} />
+        <Route path="settings/behavior" element={<BehaviorSettings />} />
+        <Route path="settings/power" element={<PowerSettings />} />
         <Route path="settings/appearance" element={<Navigate to="/settings/appearance/theme" replace />} />
         <Route path="settings/appearance/theme" element={<AppearanceSettings section="theme" />} />
         <Route path="settings/appearance/accent" element={<AppearanceSettings section="accent" />} />

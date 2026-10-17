@@ -1,0 +1,112 @@
+/* ─── Обзор: стартовый экран поиска ─────────────────────────────────────────── */
+.explore-cats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+.explore-cat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  color: inherit;
+  font-weight: 650;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    border-color var(--dur-fast) var(--ease);
+}
+.explore-cat:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+}
+.explore-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+.explore-head__action {
+  margin-left: auto;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--accent-fg);
+}
+.explore-recent {
+  padding: 0 4px 0 12px;
+  gap: 2px;
+}
+.explore-recent button {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  color: inherit;
+}
+.explore-recent button + button {
+  width: 24px;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  opacity: 0.6;
+}
+.explore-recent button + button:hover {
+  opacity: 1;
+  background: var(--surface-hover);
+}
+.explore-channels,
+.explore-people {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 150px;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+.explore-channel,
+.explore-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 12px;
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  color: inherit;
+  text-align: center;
+  min-width: 0;
+}
+.explore-channel b {
+  max-width: 100%;
+}
+.explore-person {
+  gap: 10px;
+}
+.explore-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.explore-tag {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent-fg);
+  font-weight: 700;
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+.explore-tag:hover {
+  transform: scale(1.05);
+}
+.explore-tag span {
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  opacity: 0.7;
+}
