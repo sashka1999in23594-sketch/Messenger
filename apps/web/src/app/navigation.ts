@@ -201,7 +201,7 @@ export const sections: NavSection[] = [
         icon: Hash,
         children: [
           { id: 'feed.topics.hashtags', label: 'Хэштеги', icon: Hash, path: '/feed/hashtags' },
-          { id: 'feed.topics.lists', label: 'Списки', icon: ScrollText, path: '/feed/lists', planned: ['Свои списки авторов', 'Публичные подборки', 'Отдельная лента для каждого списка'] },
+          { id: 'feed.topics.lists', label: 'Списки', icon: ScrollText, path: '/feed/lists', keywords: ['списки авторов', 'лента списка'] },
         ],
       },
       {
@@ -210,10 +210,10 @@ export const sections: NavSection[] = [
         icon: User,
         children: [
           { id: 'feed.mine.compose', label: 'Написать пост', icon: PenLine, path: '/feed/compose' },
-          { id: 'feed.mine.bookmarks', label: 'Закладки', icon: Bookmark, path: '/feed/bookmarks' },
+          { id: 'feed.mine.bookmarks', label: 'Закладки и коллекции', icon: Bookmark, path: '/feed/bookmarks', keywords: ['коллекции', 'сохранённое'] },
           { id: 'feed.mine.liked', label: 'Понравилось', icon: Heart, path: '/feed/liked' },
-          { id: 'feed.mine.drafts', label: 'Черновики', icon: PenLine, path: '/feed/drafts', planned: ['Автосохранение черновиков', 'Отложенная публикация', 'Серии постов (треды)'] },
-          { id: 'feed.mine.scheduled', label: 'Запланированные', icon: Calendar, path: '/feed/scheduled', planned: ['Публикация по расписанию', 'Календарь контента'] },
+          { id: 'feed.mine.drafts', label: 'Черновики', icon: PenLine, path: '/feed/drafts' },
+          { id: 'feed.mine.scheduled', label: 'Запланированные', icon: Calendar, path: '/feed/scheduled', keywords: ['отложенные', 'расписание'] },
         ],
       },
     ],
@@ -303,7 +303,7 @@ export const sections: NavSection[] = [
         children: [
           { id: 'photos.stories.all', label: 'Все истории', icon: Eye, path: '/stories' },
           { id: 'photos.stories.new', label: 'Новая история', icon: Plus, path: '/stories/new' },
-          { id: 'photos.stories.archive', label: 'Архив историй', icon: Archive, path: '/stories/archive', planned: ['Архив прошедших историй', 'Актуальное в профиле'] },
+          { id: 'photos.stories.archive', label: 'Архив и Актуальное', icon: Archive, path: '/stories/archive', keywords: ['архив', 'актуальное', 'highlights'] },
         ],
       },
       { id: 'photos.new', label: 'Опубликовать фото', icon: ImagePlus, path: '/photos/new' },
@@ -433,6 +433,8 @@ export const sections: NavSection[] = [
           { id: 'settings.privacy.interactions', label: 'Комментарии и отметки', icon: MessageSquare, path: '/settings/privacy/interactions' },
           { id: 'settings.privacy.blocked', label: 'Чёрный список', icon: UserX, path: '/settings/privacy/blocked' },
           { id: 'settings.privacy.muted', label: 'Скрытые авторы', icon: VolumeX, path: '/settings/privacy/muted' },
+          { id: 'settings.privacy.mutedwords', label: 'Скрытые слова', icon: Hash, path: '/settings/privacy/muted-words', keywords: ['фильтр', 'спойлеры', 'слова', 'теги'] },
+          { id: 'settings.privacy.close', label: 'Близкие друзья', icon: Star, path: '/settings/privacy/close-friends', keywords: ['close friends', 'истории', 'зелёный круг'] },
         ],
       },
       {

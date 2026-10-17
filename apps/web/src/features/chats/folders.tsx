@@ -137,10 +137,10 @@ export function FolderEditor({ folder, initial, onClose }: { folder?: ChatFolder
             {shown.map((c) => {
               const on = draft.includeChatIds.includes(c.id);
               return (
-                <button key={c.id} type="button" className={cn('folder-chats__item', on && 'folder-chats__item--on')} onClick={() => toggleChat(c.id)} aria-pressed={on}>
+                <button key={c.id} type="button" className={cn('pick-row', on && 'pick-row--on')} onClick={() => toggleChat(c.id)} aria-pressed={on}>
                   <Avatar src={c.avatarUrl} name={c.title} id={c.peer?.id ?? c.id} size={36} />
                   <span className="grow ellipsis">{c.title}</span>
-                  <span className="folder-chats__check">{on && <Check size={14} />}</span>
+                  <span className="pick-row__check">{on && <Check size={14} />}</span>
                 </button>
               );
             })}
@@ -274,10 +274,10 @@ export function AddToFolderDialog({ chat, onClose }: { chat: ChatSummary; onClos
         {items.map((f) => {
           const on = f.includeChatIds.includes(chat.id);
           return (
-            <button key={f.id} type="button" className={cn('folder-chats__item', on && 'folder-chats__item--on')} onClick={() => toggle.mutate(f)} disabled={toggle.isPending}>
+            <button key={f.id} type="button" className={cn('pick-row', on && 'pick-row--on')} onClick={() => toggle.mutate(f)} disabled={toggle.isPending}>
               <span className="folder-row__emoji">{f.emoji}</span>
               <span className="grow">{f.name}</span>
-              <span className="folder-chats__check">{on && <Check size={14} />}</span>
+              <span className="pick-row__check">{on && <Check size={14} />}</span>
             </button>
           );
         })}

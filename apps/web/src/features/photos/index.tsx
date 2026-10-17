@@ -12,7 +12,7 @@ import { cn, compactNumber, plural, timeAgo } from '../../shared/lib/format';
 import { Avatar, Button, EmptyState, ListSkeleton, LoadMore, PageHeader, RichText, Textarea, UserName } from '../../shared/ui';
 import { shareLink, usePostActions } from '../posts/actions';
 import { PostMenu } from '../posts/PostCard';
-import { StoriesBar } from './stories';
+import { StoriesBar } from '../stories';
 import './photos.css';
 
 function Carousel({ media, onDoubleTap }: { media: MediaItem[]; onDoubleTap: () => void }) {
@@ -263,4 +263,3 @@ export function NewPhotoPage() {
   );
 }
 
-export { StoriesPage, NewStoryPage } from './stories';

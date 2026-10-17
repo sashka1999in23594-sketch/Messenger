@@ -1,18 +1,20 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import { AtSign, Camera, Download, ImagePlus, PenLine, Trash2 } from 'lucide-react';
+import { AtSign, Camera, Download, ImagePlus, PenLine, Smile, Trash2 } from 'lucide-react';
 import { LIMITS, type Me } from '@omni/shared';
 import { api, ApiError, errorMessage, uploadFile } from '../../shared/api/client';
 import { prepareImage } from '../../shared/lib/media';
 import { useMe, useSession } from '../../shared/stores/session';
 import { toast } from '../../shared/stores/ui';
-import { Avatar, Button, Input, Notice, PasswordInput, Textarea } from '../../shared/ui';
+import { Avatar, Button, Input, Notice, PasswordInput, SettingRow, Textarea } from '../../shared/ui';
 import { leaveSession } from '../../app/session';
 import { Panel, SettingsPage } from './common';
+import { LinksEditor, StatusDialog } from '../profile/extras';
 import '../profile/profile.css';
 
 export function ProfileSettings() {
+  const [statusOpen, setStatusOpen] = useState(false);
   const me = useMe();
   const setMe = useSession((s) => s.setMe);
   const [displayName, setDisplayName] = useState(me.displayName);
@@ -93,6 +95,19 @@ export function ProfileSettings() {
           </Button>
         </div>
       </Panel>
+      <Panel title="Статус">
+        <SettingRow
+          icon={<Smile size={18} />}
+          tile="tile-yellow"
+          title={me.status ? `${me.status.emoji} ${me.status.text || 'Без текста'}` : 'Статус не установлен'}
+          description={me.status?.until ? `Исчезнет ${new Date(me.status.until).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}` : 'Эмодзи и пара слов рядом с именем — «В отпуске», «Работаю»'}
+          onClick={() => setStatusOpen(true)}
+        />
+      </Panel>
+      <Panel title={`Ссылки · до ${LIMITS.profileLinksMax}`} footer="Показываются в профиле. Только http(s) — открываются в новой вкладке без передачи данных о вас.">
+        <LinksEditor />
+      </Panel>
+      {statusOpen && <StatusDialog onClose={() => setStatusOpen(false)} />}
     </SettingsPage>
   );
 }

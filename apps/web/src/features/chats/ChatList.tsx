@@ -13,6 +13,7 @@ import { activityLabel, chatTime, cn, messageLabel } from '../../shared/lib/form
 import { Avatar, confirm, EmptyState, IconButton, ListSkeleton, LoadMore, Menu, useMenu, Verified } from '../../shared/ui';
 import { patchChat, forgetChat } from './cache';
 import { AddToFolderDialog, useFolders } from './folders';
+import { StoriesBar } from '../stories';
 
 export const FOLDERS: { id: string; label: string }[] = [
   { id: 'all', label: 'Все' },
@@ -177,6 +178,7 @@ export function ChatList({ folder, activeId, onFolder }: { folder: string; activ
             <SquarePen size={20} />
           </IconButton>
         </div>
+        {!q && <StoriesBar compact hideEmpty />}
         <div className="input-group">
           <Search size={16} className="input-group__icon" />
           <input className="input" placeholder="Поиск по чатам" value={q} onChange={(e) => setQ(e.target.value)} />

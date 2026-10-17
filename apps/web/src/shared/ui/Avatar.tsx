@@ -8,7 +8,8 @@ interface AvatarProps {
   id?: string;
   size?: number;
   online?: boolean;
-  ring?: 'unseen' | 'seen' | null;
+  /** Кольцо историй: непросмотренные, просмотренные, «для близких друзей» */
+  ring?: 'unseen' | 'seen' | 'close' | null;
   className?: string;
 }
 
@@ -17,7 +18,7 @@ export function Avatar({ src, name, id, size = 40, online, ring, className }: Av
   const hue = hueFor(id ?? name);
   return (
     <span
-      className={cn('avatar', ring && 'avatar--ring', ring === 'seen' && 'avatar--seen', className)}
+      className={cn('avatar', ring && 'avatar--ring', ring === 'seen' && 'avatar--seen', ring === 'close' && 'avatar--close', className)}
       style={{ width: size, height: size }}
     >
       {src && !broken ? (

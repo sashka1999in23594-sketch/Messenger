@@ -81,6 +81,24 @@
   --call-green: #22c55e;
   --call-red: #ef4444;
 
+  /* Истории: просмотрщик всегда тёмный */
+  --story-bg: #07070b;
+  --story-fg: #ffffff;
+  --story-fg-2: rgba(255, 255, 255, 0.72);
+  --story-glass: rgba(255, 255, 255, 0.14);
+  --story-glass-strong: rgba(255, 255, 255, 0.26);
+  --story-shade: rgba(0, 0, 0, 0.55);
+  --story-close: #22c55e;
+  /* Фоны текстовых историй: пары цветов градиента и цвет текста */
+  --sg-1a: #7c3aed; --sg-1b: #db2777; --sg-1t: #ffffff;
+  --sg-2a: #0ea5e9; --sg-2b: #6366f1; --sg-2t: #ffffff;
+  --sg-3a: #f97316; --sg-3b: #facc15; --sg-3t: #1c1917;
+  --sg-4a: #10b981; --sg-4b: #0f766e; --sg-4t: #ffffff;
+  --sg-5a: #111827; --sg-5b: #374151; --sg-5t: #f9fafb;
+  --sg-6a: #fdf2f8; --sg-6b: #fbcfe8; --sg-6t: #831843;
+  --sg-7a: #1e1b4b; --sg-7b: #9333ea; --sg-7t: #f5f3ff;
+  --sg-8a: #ef4444; --sg-8b: #7f1d1d; --sg-8t: #ffffff;
+
   /* Цвета обоев чатов (не зависят от темы) */
   --wp-sunset-a: #ff8a5b;
   --wp-sunset-b: #ff3d7f;

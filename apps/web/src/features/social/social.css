@@ -1,0 +1,168 @@
+/* ─── Соцфункции: коллекции, списки, черновики ─────────────────────────────── */
+.collection-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  background: var(--surface-2);
+}
+.collection-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.collections-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 132px;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px 2px 12px;
+  scrollbar-width: none;
+}
+.collections-strip::-webkit-scrollbar {
+  display: none;
+}
+.collection-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  aspect-ratio: 1;
+  padding: 10px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--grad-soft);
+  border: 1px solid var(--border);
+  text-align: left;
+  color: var(--text);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.collection-card:hover {
+  transform: translateY(-2px);
+}
+.collection-card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.collection-card--cover {
+  color: var(--story-fg);
+}
+.collection-card--cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent 35%, var(--story-shade));
+}
+.collection-card > span {
+  position: relative;
+  z-index: 1;
+}
+.collection-card__emoji {
+  font-size: 28px;
+  line-height: 1;
+  margin-bottom: auto;
+}
+.collection-card--new {
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-style: dashed;
+  background: transparent;
+  color: var(--text-2);
+}
+.list-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition:
+    transform var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+  color: inherit;
+}
+.list-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+}
+.list-card__emoji {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  border-radius: var(--radius-lg);
+  background: var(--grad-soft);
+}
+.list-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--grad-soft);
+  border: 1px solid var(--border);
+}
+.list-hero__emoji {
+  font-size: 44px;
+}
+.draft-card {
+  display: flex;
+  gap: var(--space-3);
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.draft-card__media {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+.draft-card__media img {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+.draft-card__when {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 650;
+}
+.draft-card__error {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.muted-word {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px 6px 14px;
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-weight: 600;
+}
+.muted-word small {
+  color: var(--text-3);
+  font-weight: 500;
+}

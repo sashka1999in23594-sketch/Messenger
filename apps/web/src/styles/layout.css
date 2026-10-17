@@ -513,13 +513,21 @@
 }
 .page-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-4);
   margin-bottom: var(--space-6);
 }
 .page-header__text {
-  flex: 1;
+  flex: 1 1 220px;
   min-width: 0;
+}
+/* На узком экране кнопки действий уходят под заголовок */
+@media (max-width: 560px) {
+  .page-header > .row:last-child {
+    flex-basis: 100%;
+    justify-content: flex-end;
+  }
 }
 .page-header__text h1 {
   font-size: var(--fs-2xl);

@@ -11,6 +11,8 @@ import { Button, EmptyState, ErrorState, ListSkeleton, Loading, LoadMore, PageHe
 import { CommentsSection } from '../posts/Comments';
 import { PostCard } from '../posts/PostCard';
 import { PostComposer } from '../posts/PostComposer';
+import { StoriesBar } from '../stories';
+import { CollectionsStrip } from '../social/collections-strip';
 import '../posts/posts.css';
 
 export function PostList({ queryKey, path, empty }: { queryKey: readonly unknown[]; path: string; empty?: React.ReactNode }) {
@@ -103,6 +105,7 @@ export function FeedPage({ mode }: { mode: keyof typeof MODES }) {
               ]}
             />
           </div>
+          <StoriesBar />
           <PostComposer />
           <PostList queryKey={qk.feed(apiMode, 'all')} path={`/feed/${apiMode}?kind=all`} />
         </div>
@@ -217,6 +220,7 @@ export function SavedPostsPage({ kind }: { kind: 'bookmarks' | 'liked' }) {
           subtitle={kind === 'bookmarks' ? 'Видны только вам' : 'Лайки видны только вам'}
           icon={kind === 'bookmarks' ? <Bookmark size={22} /> : <Heart size={22} />}
         />
+        {kind === 'bookmarks' && <CollectionsStrip />}
         <PostList
           queryKey={['saved-posts', kind]}
           path={kind === 'bookmarks' ? '/me/bookmarks?kind=all' : '/me/liked?kind=all'}

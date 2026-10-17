@@ -1,23 +1,37 @@
 import { useRef, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import { Globe, ImagePlus, Lock, Users, X } from 'lucide-react';
-import { LIMITS, type MediaItem, type Post, type Visibility } from '@omni/shared';
+import { CalendarClock, FileText, Globe, ImagePlus, Lock, Users, X } from 'lucide-react';
+import { LIMITS, type MediaItem, type Post, type PostDraft, type Visibility } from '@omni/shared';
 import { api, ApiError, errorMessage } from '../../shared/api/client';
 import { queryClient } from '../../shared/api/query';
 import { uploadAny } from '../../shared/lib/media';
 import { useMe } from '../../shared/stores/session';
 import { toast } from '../../shared/stores/ui';
 import { cn } from '../../shared/lib/format';
-import { Avatar, Button, IconButton, Modal } from '../../shared/ui';
+import { Avatar, Button, IconButton, Modal, ScheduleDialog } from '../../shared/ui';
 import { PostEmbed } from './PostCard';
 
 interface Pending {
   id: string;
-  file: File;
   preview: string;
+  isVideo: boolean;
+  /** Превью — локальный objectURL, который нужно освободить */
+  local: boolean;
   progress: number;
   media: MediaItem | null;
 }
+
+const fromMedia = (m: MediaItem): Pending => ({
+  id: m.id,
+  preview: m.kind === 'video' ? (m.posterUrl ?? m.url) : m.url,
+  isVideo: false,
+  local: false,
+  progress: 1,
+  media: m,
+});
+
+export const draftsKey = ['drafts'] as const;
 
 const VIS: Record<Visibility, { label: string; icon: React.ReactNode }> = {
   public: { label: 'Все', icon: <Globe size={16} /> },
@@ -25,31 +39,41 @@ const VIS: Record<Visibility, { label: string; icon: React.ReactNode }> = {
   private: { label: 'Только я', icon: <Lock size={16} /> },
 };
 
-/** Редактор заметки (как в X): текст до 2000 символов, до 4 фото/видео, видимость. */
+/**
+ * Редактор заметки (как в X): текст до 2000 символов, до 4 фото/видео, видимость,
+ * черновик и отложенная публикация. С draft — редактирование черновика.
+ */
 export function PostComposer({
   communityId,
   quoteOf,
   onDone,
   autoFocus,
   placeholder = 'Что нового?',
+  draft,
+  onDraftSaved,
 }: {
   communityId?: string;
   quoteOf?: Post;
   onDone?: (p: Post) => void;
   autoFocus?: boolean;
   placeholder?: string;
+  draft?: PostDraft;
+  onDraftSaved?: (d: PostDraft) => void;
 }) {
   const me = useMe();
-  const [text, setText] = useState('');
-  const [visibility, setVisibility] = useState<Visibility>('public');
-  const [files, setFiles] = useState<Pending[]>([]);
+  const navigate = useNavigate();
+  const [text, setText] = useState(draft?.text ?? '');
+  const [visibility, setVisibility] = useState<Visibility>(draft?.visibility ?? 'public');
+  const [files, setFiles] = useState<Pending[]>(() => (draft?.media ?? []).map(fromMedia));
+  const [scheduling, setScheduling] = useState(false);
+  const canDraft = !communityId && !quoteOf;
   const fileInput = useRef<HTMLInputElement>(null);
   const left = LIMITS.postMax - text.length;
 
   const add = (list: FileList) => {
     for (const file of [...list].slice(0, 4 - files.length)) {
       const id = `${Date.now()}-${Math.random()}`;
-      setFiles((f) => [...f, { id, file, preview: URL.createObjectURL(file), progress: 0, media: null }]);
+      setFiles((f) => [...f, { id, preview: URL.createObjectURL(file), isVideo: file.type.startsWith('video/'), local: true, progress: 0, media: null }]);
       uploadAny(file, { onProgress: (p) => setFiles((f) => f.map((x) => (x.id === id ? { ...x, progress: p } : x))) })
         .then((media) => setFiles((f) => f.map((x) => (x.id === id ? { ...x, media } : x))))
         .catch((e) => {
@@ -59,25 +83,52 @@ export function PostComposer({
     }
   };
 
+  const reset = () => {
+    setText('');
+    files.forEach((f) => f.local && URL.revokeObjectURL(f.preview));
+    setFiles([]);
+  };
+  const draftBody = (publishAt: string | null) => ({ kind: 'note', text: text.trim(), mediaIds: files.map((f) => f.media!.id), visibility, commentsDisabled: false, publishAt });
+
   const publish = useMutation({
-    mutationFn: () =>
-      api.post<Post>('/posts', {
+    mutationFn: async () => {
+      if (draft) {
+        await api.put(`/me/drafts/${draft.id}`, draftBody(null));
+        return api.post<Post>(`/me/drafts/${draft.id}/publish`);
+      }
+      return api.post<Post>('/posts', {
         kind: 'note',
         text: text.trim(),
         mediaIds: files.map((f) => f.media!.id),
         visibility,
         communityId,
         repostOfId: quoteOf?.id,
-      }),
+      });
+    },
     onSuccess: (post) => {
-      setText('');
-      files.forEach((f) => URL.revokeObjectURL(f.preview));
-      setFiles([]);
+      reset();
+      if (draft) void queryClient.invalidateQueries({ queryKey: draftsKey });
       toast({ text: 'Опубликовано', kind: 'success' });
       void queryClient.invalidateQueries({ queryKey: ['feed'] });
       void queryClient.invalidateQueries({ queryKey: ['user-posts'] });
       void queryClient.invalidateQueries({ queryKey: ['community-posts'] });
       onDone?.(post);
+    },
+    onError: (e) => toast({ text: e instanceof ApiError && e.fields ? Object.values(e.fields)[0]! : errorMessage(e), kind: 'error' }),
+  });
+
+  const saveDraft = useMutation({
+    mutationFn: (publishAt: string | null) =>
+      draft ? api.put<PostDraft>(`/me/drafts/${draft.id}`, draftBody(publishAt)) : api.post<PostDraft>('/me/drafts', draftBody(publishAt)),
+    onSuccess: (d) => {
+      void queryClient.invalidateQueries({ queryKey: draftsKey });
+      if (!draft) reset();
+      toast({
+        text: d.publishAt ? `Публикация запланирована на ${new Date(d.publishAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}` : 'Черновик сохранён',
+        kind: 'success',
+        action: draft ? undefined : { label: 'Открыть', onClick: () => navigate(d.publishAt ? '/feed/scheduled' : '/feed/drafts') },
+      });
+      onDraftSaved?.(d);
     },
     onError: (e) => toast({ text: e instanceof ApiError && e.fields ? Object.values(e.fields)[0]! : errorMessage(e), kind: 'error' }),
   });
@@ -105,7 +156,7 @@ export function PostComposer({
           <div className="composer__attachments">
             {files.map((f) => (
               <div key={f.id} className="attachment" style={{ width: 110, height: 110 }}>
-                {f.file.type.startsWith('video/') ? <video src={f.preview} muted /> : <img src={f.preview} alt="" />}
+                {f.isVideo ? <video src={f.preview} muted /> : <img src={f.preview} alt="" />}
                 {!f.media && (
                   <div className="progress attachment__progress">
                     <div className="progress__bar" style={{ width: `${f.progress * 100}%` }} />
@@ -132,6 +183,16 @@ export function PostComposer({
               ))}
             </select>
           )}
+          {canDraft && (
+            <>
+              <IconButton label="Сохранить черновик" onClick={() => saveDraft.mutate(null)} disabled={uploading || (!text.trim() && !files.length) || saveDraft.isPending}>
+                <FileText size={19} />
+              </IconButton>
+              <IconButton label="Запланировать публикацию" onClick={() => setScheduling(true)} disabled={!canPost}>
+                <CalendarClock size={19} />
+              </IconButton>
+            </>
+          )}
           <span className="grow" />
           {text.length > 0 && <span className={cn('counter', left < 100 && 'counter--warn', left < 0 && 'counter--over')}>{left}</span>}
           <Button pill size="sm" disabled={!canPost} loading={publish.isPending} onClick={() => publish.mutate()}>
@@ -139,6 +200,17 @@ export function PostComposer({
           </Button>
         </div>
       </div>
+      {scheduling && (
+        <ScheduleDialog
+          title="Запланировать публикацию"
+          hint="Публикация выйдет автоматически в выбранное время. До этого её можно изменить в разделе «Запланированные»."
+          initial={draft?.publishAt ? new Date(draft.publishAt) : undefined}
+          onClose={() => setScheduling(false)}
+          onSchedule={async (at) => {
+            await saveDraft.mutateAsync(at.toISOString());
+          }}
+        />
+      )}
     </div>
   );
 }

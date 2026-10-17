@@ -179,3 +179,54 @@ a.profile__stat:hover {
     padding: 0 10px;
   }
 }
+
+/* Статус, общие подписчики, «колокольчик» */
+.profile__status {
+  align-self: flex-start;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+  transition: background var(--dur-fast) var(--ease);
+}
+.profile__status:not(:disabled):hover {
+  background: var(--surface-3);
+}
+.profile__status:disabled {
+  cursor: default;
+}
+.profile__mutuals {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+.profile__mutuals-avatars {
+  display: inline-flex;
+}
+.profile__mutuals-avatars .avatar + .avatar {
+  margin-left: -8px;
+}
+.profile__mutuals-avatars .avatar {
+  box-shadow: 0 0 0 2px var(--panel-solid);
+}
+.profile__bell {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--border);
+}
+.profile__bell--on {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  border-color: transparent;
+}

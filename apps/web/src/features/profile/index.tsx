@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Ban, CalendarDays, Ellipsis, Flag, Globe, Link2, Lock, MapPin, MessageCircle, PenLine, ShieldCheck, UserCheck, UserPlus, Users, VolumeX } from 'lucide-react';
-import type { ChatSummary, Post, UserProfile, UserSummary } from '@omni/shared';
+import { Ban, Bell, BellRing, CalendarDays, Ellipsis, Flag, Globe, Link2, ListPlus, Lock, MapPin, MessageCircle, PenLine, ShieldCheck, Smile, Star, UserCheck, UserPlus, Users, VolumeX } from 'lucide-react';
+import type { ChatSummary, Post, Story, UserProfile, UserSummary } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { flatPages, qk, queryClient, useCursorList } from '../../shared/api/query';
 import { getIdentity, registerDevice } from '../../shared/crypto/e2e';
@@ -14,6 +14,9 @@ import { PostCard } from '../posts/PostCard';
 import { PhotoGrid } from '../photos';
 import { VideoCard } from '../video/components';
 import { FollowButton } from '../feed';
+import { HighlightsRow, StoryViewer } from '../stories';
+import { ListPickerDialog } from '../social/dialogs';
+import { StatusDialog } from './extras';
 import './profile.css';
 
 const TABS = [
@@ -58,7 +61,8 @@ export function ProfilePage() {
   const username = param ?? me.username;
   const isMe = username === me.username;
   const menu = useMenu();
-  const [reporting, setReporting] = useState(false);
+  const [dialog, setDialog] = useState<'report' | 'lists' | 'status' | null>(null);
+  const [stories, setStories] = useState<Story[] | null>(null);
   const q = useQuery({ queryKey: qk.user(username), queryFn: () => api.get<UserProfile>(`/users/${encodeURIComponent(username)}`) });
   const p = q.data;
   useCrumb(p ? (isMe ? 'Моя страница' : p.displayName) : null);
@@ -89,6 +93,31 @@ export function ProfilePage() {
     onError: (e) => toast({ text: errorMessage(e), kind: 'error' }),
   });
 
+  const bell = useMutation({
+    mutationFn: (on: boolean) => (on ? api.post(`/users/${p!.id}/subscribe`) : api.del(`/users/${p!.id}/subscribe`)),
+    onSuccess: (_, on) => {
+      refresh();
+      toast({ text: on ? 'Будем присылать уведомления о новых публикациях' : 'Уведомления о публикациях выключены', kind: 'success' });
+    },
+    onError: (e) => toast({ text: errorMessage(e), kind: 'error' }),
+  });
+  const closeFriend = useMutation({
+    mutationFn: (on: boolean) => (on ? api.post('/me/close-friends', { userIds: [p!.id] }) : api.del(`/me/close-friends/${p!.id}`)),
+    onSuccess: (_, on) => {
+      refresh();
+      toast({ text: on ? `${p!.displayName} — в близких друзьях` : 'Убрано из близких друзей', kind: 'success' });
+    },
+    onError: (e) => toast({ text: errorMessage(e), kind: 'error' }),
+  });
+  const openStories = async () => {
+    try {
+      const r = await api.get<{ items: Story[] }>(`/users/${p!.id}/stories`);
+      if (r.items.length) setStories(r.items);
+    } catch (e) {
+      toast({ text: errorMessage(e), kind: 'error' });
+    }
+  };
+
   if (q.isLoading) return <Loading />;
   if (q.error || !p) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
   const rel = p.relationship;
@@ -101,7 +130,13 @@ export function ProfilePage() {
         <div className="profile__card">
         <div className="profile__head">
           <span className="profile__avatar-wrap">
-            <Avatar src={p.avatarUrl} name={p.displayName} id={p.id} size={120} className="profile__avatar" online={p.presence?.online} />
+            {p.storyRing ? (
+              <button type="button" onClick={() => void openStories()} aria-label="Смотреть истории" style={{ borderRadius: '50%' }}>
+                <Avatar src={p.avatarUrl} name={p.displayName} id={p.id} size={120} className="profile__avatar" online={p.presence?.online} ring={p.storyRing} />
+              </button>
+            ) : (
+              <Avatar src={p.avatarUrl} name={p.displayName} id={p.id} size={120} className="profile__avatar" online={p.presence?.online} />
+            )}
           </span>
           <div className="profile__actions">
             {isMe ? (
@@ -117,6 +152,18 @@ export function ProfilePage() {
                 <Button variant="secondary" pill icon={<MessageCircle size={16} />} disabled={!p.canMessage} loading={message.isPending} onClick={() => message.mutate()}>
                   Написать
                 </Button>
+                {p.canViewContent && (rel?.following || p.subscribed) && (
+                  <button
+                    type="button"
+                    className={`icon-btn profile__bell${p.subscribed ? ' profile__bell--on' : ''}`}
+                    aria-label={p.subscribed ? 'Не уведомлять о публикациях' : 'Уведомлять о новых публикациях'}
+                    title={p.subscribed ? 'Уведомления включены' : 'Уведомлять о новых публикациях'}
+                    aria-pressed={p.subscribed}
+                    onClick={() => bell.mutate(!p.subscribed)}
+                  >
+                    {p.subscribed ? <BellRing size={19} /> : <Bell size={19} />}
+                  </button>
+                )}
                 {rel?.following ? (
                   <Button variant="secondary" pill icon={<UserCheck size={16} />} onClick={() => follow.mutate(false)}>
                     Вы подписаны
@@ -141,6 +188,19 @@ export function ProfilePage() {
           <h1 className="profile__name">
             <span className="ellipsis">{p.displayName}</span> {p.verified && <Verified size={24} />} {p.isPrivate && <Lock size={20} className="faint" />}
           </h1>
+          {(p.status || isMe) && (
+            <button type="button" className="profile__status" onClick={() => isMe && setDialog('status')} disabled={!isMe} title={p.status?.until ? `До ${new Date(p.status.until).toLocaleString('ru-RU')}` : undefined}>
+              {p.status ? (
+                <>
+                  <span aria-hidden>{p.status.emoji}</span> {p.status.text || 'Статус'}
+                </>
+              ) : (
+                <>
+                  <Smile size={15} /> Установить статус
+                </>
+              )}
+            </button>
+          )}
           <div className="muted">
             @{p.username}
             {rel?.followedBy && <span className="tag" style={{ marginLeft: 8 }}>Подписан(а) на вас</span>}
@@ -157,6 +217,11 @@ export function ProfilePage() {
                 <Globe size={15} /> {p.website.replace(/^https?:\/\//, '')}
               </a>
             )}
+            {p.links.map((l) => (
+              <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer nofollow ugc">
+                <Link2 size={15} /> {l.title}
+              </a>
+            ))}
             <span>
               <CalendarDays size={15} /> С нами с {new Date(p.createdAt).toLocaleDateString('ru', { month: 'long', year: 'numeric' })}
             </span>
@@ -173,6 +238,24 @@ export function ProfilePage() {
               <b>{compactNumber(p.stats.following)}</b> {plural(p.stats.following, 'подписка', 'подписки', 'подписок')}
             </Link>
           </div>
+          {p.mutualFollowers.count > 0 && (
+            <div className="profile__mutuals">
+              <span className="profile__mutuals-avatars">
+                {p.mutualFollowers.sample.map((u) => (
+                  <Avatar key={u.id} src={u.avatarUrl} name={u.displayName} id={u.id} size={24} />
+                ))}
+              </span>
+              <span>
+                Подписаны {p.mutualFollowers.sample.map((u) => u.displayName.split(' ')[0]).join(', ')}
+                {p.mutualFollowers.count > p.mutualFollowers.sample.length && ` и ещё ${p.mutualFollowers.count - p.mutualFollowers.sample.length}`}
+              </span>
+            </div>
+          )}
+          {p.canViewContent && (
+            <div style={{ marginTop: 14 }}>
+              <HighlightsRow userId={p.id} own={isMe} />
+            </div>
+          )}
         </div>
         </div>
         <div className="profile__tabs">
@@ -188,13 +271,22 @@ export function ProfilePage() {
         items={[
           { label: 'Скопировать ссылку', icon: <Link2 size={18} />, onClick: () => void navigator.clipboard.writeText(`${location.origin}/u/${p.username}`).then(() => toast('Ссылка скопирована')) },
           { label: 'Секретный чат', icon: <ShieldCheck size={18} />, hidden: isMe || !p.canMessage, onClick: () => secretChat.mutate() },
+          { label: 'Добавить в список…', icon: <ListPlus size={18} />, hidden: isMe, onClick: () => setDialog('lists') },
+          {
+            label: p.closeFriend ? 'Убрать из близких друзей' : 'В близкие друзья',
+            icon: <Star size={18} />,
+            hidden: isMe || !!rel?.blocked,
+            onClick: () => closeFriend.mutate(!p.closeFriend),
+          },
+          { label: 'Статус', icon: <Smile size={18} />, hidden: !isMe, onClick: () => setDialog('status') },
+          { label: 'Архив историй', icon: <Star size={18} />, hidden: !isMe, onClick: () => navigate('/stories/archive') },
           {
             label: rel?.muted ? 'Показывать публикации' : 'Скрыть публикации',
             icon: <VolumeX size={18} />,
             hidden: isMe,
             onClick: () => void (rel?.muted ? api.del(`/users/${p.id}/mute`) : api.post(`/users/${p.id}/mute`)).then(refresh),
           },
-          { label: 'Пожаловаться', icon: <Flag size={18} />, hidden: isMe, onClick: () => setReporting(true) },
+          { label: 'Пожаловаться', icon: <Flag size={18} />, hidden: isMe, onClick: () => setDialog('report') },
           {
             label: rel?.blocked ? 'Разблокировать' : 'Заблокировать',
             icon: <Ban size={18} />,
@@ -210,7 +302,10 @@ export function ProfilePage() {
           },
         ]}
       />
-      {reporting && <ReportDialog open entityType="user" entityId={p.id} onClose={() => setReporting(false)} />}
+      {dialog === 'report' && <ReportDialog open entityType="user" entityId={p.id} onClose={() => setDialog(null)} />}
+      {dialog === 'lists' && <ListPickerDialog user={p} onClose={() => setDialog(null)} />}
+      {dialog === 'status' && <StatusDialog onClose={() => setDialog(null)} />}
+      {stories && <StoryViewer groups={[{ author: p, stories, hasUnseen: stories.some((s) => !s.viewed) }]} onClose={() => (setStories(null), refresh())} />}
     </div>
   );
 }

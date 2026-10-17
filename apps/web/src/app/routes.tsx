@@ -16,12 +16,14 @@ const feed = () => import('../features/feed');
 const video = () => import('../features/video');
 const shorts = () => import('../features/shorts');
 const photos = () => import('../features/photos');
+const stories = () => import('../features/stories');
 const profile = () => import('../features/profile');
 const communities = () => import('../features/communities');
 const explore = () => import('../features/explore');
 const notifications = () => import('../features/notifications');
 const settings = () => import('../features/settings');
 const calls = () => import('../features/calls');
+const social = () => import('../features/social');
 
 const ChatsLayout = lazyNamed(chats, 'ChatsLayout');
 const NoChatSelected = lazyNamed(chats, 'NoChatSelected');
@@ -39,6 +41,11 @@ const PostPage = lazyNamed(feed, 'PostPage');
 const HashtagsPage = lazyNamed(feed, 'HashtagsPage');
 const TagPage = lazyNamed(feed, 'TagPage');
 const SavedPostsPage = lazyNamed(feed, 'SavedPostsPage');
+const DraftsPage = lazyNamed(social, 'DraftsPage');
+const ListsPage = lazyNamed(social, 'ListsPage');
+const ListPage = lazyNamed(social, 'ListPage');
+const CollectionPage = lazyNamed(social, 'CollectionPage');
+const MutedWordsPage = lazyNamed(social, 'MutedWordsPage');
 
 const VideoHome = lazyNamed(video, 'VideoHome');
 const WatchPage = lazyNamed(video, 'WatchPage');
@@ -57,8 +64,10 @@ const PhotoFeed = lazyNamed(photos, 'PhotoFeed');
 const ExplorePhotos = lazyNamed(photos, 'ExplorePhotos');
 const SavedPhotos = lazyNamed(photos, 'SavedPhotos');
 const NewPhotoPage = lazyNamed(photos, 'NewPhotoPage');
-const StoriesPage = lazyNamed(photos, 'StoriesPage');
-const NewStoryPage = lazyNamed(photos, 'NewStoryPage');
+const StoriesPage = lazyNamed(stories, 'StoriesPage');
+const NewStoryPage = lazyNamed(stories, 'NewStoryPage');
+const StoriesArchivePage = lazyNamed(stories, 'ArchivePage');
+const CloseFriendsPage = lazyNamed(stories, 'CloseFriendsPage');
 
 const ProfilePage = lazyNamed(profile, 'ProfilePage');
 const FollowListPage = lazyNamed(profile, 'FollowListPage');
@@ -136,6 +145,11 @@ export function AppRoutes() {
         <Route path="feed/hashtags" element={<HashtagsPage />} />
         <Route path="feed/bookmarks" element={<SavedPostsPage kind="bookmarks" />} />
         <Route path="feed/liked" element={<SavedPostsPage kind="liked" />} />
+        <Route path="feed/drafts" element={<DraftsPage filter="drafts" />} />
+        <Route path="feed/scheduled" element={<DraftsPage filter="scheduled" />} />
+        <Route path="feed/lists" element={<ListsPage />} />
+        <Route path="feed/lists/:id" element={<ListPage />} />
+        <Route path="feed/collections/:id" element={<CollectionPage />} />
         <Route path="post/:id" element={<PostPage />} />
         <Route path="tag/:tag" element={<TagPage />} />
 
@@ -168,6 +182,7 @@ export function AppRoutes() {
         <Route path="photos/saved" element={<SavedPhotos />} />
         <Route path="stories" element={<StoriesPage />} />
         <Route path="stories/new" element={<NewStoryPage />} />
+        <Route path="stories/archive" element={<StoriesArchivePage />} />
 
         {/* Сообщества */}
         <Route path="communities" element={<MyCommunities />} />
@@ -211,6 +226,8 @@ export function AppRoutes() {
         <Route path="settings/privacy/interactions" element={<PrivacySettings section="interactions" />} />
         <Route path="settings/privacy/blocked" element={<RelationsList which="blocks" />} />
         <Route path="settings/privacy/muted" element={<RelationsList which="mutes" />} />
+        <Route path="settings/privacy/close-friends" element={<CloseFriendsPage />} />
+        <Route path="settings/privacy/muted-words" element={<MutedWordsPage />} />
         <Route path="settings/security" element={<SecurityOverview />} />
         <Route path="settings/security/password" element={<PasswordSettings />} />
         <Route path="settings/security/2fa" element={<TwoFactorSettings />} />

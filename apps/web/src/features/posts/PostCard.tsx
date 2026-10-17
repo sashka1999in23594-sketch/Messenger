@@ -1,14 +1,16 @@
 import { memo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { BarChart2, Bookmark, Ellipsis, Flag, Heart, Link2, MessageCircle, PenLine, Quote, Repeat2, Trash2, Users, VolumeX } from 'lucide-react';
-import type { Post } from '@omni/shared';
-import { api } from '../../shared/api/client';
-import { useMe } from '../../shared/stores/session';
+import { BarChart2, Bookmark, Ellipsis, Flag, FolderPlus, Heart, Link2, MessageCircle, PenLine, Pin, PinOff, Quote, Repeat2, Trash2, Users, VolumeX } from 'lucide-react';
+import type { Me, Post } from '@omni/shared';
+import { api, errorMessage } from '../../shared/api/client';
+import { queryClient } from '../../shared/api/query';
+import { useMe, useSession } from '../../shared/stores/session';
 import { toast } from '../../shared/stores/ui';
 import { cn, compactNumber, fullDate, timeAgo } from '../../shared/lib/format';
 import { Avatar, confirm, MediaGrid, Menu, ReportDialog, RichText, useMenu, UserName } from '../../shared/ui';
 import { shareLink, usePostActions } from './actions';
 import { QuoteDialog } from './PostComposer';
+import { CollectionPickerDialog, LikersDialog } from '../social/dialogs';
 import './posts.css';
 
 export function PostEmbed({ post }: { post: Post }) {
@@ -92,9 +94,20 @@ export const PostActionsBar = memo(function PostActionsBar({ post, onComment }: 
 export function PostMenu({ post }: { post: Post }) {
   const me = useMe();
   const menu = useMenu();
-  const [reporting, setReporting] = useState(false);
+  const [dialog, setDialog] = useState<'report' | 'collection' | 'likers' | null>(null);
   const { remove } = usePostActions(post);
   const mine = post.author.id === me.id;
+  const pinned = me.pinnedPostId === post.id;
+  const pin = async () => {
+    try {
+      const updated = await api.put<Me>('/me/pinned-post', { postId: pinned ? null : post.id });
+      useSession.getState().patchMe({ pinnedPostId: updated.pinnedPostId });
+      void queryClient.invalidateQueries({ queryKey: ['user-posts'] });
+      toast({ text: pinned ? 'Публикация откреплена' : 'Закреплено в профиле — она будет первой', kind: 'success' });
+    } catch (e) {
+      toast({ text: errorMessage(e), kind: 'error' });
+    }
+  };
   return (
     <span onClick={(e) => e.stopPropagation()}>
       <button className="icon-btn icon-btn--sm" aria-label="Ещё" onClick={(e) => menu.openFromEvent(e)}>
@@ -105,13 +118,16 @@ export function PostMenu({ post }: { post: Post }) {
         onClose={menu.close}
         items={[
           { label: 'Скопировать ссылку', icon: <Link2 size={18} />, onClick: () => shareLink(post.kind === 'video' ? `/watch/${post.id}` : `/post/${post.id}`) },
+          { label: 'В коллекцию…', icon: <FolderPlus size={18} />, onClick: () => setDialog('collection') },
+          { label: 'Кто оценил', icon: <Heart size={18} />, hidden: !post.stats.likes, onClick: () => setDialog('likers') },
+          { label: pinned ? 'Открепить из профиля' : 'Закрепить в профиле', icon: pinned ? <PinOff size={18} /> : <Pin size={18} />, hidden: !mine || !!post.community, onClick: () => void pin() },
           {
             label: `Скрыть @${post.author.username}`,
             icon: <VolumeX size={18} />,
             hidden: mine,
             onClick: () => void api.post(`/users/${post.author.id}/mute`).then(() => toast(`Публикации @${post.author.username} скрыты из ваших лент`)),
           },
-          { label: 'Пожаловаться', icon: <Flag size={18} />, hidden: mine, onClick: () => setReporting(true) },
+          { label: 'Пожаловаться', icon: <Flag size={18} />, hidden: mine, onClick: () => setDialog('report') },
           {
             label: 'Удалить',
             icon: <Trash2 size={18} />,
@@ -123,7 +139,9 @@ export function PostMenu({ post }: { post: Post }) {
           },
         ]}
       />
-      {reporting && <ReportDialog open entityType="post" entityId={post.id} onClose={() => setReporting(false)} />}
+      {dialog === 'report' && <ReportDialog open entityType="post" entityId={post.id} onClose={() => setDialog(null)} />}
+      {dialog === 'collection' && <CollectionPickerDialog post={post} onClose={() => setDialog(null)} />}
+      {dialog === 'likers' && <LikersDialog postId={post.id} onClose={() => setDialog(null)} />}
     </span>
   );
 }
@@ -153,6 +171,11 @@ export const PostCard = memo(function PostCard({ post, detail }: { post: Post; d
               {post.author.displayName}
             </Link>{' '}
             сделал(а) репост
+          </div>
+        )}
+        {post.pinned && (
+          <div className="post__context" style={{ margin: 0 }}>
+            <Pin size={14} /> Закреплено
           </div>
         )}
         {shown.community && (

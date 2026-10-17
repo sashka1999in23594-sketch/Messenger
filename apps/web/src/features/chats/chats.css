@@ -1476,36 +1476,6 @@
   border-radius: var(--radius-lg);
   padding: 4px;
 }
-.folder-chats__item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
-  text-align: left;
-  min-width: 0;
-  transition: background var(--dur-fast) var(--ease);
-}
-.folder-chats__item:hover {
-  background: var(--surface-hover);
-}
-.folder-chats__item--on {
-  background: var(--accent-soft);
-}
-.folder-chats__check {
-  width: 22px;
-  height: 22px;
-  flex: 0 0 auto;
-  border-radius: var(--radius-full);
-  border: 2px solid var(--border-strong);
-  display: grid;
-  place-items: center;
-  color: var(--accent-fg);
-}
-.folder-chats__item--on .folder-chats__check {
-  background: var(--accent);
-  border-color: var(--accent);
-}
 .folder-row__emoji {
   width: 40px;
   height: 40px;

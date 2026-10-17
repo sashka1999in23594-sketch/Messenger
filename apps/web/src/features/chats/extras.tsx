@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { CalendarClock, Plus, Send, Trash2, X } from 'lucide-react';
 import { LIMITS, type Message, type PollInput, type ScheduledMessage, type UserSummary } from '@omni/shared';
-import { api, ApiError, errorMessage } from '../../shared/api/client';
+import { api, errorMessage } from '../../shared/api/client';
 import { queryClient } from '../../shared/api/query';
 import { toast } from '../../shared/stores/ui';
 import { fullDate } from '../../shared/lib/format';
@@ -11,6 +11,9 @@ import { Button, EmptyState, Input, ListSkeleton, Modal, SettingRow, Switch, Use
 import { upsertMessage } from './cache';
 
 export const scheduledKey = (chatId: string) => ['scheduled', chatId] as const;
+
+/** Выбор времени — общий компонент */
+export { ScheduleDialog } from '../../shared/ui';
 
 export function PollDialog({ onClose, onCreate }: { onClose: () => void; onCreate: (poll: PollInput) => Promise<void> }) {
   const [question, setQuestion] = useState('');
@@ -88,74 +91,6 @@ export function PollDialog({ onClose, onCreate }: { onClose: () => void; onCreat
           <SettingRow title="Несколько ответов" control={<Switch checked={multiple && !quiz} onChange={setMultiple} disabled={quiz} label="Несколько ответов" />} />
           <SettingRow title="Викторина" description="Один верный ответ — отметьте его кружком" control={<Switch checked={quiz} onChange={setQuiz} label="Викторина" />} />
         </div>
-      </div>
-    </Modal>
-  );
-}
-
-function toLocalInput(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-/** Быстрые варианты времени: через час, сегодня вечером, завтра утром. */
-function presets(): { label: string; at: Date }[] {
-  const now = new Date();
-  const inHour = new Date(now.getTime() + 3600_000);
-  const evening = new Date(now);
-  evening.setHours(21, 0, 0, 0);
-  const morning = new Date(now);
-  morning.setDate(morning.getDate() + 1);
-  morning.setHours(9, 0, 0, 0);
-  return [
-    { label: 'Через час', at: inHour },
-    ...(evening.getTime() > now.getTime() + 600_000 ? [{ label: 'Сегодня в 21:00', at: evening }] : []),
-    { label: 'Завтра в 9:00', at: morning },
-  ];
-}
-
-export function ScheduleDialog({ onClose, onSchedule }: { onClose: () => void; onSchedule: (at: Date) => Promise<void> }) {
-  const [value, setValue] = useState(() => toLocalInput(new Date(Date.now() + 3600_000)));
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const submit = async (at: Date) => {
-    setBusy(true);
-    setError(null);
-    try {
-      await onSchedule(at);
-      onClose();
-    } catch (e) {
-      setError(e instanceof ApiError ? (e.fields?.sendAt ?? e.message) : errorMessage(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <Modal
-      open
-      onClose={onClose}
-      title="Отправить позже"
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>
-            Отмена
-          </Button>
-          <Button icon={<CalendarClock size={18} />} loading={busy} onClick={() => void submit(new Date(value))}>
-            Запланировать
-          </Button>
-        </>
-      }
-    >
-      <div className="col gap-3">
-        <div className="chips" style={{ flexWrap: 'wrap', maskImage: 'none' }}>
-          {presets().map((p) => (
-            <button key={p.label} type="button" className="chip" onClick={() => setValue(toLocalInput(p.at))}>
-              {p.label}
-            </button>
-          ))}
-        </div>
-        <Input label="Дата и время" type="datetime-local" value={value} min={toLocalInput(new Date())} onChange={(e) => setValue(e.target.value)} error={error} />
-        <p className="small muted">Сообщение уйдёт автоматически, даже если вы будете не в сети. Изменить или отправить сразу можно в списке отложенных.</p>
       </div>
     </Modal>
   );
