@@ -272,6 +272,8 @@ export interface ChatSummary {
   peer: UserSummary | null;
   handle: string | null;
   isPublic: boolean;
+  /** В канале можно комментировать посты */
+  commentsEnabled: boolean;
   memberCount: number;
   role: ChatRole | null;
   lastMessage: MessagePreview | null;
@@ -334,6 +336,12 @@ export interface Message {
   deletedAt: ISODate | null;
   expiresAt: ISODate | null;
   createdAt: ISODate;
+  /** Комментарий к посту канала: id поста */
+  threadRootId: ID | null;
+  /** Просмотры поста канала (null — не канал) */
+  viewCount: number | null;
+  /** Комментарии к посту канала */
+  commentCount: number;
 }
 
 /**
@@ -654,4 +662,10 @@ export interface SearchResults {
   chats: ChatSummary[];
   communities: Community[];
   hashtags: Hashtag[];
+}
+
+export interface ChatBan {
+  user: UserSummary;
+  until: ISODate | null;
+  createdAt: ISODate;
 }

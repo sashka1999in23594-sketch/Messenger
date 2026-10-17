@@ -2,7 +2,7 @@ import { lazy, type ComponentType } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { Shell } from './layout/Shell';
 import { ComingSoon } from '../features/misc/ComingSoon';
-import { usePrefs } from '../shared/stores/prefs';
+import { START_PAGES, usePrefs } from '../shared/stores/prefs';
 
 /**
  * Каждый модуль загружается отдельным чанком при первом заходе в раздел —
@@ -16,7 +16,6 @@ const chats = () => import('../features/chats');
 const feed = () => import('../features/feed');
 const video = () => import('../features/video');
 const shorts = () => import('../features/shorts');
-const photos = () => import('../features/photos');
 const stories = () => import('../features/stories');
 const profile = () => import('../features/profile');
 const communities = () => import('../features/communities');
@@ -25,10 +24,10 @@ const notifications = () => import('../features/notifications');
 const settings = () => import('../features/settings');
 const calls = () => import('../features/calls');
 const social = () => import('../features/social');
-const home = () => import('../features/home');
 
 const ChatsLayout = lazyNamed(chats, 'ChatsLayout');
 const NoChatSelected = lazyNamed(chats, 'NoChatSelected');
+const NoChannelSelected = lazyNamed(chats, 'NoChannelSelected');
 const ChatView = lazyNamed(chats, 'ChatView');
 const NewChatPage = lazyNamed(chats, 'NewChatPage');
 const DiscoverChannels = lazyNamed(chats, 'DiscoverChannels');
@@ -36,8 +35,6 @@ const OpenSaved = lazyNamed(chats, 'OpenSaved');
 const FoldersPage = lazyNamed(chats, 'FoldersPage');
 const JoinPage = lazyNamed(chats, 'JoinPage');
 const CallsPage = lazyNamed(calls, 'CallsPage');
-const HomePage = lazyNamed(home, 'HomePage');
-const WhatsNewPage = lazyNamed(home, 'WhatsNewPage');
 
 const FeedPage = lazyNamed(feed, 'FeedPage');
 const ComposePage = lazyNamed(feed, 'ComposePage');
@@ -64,10 +61,6 @@ const ShortsFeed = lazyNamed(shorts, 'ShortsFeed');
 const CreateShortPage = lazyNamed(shorts, 'CreateShortPage');
 const MyShortsPage = lazyNamed(shorts, 'MyShortsPage');
 
-const PhotoFeed = lazyNamed(photos, 'PhotoFeed');
-const ExplorePhotos = lazyNamed(photos, 'ExplorePhotos');
-const SavedPhotos = lazyNamed(photos, 'SavedPhotos');
-const NewPhotoPage = lazyNamed(photos, 'NewPhotoPage');
 const StoriesPage = lazyNamed(stories, 'StoriesPage');
 const NewStoryPage = lazyNamed(stories, 'NewStoryPage');
 const StoriesArchivePage = lazyNamed(stories, 'ArchivePage');
@@ -111,17 +104,16 @@ const AccessibilitySettings = lazyNamed(settings, 'AccessibilitySettings');
 const ShortcutsSettings = lazyNamed(settings, 'ShortcutsSettings');
 const AboutSettings = lazyNamed(settings, 'AboutSettings');
 const AdminReports = lazyNamed(settings, 'AdminReports');
-const ServicesHome = lazyNamed(settings, 'ServicesHome');
 const SoundsSettings = lazyNamed(settings, 'SoundsSettings');
 const QuietSettings = lazyNamed(settings, 'QuietSettings');
 const FontSettings = lazyNamed(settings, 'FontSettings');
 const BehaviorSettings = lazyNamed(settings, 'BehaviorSettings');
 const PowerSettings = lazyNamed(settings, 'PowerSettings');
 
-/** Стартовая страница — из настроек «Поведение» */
+/** Стартовая страница — из настроек «Поведение» (устаревшие значения ведут на главную) */
 function StartRedirect() {
-  const start = usePrefs((s) => s.startPage ?? '/home');
-  return <Navigate to={start} replace />;
+  const start = usePrefs((s) => s.startPage);
+  return <Navigate to={start && START_PAGES.includes(start) ? start : '/home'} replace />;
 }
 
 export function AppRoutes() {
@@ -129,8 +121,11 @@ export function AppRoutes() {
     <Routes>
       <Route element={<Shell />}>
         <Route index element={<StartRedirect />} />
-        <Route path="home" element={<HomePage />} />
-        <Route path="home/whats-new" element={<WhatsNewPage />} />
+        {/* Главная — лента: зашёл и сразу листаешь */}
+        <Route path="home" element={<FeedPage mode="" />} />
+        <Route path="home/following" element={<FeedPage mode="following" />} />
+        <Route path="home/latest" element={<FeedPage mode="latest" />} />
+        <Route path="home/popular" element={<FeedPage mode="trending" />} />
         {/* После входа адреса страницы входа больше не нужны */}
         <Route path="login" element={<Navigate to="/" replace />} />
         <Route path="register" element={<Navigate to="/" replace />} />
@@ -140,9 +135,17 @@ export function AppRoutes() {
           <Route index element={<NoChatSelected />} />
           <Route path="folder/:folder" element={<NoChatSelected />} />
           <Route path="saved" element={<OpenSaved />} />
-          <Route path="discover" element={<DiscoverChannels />} />
+          <Route path="discover" element={<DiscoverChannels only="group" />} />
           <Route path="folders" element={<FoldersPage />} />
           <Route path="new/:kind" element={<NewChatPage />} />
+          <Route path=":chatId" element={<ChatView />} />
+        </Route>
+
+        {/* Каналы */}
+        <Route path="channels" element={<ChatsLayout variant="channels" />}>
+          <Route index element={<NoChannelSelected />} />
+          <Route path="discover" element={<DiscoverChannels only="channel" />} />
+          <Route path="new" element={<NewChatPage kind="channel" />} />
           <Route path=":chatId" element={<ChatView />} />
         </Route>
         <Route path="join/:token" element={<JoinPage />} />
@@ -152,11 +155,8 @@ export function AppRoutes() {
         <Route path="contacts/followers" element={<FollowListPage which="followers" />} />
         <Route path="contacts/suggestions" element={<FollowListPage which="suggestions" />} />
 
-        {/* Лента */}
-        <Route path="feed" element={<FeedPage mode="" />} />
-        <Route path="feed/following" element={<FeedPage mode="following" />} />
-        <Route path="feed/latest" element={<FeedPage mode="latest" />} />
-        <Route path="feed/trending" element={<FeedPage mode="trending" />} />
+        {/* Лента: публикации, закладки, черновики */}
+        <Route path="feed" element={<Navigate to="/home" replace />} />
         <Route path="feed/compose" element={<ComposePage />} />
         <Route path="feed/hashtags" element={<HashtagsPage />} />
         <Route path="feed/bookmarks" element={<SavedPostsPage kind="bookmarks" />} />
@@ -183,19 +183,15 @@ export function AppRoutes() {
         <Route path="watch/:id" element={<WatchPage />} />
         <Route path="playlist/:id" element={<PlaylistPage />} />
 
-        {/* Клипы */}
-        <Route path="shorts" element={<ShortsFeed mode="for-you" />} />
-        <Route path="shorts/following" element={<ShortsFeed mode="following" />} />
-        <Route path="shorts/trending" element={<ShortsFeed mode="trending" />} />
-        <Route path="shorts/create" element={<CreateShortPage />} />
-        <Route path="shorts/mine" element={<MyShortsPage />} />
+        {/* Кометы — короткие вертикальные видео */}
+        <Route path="comets" element={<ShortsFeed mode="for-you" />} />
+        <Route path="comets/following" element={<ShortsFeed mode="following" />} />
+        <Route path="comets/popular" element={<ShortsFeed mode="trending" />} />
+        <Route path="comets/new" element={<CreateShortPage />} />
+        <Route path="comets/mine" element={<MyShortsPage />} />
+        <Route path="shorts" element={<Navigate to="/comets" replace />} />
 
-        {/* Фото и истории */}
-        <Route path="photos" element={<PhotoFeed mode="for-you" />} />
-        <Route path="photos/following" element={<PhotoFeed mode="following" />} />
-        <Route path="photos/explore" element={<ExplorePhotos />} />
-        <Route path="photos/new" element={<NewPhotoPage />} />
-        <Route path="photos/saved" element={<SavedPhotos />} />
+        {/* Истории */}
         <Route path="stories" element={<StoriesPage />} />
         <Route path="stories/new" element={<NewStoryPage />} />
         <Route path="stories/archive" element={<StoriesArchivePage />} />
@@ -206,7 +202,7 @@ export function AppRoutes() {
         <Route path="communities/new" element={<NewCommunity />} />
         <Route path="c/:slug" element={<CommunityPage />} />
 
-        {/* Обзор */}
+        {/* Поиск */}
         <Route path="search" element={<SearchPage />} />
 
         {/* Уведомления */}
@@ -221,9 +217,6 @@ export function AppRoutes() {
         <Route path="u/:username/followers" element={<FollowListPage which="followers" />} />
         <Route path="u/:username/following" element={<FollowListPage which="following" />} />
         <Route path="u/:username/:tab" element={<ProfilePage />} />
-
-        {/* Сервисы */}
-        <Route path="services" element={<ServicesHome />} />
 
         {/* Настройки */}
         <Route path="settings" element={<SettingsHome />} />

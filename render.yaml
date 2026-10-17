@@ -1,7 +1,8 @@
-# Render Blueprint: публичное демо Omni в один клик.
+# Render Blueprint: SpaceUp в один клик.
 # Кнопка «Deploy to Render» в README создаёт сервис по этому файлу.
-# На бесплатном тарифе диск временный: после перезапуска база создаётся заново
-# с демо-данными. Для постоянного хранения подключите диск (paid) и DATA_DIR=/var/data.
+# ВНИМАНИЕ: на бесплатном тарифе диск временный — после перезапуска или
+# нового деплоя база и загруженные файлы пропадают. Для настоящих пользователей
+# подключите диск (тариф Starter + Disk) и укажите DATA_DIR=/var/data.
 services:
   - type: web
     name: omni
@@ -23,13 +24,14 @@ services:
         value: "1"
       - key: DATA_DIR
         value: ./data
+      # Демо-данные (выдуманные пользователи и переписки) — только для показа
       - key: DEMO_SEED
-        value: "true"
+        value: "false"
       - key: APP_SECRET
         generateValue: true
       # Почта: письма с кодами при регистрации, входе и восстановлении пароля.
       # На бесплатном Render SMTP-порты закрыты — используйте HTTPS-API Brevo (300 писем/день бесплатно).
-      # MAIL_FROM — адрес, подтверждённый в Brevo как отправитель, например: Omni <you@gmail.com>
+      # MAIL_FROM — адрес, подтверждённый в Brevo как отправитель, например: SpaceUp <you@gmail.com>
       - key: BREVO_API_KEY
         sync: false
       - key: MAIL_FROM

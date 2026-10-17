@@ -7,6 +7,7 @@
  * же clientId не создаёт дубль (идемпотентность при плохой мобильной сети).
  */
 import type {
+  ChatBan,
   ChatMember,
   ChatRole,
   ChatSummary,
@@ -29,6 +30,7 @@ import type { Policy } from '../policy/policy.service.js';
 import type { RealtimeHub } from '../realtime/hub.js';
 import { privacyOf, type UsersRepo } from '../users/users.repo.js';
 import { offsetCursor } from '../users/users.service.js';
+import { bumpStat } from '../stats/daily.js';
 import { MessagesRepo, type ChatRow, type MemberRow, type MessageRow } from './chats.repo.js';
 import type { PollsRepo } from './polls.repo.js';
 
@@ -38,7 +40,22 @@ export type SendInput = Omit<SendMessageInput, 'silent'> & { silent?: boolean };
 /** Пустые поля нового сообщения — чтобы не перечислять их в каждом месте вставки. */
 const BLANK: Pick<
   MessageRow,
-  'subtype' | 'poll_id' | 'call_id' | 'silent' | 'reply_to_id' | 'forward_from_chat_id' | 'forward_sender_name' | 'ciphertext' | 'iv' | 'sender_device_id' | 'edited_at' | 'deleted_at' | 'expires_at'
+  | 'subtype'
+  | 'poll_id'
+  | 'call_id'
+  | 'silent'
+  | 'reply_to_id'
+  | 'forward_from_chat_id'
+  | 'forward_sender_name'
+  | 'ciphertext'
+  | 'iv'
+  | 'sender_device_id'
+  | 'edited_at'
+  | 'deleted_at'
+  | 'expires_at'
+  | 'thread_root_id'
+  | 'view_count'
+  | 'comment_count'
 > = {
   subtype: null,
   poll_id: null,
@@ -53,6 +70,9 @@ const BLANK: Pick<
   edited_at: null,
   deleted_at: null,
   expires_at: null,
+  thread_root_id: null,
+  view_count: 0,
+  comment_count: 0,
 };
 
 const EDIT_WINDOW_MS = 48 * 3600 * 1000;
@@ -61,13 +81,13 @@ const MAX_REACTIONS_PER_USER = 3;
 export type ChatFolder = 'all' | 'direct' | 'groups' | 'channels' | 'secret' | 'archived' | 'unread';
 
 const FOLDER_SQL: Record<ChatFolder, string> = {
-  all: 'm.archived = 0',
+  all: "m.archived = 0 AND c.type != 'channel'",
   direct: "m.archived = 0 AND c.type IN ('direct', 'saved')",
   groups: "m.archived = 0 AND c.type = 'group'",
   channels: "m.archived = 0 AND c.type = 'channel'",
   secret: "c.type = 'secret'",
   archived: 'm.archived = 1',
-  unread: 'm.archived = 0 AND c.last_seq > max(m.last_read_seq, m.cleared_seq)',
+  unread: "m.archived = 0 AND c.type != 'channel' AND c.last_seq > max(m.last_read_seq, m.cleared_seq)",
 };
 
 const likeEscape = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
@@ -186,7 +206,7 @@ export class ChatsService {
     const fromSeq = member ? Math.max(member.last_read_seq, member.cleared_seq) : chat.last_seq;
     const unreadCount = member
       ? (this.db.value<number>(
-          `SELECT COUNT(*) FROM messages WHERE chat_id = :c AND seq > :s AND deleted_at IS NULL
+          `SELECT COUNT(*) FROM messages WHERE chat_id = :c AND seq > :s AND deleted_at IS NULL AND thread_root_id IS NULL
              AND (sender_id IS NULL OR sender_id != :u)`,
           { c: chat.id, s: fromSeq, u: userId },
         ) ?? 0)
@@ -218,6 +238,7 @@ export class ChatsService {
       peer,
       handle: chat.handle,
       isPublic: bool(chat.is_public),
+      commentsEnabled: chat.type === 'channel' && bool(chat.comments_enabled),
       memberCount: chat.member_count,
       role: member?.role ?? null,
       lastMessage,
@@ -236,7 +257,7 @@ export class ChatsService {
 
   private lastVisibleMessage(chatId: string, userId: string, member: MemberRow | null) {
     const row = this.db.get<MessageRow>(
-      `SELECT * FROM messages WHERE chat_id = :c AND deleted_at IS NULL AND seq > :cleared
+      `SELECT * FROM messages WHERE chat_id = :c AND deleted_at IS NULL AND seq > :cleared AND thread_root_id IS NULL
          AND NOT EXISTS (SELECT 1 FROM message_hidden h WHERE h.message_id = messages.id AND h.user_id = :u)
        ORDER BY seq DESC LIMIT 1`,
       { c: chatId, cleared: member?.cleared_seq ?? 0, u: userId },
@@ -317,9 +338,10 @@ export class ChatsService {
 
   createGroup(
     userId: string,
-    input: { title: string; description: string; memberIds: string[]; avatarMediaId?: string | null },
+    input: { title: string; description: string; memberIds: string[]; avatarMediaId?: string | null; isPublic?: boolean; handle?: string | null },
   ): ChatSummary & { skipped: string[] } {
     if (input.avatarMediaId) this.media.assertOwned(userId, [input.avatarMediaId], ['image']);
+    if (input.handle) this.assertHandleFree(input.handle);
     const skipped: string[] = [];
     const id = this.db.tx(() => {
       const chatId = this.insertChat({
@@ -327,6 +349,8 @@ export class ChatsService {
         title: input.title,
         description: input.description,
         owner_id: userId,
+        handle: input.handle ?? null,
+        is_public: input.isPublic ? 1 : 0,
         avatar_media_id: input.avatarMediaId ?? null,
       });
       this.addMember(chatId, userId, 'owner');
@@ -349,12 +373,7 @@ export class ChatsService {
     input: { title: string; description: string; handle?: string | null; isPublic: boolean; avatarMediaId?: string | null },
   ): ChatSummary {
     if (input.avatarMediaId) this.media.assertOwned(userId, [input.avatarMediaId], ['image']);
-    if (input.handle) {
-      const taken =
-        this.db.get('SELECT 1 FROM chats WHERE handle = :h', { h: input.handle }) ||
-        this.db.get('SELECT 1 FROM users WHERE username = :h', { h: input.handle });
-      if (taken) throw conflict('Это имя уже занято', { handle: 'Это имя уже занято' });
-    }
+    if (input.handle) this.assertHandleFree(input.handle);
     const id = this.db.tx(() => {
       const chatId = this.insertChat({
         type: 'channel',
@@ -370,6 +389,13 @@ export class ChatsService {
     });
     this.systemMessage(id, userId, `создал(а) канал «${input.title}»`);
     return this.get(userId, id);
+  }
+
+  private assertHandleFree(handle: string, exceptChatId?: string): void {
+    const taken =
+      this.db.get('SELECT 1 FROM chats WHERE handle = :h AND id != :id', { h: handle, id: exceptChatId ?? '' }) ||
+      this.db.get('SELECT 1 FROM users WHERE username = :h', { h: handle });
+    if (taken) throw conflict('Это имя уже занято', { handle: 'Это имя уже занято' });
   }
 
   createSecret(userId: string, input: { userId: string; myDeviceId: string; ttlSeconds: number }): ChatSummary {
@@ -405,10 +431,38 @@ export class ChatsService {
   update(
     userId: string,
     chatId: string,
-    input: Partial<{ title: string; description: string; avatarMediaId: string | null; ttlSeconds: number; slowModeSec: number }>,
+    input: Partial<{
+      title: string;
+      description: string;
+      avatarMediaId: string | null;
+      ttlSeconds: number;
+      slowModeSec: number;
+      isPublic: boolean;
+      handle: string | null;
+      commentsEnabled: boolean;
+    }>,
   ): ChatSummary {
     const { chat, member } = this.access(chatId, userId);
     const shared = chat.type === 'group' || chat.type === 'channel';
+    if (input.isPublic !== undefined || input.handle !== undefined || input.commentsEnabled !== undefined) {
+      // Тип доступа, адрес и комментарии меняют только владелец и администраторы
+      if (!shared) throw badRequest('Эти настройки есть только у групп и каналов');
+      if (!this.isAdmin(member)) throw forbidden('Только администраторы могут менять эти настройки');
+      if (input.commentsEnabled !== undefined && chat.type !== 'channel') throw badRequest('Комментарии бывают только в каналах');
+      if (input.handle) this.assertHandleFree(input.handle, chatId);
+      this.db.run(
+        `UPDATE chats SET is_public = coalesce(:pub, is_public), comments_enabled = coalesce(:com, comments_enabled),
+           handle = CASE WHEN :setHandle = 1 THEN :handle ELSE handle END, updated_at = :now WHERE id = :id`,
+        {
+          pub: input.isPublic === undefined ? null : input.isPublic ? 1 : 0,
+          com: input.commentsEnabled === undefined ? null : input.commentsEnabled ? 1 : 0,
+          setHandle: input.handle !== undefined ? 1 : 0,
+          handle: input.handle ?? null,
+          now: Date.now(),
+          id: chatId,
+        },
+      );
+    }
     if (input.ttlSeconds !== undefined && input.ttlSeconds !== chat.ttl_seconds) {
       // Автоудаление: в общих чатах меняют администраторы, в личных — любой из двоих
       if (shared && !this.isAdmin(member)) throw forbidden('Только администраторы могут менять автоудаление');
@@ -436,7 +490,7 @@ export class ChatsService {
       {
         title: input.title ?? null,
         description: input.description ?? null,
-        setAvatar: input.avatarMediaId !== undefined,
+        setAvatar: input.avatarMediaId !== undefined ? 1 : 0,
         avatar: input.avatarMediaId ?? null,
         now: Date.now(),
         id: chatId,
@@ -518,6 +572,7 @@ export class ChatsService {
     this.db.tx(() => {
       this.db.run('DELETE FROM chat_members WHERE chat_id = :c AND user_id = :u', { c: chatId, u: userId });
       this.db.run('UPDATE chats SET member_count = member_count - 1 WHERE id = :id', { id: chatId });
+      if (chat.type === 'channel') bumpStat(this.db, 'channel_leaves', chatId);
       if (member.role === 'owner') {
         // Передаём владение старейшему администратору или участнику
         const next = this.db.get<{ user_id: string }>(
@@ -539,9 +594,13 @@ export class ChatsService {
 
   join(userId: string, chatId: string): ChatSummary {
     const chat = this.chat(chatId);
-    if (!bool(chat.is_public) || (chat.type !== 'channel' && chat.type !== 'group')) throw forbidden('Вступить можно только в публичный чат');
+    if (!bool(chat.is_public) || (chat.type !== 'channel' && chat.type !== 'group')) throw forbidden('Вступить можно только в открытый чат');
+    this.assertNotBanned(chatId, userId);
     if (!this.member(chatId, userId)) {
-      this.db.tx(() => this.addMember(chatId, userId, chat.type === 'channel' ? 'subscriber' : 'member'));
+      this.db.tx(() => {
+        this.addMember(chatId, userId, chat.type === 'channel' ? 'subscriber' : 'member');
+        if (chat.type === 'channel') bumpStat(this.db, 'channel_joins', chatId);
+      });
       if (chat.type === 'group') this.systemMessage(chatId, userId, 'присоединился(-ась) к группе');
     }
     return this.get(userId, chatId);
@@ -551,9 +610,13 @@ export class ChatsService {
   joinByInvite(userId: string, chatId: string): ChatSummary {
     const chat = this.chat(chatId);
     if (chat.type !== 'channel' && chat.type !== 'group') throw badRequest('Приглашение недействительно');
+    this.assertNotBanned(chatId, userId);
     if (!this.member(chatId, userId)) {
       if (chat.member_count >= LIMITS.groupMembersMax) throw badRequest('Достигнут лимит участников');
-      this.db.tx(() => this.addMember(chatId, userId, chat.type === 'channel' ? 'subscriber' : 'member'));
+      this.db.tx(() => {
+        this.addMember(chatId, userId, chat.type === 'channel' ? 'subscriber' : 'member');
+        if (chat.type === 'channel') bumpStat(this.db, 'channel_joins', chatId);
+      });
       if (chat.type === 'group') this.systemMessage(chatId, userId, 'присоединился(-ась) по ссылке-приглашению');
       this.hub.sendToUser(userId, { t: 'chat.changed', chatId });
     }
@@ -662,7 +725,7 @@ export class ChatsService {
     if (!member && !bool(chat.is_public)) throw notFound('Чат не найден');
     const cleared = member?.cleared_seq ?? 0;
     const params = { c: chatId, u: userId, cleared, limit: opts.limit + 1, before: opts.before ?? null, after: opts.after ?? null };
-    const base = `FROM messages WHERE chat_id = :c AND deleted_at IS NULL AND seq > :cleared
+    const base = `FROM messages WHERE chat_id = :c AND deleted_at IS NULL AND seq > :cleared AND thread_root_id IS NULL
       AND NOT EXISTS (SELECT 1 FROM message_hidden h WHERE h.message_id = messages.id AND h.user_id = :u)`;
     let rows: MessageRow[];
     if (opts.after !== undefined) {
@@ -799,11 +862,12 @@ export class ChatsService {
   private insertMessage(m: MessageRow, mediaIds: string[]): void {
     this.db.run(
       `INSERT INTO messages (id, chat_id, seq, sender_id, client_id, kind, subtype, poll_id, call_id, silent, text, reply_to_id,
-         forward_from_chat_id, forward_sender_name, ciphertext, iv, sender_device_id, expires_at, created_at)
+         forward_from_chat_id, forward_sender_name, ciphertext, iv, sender_device_id, expires_at, created_at, thread_root_id)
        VALUES (:id, :chat_id, :seq, :sender_id, :client_id, :kind, :subtype, :poll_id, :call_id, :silent, :text, :reply_to_id,
-         :forward_from_chat_id, :forward_sender_name, :ciphertext, :iv, :sender_device_id, :expires_at, :created_at)`,
+         :forward_from_chat_id, :forward_sender_name, :ciphertext, :iv, :sender_device_id, :expires_at, :created_at, :thread_root_id)`,
       {
         id: m.id,
+        thread_root_id: m.thread_root_id,
         subtype: m.subtype,
         poll_id: m.poll_id,
         call_id: m.call_id,
@@ -925,7 +989,9 @@ export class ChatsService {
   }
 
   private hardDelete(chatId: string, messageId: string): void {
+    const root = this.db.value<string>('SELECT thread_root_id FROM messages WHERE id = :id AND deleted_at IS NULL', { id: messageId });
     this.db.tx(() => {
+      if (root) this.db.run('UPDATE messages SET comment_count = max(0, comment_count - 1) WHERE id = :r', { r: root });
       // Содержимое стирается сразу, строка остаётся как «надгробие» для синхронизации
       this.db.run(
         'UPDATE messages SET deleted_at = :now, text = NULL, ciphertext = NULL, iv = NULL WHERE id = :id',
@@ -1046,7 +1112,7 @@ export class ChatsService {
     if (chat.type === 'secret') return []; // сервер не видит содержимое секретных чатов
     const rows = this.db.all<MessageRow>(
       `SELECT * FROM messages WHERE chat_id = :c AND deleted_at IS NULL AND seq > :cleared AND kind IN ('text', 'media')
-         AND text LIKE :q ESCAPE '\\'
+         AND thread_root_id IS NULL AND text LIKE :q ESCAPE '\\'
        ORDER BY seq DESC LIMIT :limit`,
       { c: chatId, cleared: member.cleared_seq, q: `%${likeEscape(q)}%`, limit },
     );
@@ -1078,6 +1144,168 @@ export class ChatsService {
     const u = this.users.summary(userId);
     if (!u) return;
     this.hub.sendToUsers(this.memberIds(chatId), { t: 'typing', chatId, userId, displayName: u.displayName, activity }, userId);
+  }
+
+  // ─── Каналы: комментарии, просмотры, баны ─────────────────────────────────
+
+  /** Заблокирован ли пользователь в чате (бан действует до until или навсегда). */
+  private bannedUntil(chatId: string, userId: string): number | null | undefined {
+    const row = this.db.get<{ until: number | null }>(
+      'SELECT until FROM chat_bans WHERE chat_id = :c AND user_id = :u AND (until IS NULL OR until > :now)',
+      { c: chatId, u: userId, now: Date.now() },
+    );
+    return row ? row.until : undefined;
+  }
+
+  private assertNotBanned(chatId: string, userId: string): void {
+    const until = this.bannedUntil(chatId, userId);
+    if (until === undefined) return;
+    throw forbidden(until ? `Вы заблокированы в этом чате до ${new Date(until).toLocaleDateString('ru-RU')}` : 'Вы заблокированы в этом чате');
+  }
+
+  /** Пост канала, к которому можно оставить комментарий. */
+  private threadRoot(chatId: string, rootId: string): MessageRow {
+    const root = this.messagesRepo.byId(rootId);
+    if (!root || root.chat_id !== chatId || root.deleted_at || root.thread_root_id || root.kind === 'system') throw notFound('Пост не найден');
+    return root;
+  }
+
+  /** Комментарий к посту: пишут подписчики, если владелец не выключил комментарии. */
+  comment(userId: string, chatId: string, rootId: string, input: { clientId: string; text?: string; mediaIds: string[] }): Message {
+    const { chat } = this.access(chatId, userId);
+    if (chat.type !== 'channel') throw badRequest('Комментарии бывают только в каналах');
+    if (!bool(chat.comments_enabled)) throw forbidden('Комментарии в этом канале выключены');
+    this.assertNotBanned(chatId, userId);
+    const root = this.threadRoot(chatId, rootId);
+    const dup = this.db.get<MessageRow>('SELECT * FROM messages WHERE sender_id = :u AND client_id = :cid', { u: userId, cid: input.clientId });
+    if (dup) return this.messagesRepo.toDto([dup], userId)[0]!;
+    if (input.mediaIds.length) this.media.assertOwned(userId, input.mediaIds);
+    const now = Date.now();
+    const id = newId(now);
+    const row = this.db.tx(() => {
+      // seq общий с чатом, но последнее сообщение и непрочитанные не меняются
+      const { last_seq: seq } = this.db.get<{ last_seq: number }>('UPDATE chats SET last_seq = last_seq + 1 WHERE id = :c RETURNING last_seq', { c: chatId })!;
+      const msg: MessageRow = {
+        ...BLANK,
+        id,
+        chat_id: chatId,
+        seq,
+        sender_id: userId,
+        client_id: input.clientId,
+        kind: input.mediaIds.length ? 'media' : 'text',
+        text: input.text || null,
+        thread_root_id: root.id,
+        created_at: now,
+      };
+      this.insertMessage(msg, input.mediaIds);
+      this.db.run('UPDATE messages SET comment_count = comment_count + 1 WHERE id = :id', { id: root.id });
+      return msg;
+    });
+    const dto = this.messagesRepo.toDto([row], userId)[0]!;
+    this.hub.sendToUsers(this.memberIds(chatId), { t: 'message.new', chatId, message: { ...dto, clientId: null } }, userId);
+    if (root.sender_id && root.sender_id !== userId) {
+      this.notifications.notify({
+        userId: root.sender_id,
+        type: 'reply',
+        actorId: userId,
+        entityType: 'message',
+        entityId: row.id,
+        link: `/channels/${chatId}?post=${root.id}`,
+        preview: `в «${chat.title}»: ${input.text ?? 'вложение'}`,
+      });
+    }
+    return dto;
+  }
+
+  comments(userId: string, chatId: string, rootId: string, opts: { after?: number; limit: number }): { root: Message; items: Message[]; hasMore: boolean } {
+    const chat = this.chat(chatId);
+    const member = this.member(chatId, userId);
+    if (!member && !bool(chat.is_public)) throw notFound('Чат не найден');
+    const root = this.threadRoot(chatId, rootId);
+    const rows = this.db.all<MessageRow>(
+      `SELECT * FROM messages WHERE thread_root_id = :r AND deleted_at IS NULL AND seq > :after ORDER BY seq ASC LIMIT :limit`,
+      { r: rootId, after: opts.after ?? 0, limit: opts.limit + 1 },
+    );
+    return {
+      root: this.messagesRepo.toDto([root], userId)[0]!,
+      items: this.messagesRepo.toDto(rows.slice(0, opts.limit), userId),
+      hasMore: rows.length > opts.limit,
+    };
+  }
+
+  /** Отметить посты канала просмотренными: каждый человек считается один раз. */
+  markViews(userId: string, chatId: string, messageIds: string[]): Record<string, number> {
+    const chat = this.chat(chatId);
+    if (chat.type !== 'channel') return {};
+    if (!this.member(chatId, userId) && !bool(chat.is_public)) throw notFound('Чат не найден');
+    const out: Record<string, number> = {};
+    let fresh = 0;
+    this.db.tx(() => {
+      for (const mid of new Set(messageIds)) {
+        const msg = this.messagesRepo.byId(mid);
+        if (!msg || msg.chat_id !== chatId || msg.deleted_at || msg.thread_root_id || msg.kind === 'system') continue;
+        const r = this.db.run('INSERT OR IGNORE INTO message_views (message_id, user_id, viewed_at) VALUES (:m, :u, :now)', {
+          m: mid,
+          u: userId,
+          now: Date.now(),
+        });
+        if (r.changes) {
+          fresh++;
+          this.db.run('UPDATE messages SET view_count = view_count + 1 WHERE id = :id', { id: mid });
+        }
+        out[mid] = Math.max(1, (msg.view_count ?? 0) + (r.changes ? 1 : 0));
+      }
+      if (fresh) bumpStat(this.db, 'channel_views', chatId, fresh);
+    });
+    return out;
+  }
+
+  /** Заблокировать в группе или канале: человек исключается и не может вернуться до срока. */
+  ban(userId: string, chatId: string, targetId: string, days: number): void {
+    const { chat, member } = this.access(chatId, userId);
+    if (chat.type !== 'group' && chat.type !== 'channel') throw badRequest('Блокировать можно только в группах и каналах');
+    if (!this.isAdmin(member)) throw forbidden('Блокируют только администраторы');
+    if (targetId === userId) throw badRequest('Нельзя заблокировать себя');
+    const target = this.member(chatId, targetId);
+    if (target && (target.role === 'owner' || (target.role === 'admin' && member.role !== 'owner'))) throw forbidden('Администратора может заблокировать только владелец');
+    if (!this.users.byId(targetId)) throw notFound('Пользователь не найден');
+    const now = Date.now();
+    this.db.tx(() => {
+      this.db.run(
+        `INSERT INTO chat_bans (chat_id, user_id, banned_by, until, created_at) VALUES (:c, :u, :by, :until, :now)
+         ON CONFLICT (chat_id, user_id) DO UPDATE SET banned_by = excluded.banned_by, until = excluded.until, created_at = excluded.created_at`,
+        { c: chatId, u: targetId, by: userId, until: days ? now + days * 86400_000 : null, now },
+      );
+      if (target) {
+        this.db.run('DELETE FROM chat_members WHERE chat_id = :c AND user_id = :u', { c: chatId, u: targetId });
+        this.db.run('UPDATE chats SET member_count = member_count - 1 WHERE id = :id', { id: chatId });
+        if (chat.type === 'channel') bumpStat(this.db, 'channel_leaves', chatId);
+      }
+    });
+    if (target) {
+      if (chat.type === 'group') this.systemMessage(chatId, userId, `заблокировал(а): ${this.users.summary(targetId)?.displayName ?? 'участника'}`);
+      this.hub.sendToUser(targetId, { t: 'chat.removed', chatId });
+    }
+    this.broadcastChanged(chatId);
+  }
+
+  unban(userId: string, chatId: string, targetId: string): void {
+    const { member } = this.access(chatId, userId);
+    if (!this.isAdmin(member)) throw forbidden('Разблокируют только администраторы');
+    this.db.run('DELETE FROM chat_bans WHERE chat_id = :c AND user_id = :u', { c: chatId, u: targetId });
+  }
+
+  bans(userId: string, chatId: string): ChatBan[] {
+    const { member } = this.access(chatId, userId);
+    if (!this.isAdmin(member)) throw forbidden();
+    const rows = this.db.all<{ user_id: string; until: number | null; created_at: number }>(
+      'SELECT user_id, until, created_at FROM chat_bans WHERE chat_id = :c AND (until IS NULL OR until > :now) ORDER BY created_at DESC LIMIT 500',
+      { c: chatId, now: Date.now() },
+    );
+    const users = this.users.summaries(rows.map((r) => r.user_id));
+    return rows
+      .filter((r) => users.has(r.user_id))
+      .map((r) => ({ user: users.get(r.user_id)!, until: r.until ? iso(r.until) : null, createdAt: iso(r.created_at) }));
   }
 
   // ─── Опросы ───────────────────────────────────────────────────────────────
@@ -1132,7 +1360,7 @@ export class ChatsService {
          JOIN messages m ON m.rowid = f.rowid
          JOIN chat_members cm ON cm.chat_id = m.chat_id AND cm.user_id = :u
          JOIN chats c ON c.id = m.chat_id
-       WHERE messages_fts MATCH :q AND m.deleted_at IS NULL AND m.kind IN ('text', 'media')
+       WHERE messages_fts MATCH :q AND m.deleted_at IS NULL AND m.kind IN ('text', 'media') AND m.thread_root_id IS NULL
          AND c.deleted_at IS NULL AND c.type != 'secret' AND m.seq > cm.cleared_seq
          AND NOT EXISTS (SELECT 1 FROM message_hidden h WHERE h.message_id = m.id AND h.user_id = :u)
        ORDER BY m.created_at DESC LIMIT :limit`,

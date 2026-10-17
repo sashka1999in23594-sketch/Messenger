@@ -65,7 +65,7 @@ export function Shell() {
   );
 }
 
-/** Страница, которой нужен весь экран на телефоне (переписка, клипы). */
+/** Страница, которой нужен весь экран на телефоне (переписка, кометы). */
 export function useImmersive(on = true) {
   const set = useUi((s) => s.setImmersive);
   useEffect(() => {

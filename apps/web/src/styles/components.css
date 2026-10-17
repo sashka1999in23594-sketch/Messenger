@@ -1546,3 +1546,43 @@ a.list-item:hover {
 .whats-new__list a:hover {
   text-decoration: none;
 }
+
+/* ─── Выбор вариантов карточками ─── */
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  padding: 4px 16px 16px;
+}
+.choice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  text-align: left;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.choice-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+}
+.choice-card--on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.choice-card__big {
+  font-size: 34px;
+  line-height: 1.1;
+  font-weight: 650;
+}
+.choice-grid--2 {
+  grid-template-columns: 1fr 1fr;
+  padding: 0;
+}

@@ -1,19 +1,19 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Lock, Megaphone, MessageCircle, Users, X } from 'lucide-react';
+import { Globe, Lock, Megaphone, MessageCircle, Users, X } from 'lucide-react';
 import { SECRET_TTL_OPTIONS, type ChatSummary, type UserSummary } from '@omni/shared';
 import { api, ApiError, errorMessage } from '../../shared/api/client';
 import { qk, queryClient } from '../../shared/api/query';
 import { getIdentity, isE2ESupported, registerDevice } from '../../shared/crypto/e2e';
 import { toast } from '../../shared/stores/ui';
-import { Avatar, Button, Input, Notice, PageHeader, Switch, Textarea, TabLinks } from '../../shared/ui';
+import { Avatar, Button, Input, Notice, PageHeader, Textarea, TabLinks } from '../../shared/ui';
 import { UserPicker } from './dialogs';
 
 const KINDS = {
   direct: { title: 'Новый чат', icon: <MessageCircle size={22} />, text: 'Выберите, кому написать' },
   group: { title: 'Новая группа', icon: <Users size={22} />, text: 'Общий чат для нескольких человек' },
-  channel: { title: 'Новый канал', icon: <Megaphone size={22} />, text: 'Публикации для неограниченной аудитории' },
+  channel: { title: 'Новый канал', icon: <Megaphone size={22} />, text: 'Публикуете вы и администраторы, подписчики читают, ставят реакции и комментируют' },
   secret: { title: 'Секретный чат', icon: <Lock size={22} />, text: 'Сквозное шифрование, только на этом устройстве' },
 } as const;
 
@@ -22,7 +22,7 @@ function useOpen() {
   return (c: ChatSummary) => {
     void queryClient.invalidateQueries({ queryKey: qk.chatsAll });
     queryClient.setQueryData(qk.chat(c.id), c);
-    navigate(`/chats/${c.id}`, { replace: true });
+    navigate(`/${c.type === 'channel' ? 'channels' : 'chats'}/${c.id}`, { replace: true });
   };
 }
 
@@ -41,8 +41,9 @@ function GroupForm() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [members, setMembers] = useState<UserSummary[]>([]);
+  const [isPublic, setPublic] = useState(false);
   const create = useMutation({
-    mutationFn: () => api.post<ChatSummary & { skipped: string[] }>('/chats/group', { title, description, memberIds: members.map((m) => m.id) }),
+    mutationFn: () => api.post<ChatSummary & { skipped: string[] }>('/chats/group', { title, description, isPublic, memberIds: members.map((m) => m.id) }),
     onSuccess: (c) => {
       if (c.skipped.length) toast(`Не удалось добавить ${c.skipped.length}: их настройки приватности не позволяют`);
       open(c);
@@ -53,6 +54,7 @@ function GroupForm() {
     <div className="col gap-4">
       <Input label="Название группы" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={128} autoFocus />
       <Textarea label="Описание" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} rows={2} />
+      <AccessPicker value={isPublic} onChange={setPublic} what="группу" />
       {members.length > 0 && (
         <div className="user-pick">
           {members.map((m) => (
@@ -71,6 +73,24 @@ function GroupForm() {
       <Button size="lg" disabled={!title.trim()} loading={create.isPending} onClick={() => create.mutate()}>
         Создать группу{members.length ? ` (${members.length + 1})` : ''}
       </Button>
+    </div>
+  );
+}
+
+/** Открытый (найти и вступить может любой) или закрытый (по приглашению и ссылке). */
+function AccessPicker({ value, onChange, what }: { value: boolean; onChange: (v: boolean) => void; what: string }) {
+  return (
+    <div className="choice-grid choice-grid--2" role="radiogroup" aria-label="Тип доступа">
+      <button type="button" role="radio" aria-checked={value} className={`choice-card ${value ? 'choice-card--on' : ''}`} onClick={() => onChange(true)}>
+        <Globe size={22} />
+        <b>Открытый</b>
+        <span className="xs muted">Любой найдёт {what} в поиске и вступит сам</span>
+      </button>
+      <button type="button" role="radio" aria-checked={!value} className={`choice-card ${!value ? 'choice-card--on' : ''}`} onClick={() => onChange(false)}>
+        <Lock size={22} />
+        <b>Закрытый</b>
+        <span className="xs muted">Только по приглашению или ссылке</span>
+      </button>
     </div>
   );
 }
@@ -94,17 +114,7 @@ function ChannelForm() {
     <div className="col gap-4">
       <Input label="Название канала" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={128} autoFocus error={fields.title} />
       <Textarea label="Описание" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={1000} />
-      <div className="card">
-        <div className="list-item">
-          <span className="list-item__body">
-            <span className="list-item__title" style={{ display: 'block' }}>
-              Публичный канал
-            </span>
-            <span className="list-item__sub">Его можно найти в поиске и каталоге</span>
-          </span>
-          <Switch checked={isPublic} onChange={setPublic} label="Публичный канал" />
-        </div>
-      </div>
+      <AccessPicker value={isPublic} onChange={setPublic} what="канал" />
       {isPublic && (
         <Input
           label="Короткая ссылка"
@@ -155,24 +165,27 @@ function SecretForm() {
   );
 }
 
-export function NewChatPage() {
+export function NewChatPage({ kind: fixed }: { kind?: keyof typeof KINDS }) {
   const { kind = 'direct' } = useParams();
-  const k = (kind in KINDS ? kind : 'direct') as keyof typeof KINDS;
+  const k = fixed ?? ((kind in KINDS ? kind : 'direct') as keyof typeof KINDS);
   const meta = KINDS[k];
   return (
     <div className="scroll">
       <div className="page">
         <PageHeader title={meta.title} subtitle={meta.text} icon={meta.icon} />
-        <TabLinks
-          className="mb"
-          tabs={[
-            { to: '/chats/new/direct', label: 'Чат' },
-            { to: '/chats/new/group', label: 'Группа' },
-            { to: '/chats/new/channel', label: 'Канал' },
-            { to: '/chats/new/secret', label: 'Секретный' },
-          ]}
-        />
-        <div style={{ height: 16 }} />
+        {!fixed && (
+          <>
+            <TabLinks
+              className="mb"
+              tabs={[
+                { to: '/chats/new/direct', label: 'Чат' },
+                { to: '/chats/new/group', label: 'Группа' },
+                { to: '/chats/new/secret', label: 'Секретный' },
+              ]}
+            />
+            <div style={{ height: 16 }} />
+          </>
+        )}
         {k === 'direct' && <DirectForm />}
         {k === 'group' && <GroupForm />}
         {k === 'channel' && <ChannelForm />}

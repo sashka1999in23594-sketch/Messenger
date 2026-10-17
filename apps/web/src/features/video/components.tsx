@@ -13,7 +13,7 @@ import './video.css';
 
 export function VideoCard({ post, row, progressSec }: { post: Post; row?: boolean; progressSec?: number }) {
   const m = post.media[0];
-  const href = post.kind === 'short' ? `/shorts?start=${post.id}` : `/watch/${post.id}`;
+  const href = post.kind === 'short' ? `/comets?start=${post.id}` : `/watch/${post.id}`;
   return (
     <Link to={href} className={cn('video-card', row && 'video-card--row')}>
       <div className="video-thumb" style={post.kind === 'short' && !row ? { aspectRatio: '9 / 16' } : undefined}>
@@ -41,7 +41,7 @@ export function VideoCard({ post, row, progressSec }: { post: Post; row?: boolea
   );
 }
 
-/** Загрузка видео или клипа: выбор файла, обложка кадром, название, описание. */
+/** Загрузка видео или кометы: выбор файла, обложка кадром, название, описание. */
 export function UploadVideoForm({ kind, onDone }: { kind: 'video' | 'short'; onDone: (p: Post) => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -71,7 +71,7 @@ export function UploadVideoForm({ kind, onDone }: { kind: 'video' | 'short'; onD
   const publish = useMutation({
     mutationFn: () => api.post<Post>('/posts', { kind, title: kind === 'video' ? title : undefined, text, mediaIds: [media!.id], visibility: 'public', commentsDisabled }),
     onSuccess: (p) => {
-      toast({ text: kind === 'video' ? 'Видео опубликовано' : 'Клип опубликован', kind: 'success' });
+      toast({ text: kind === 'video' ? 'Видео опубликовано' : 'Комета запущена', kind: 'success' });
       void queryClient.invalidateQueries({ queryKey: ['feed'] });
       onDone(p);
     },

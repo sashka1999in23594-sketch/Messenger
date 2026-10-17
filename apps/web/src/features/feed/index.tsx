@@ -98,10 +98,10 @@ export function FeedPage({ mode }: { mode: keyof typeof MODES }) {
           <div className="feed-tabs">
             <TabLinks
               tabs={[
-                { to: '/feed', label: 'Для вас' },
-                { to: '/feed/following', label: 'Подписки' },
-                { to: '/feed/latest', label: 'Свежее' },
-                { to: '/feed/trending', label: 'Популярное' },
+                { to: '/home', label: 'Для вас', end: true },
+                { to: '/home/following', label: 'Подписки' },
+                { to: '/home/latest', label: 'Свежее' },
+                { to: '/home/popular', label: 'Популярное' },
               ]}
             />
           </div>
@@ -112,9 +112,6 @@ export function FeedPage({ mode }: { mode: keyof typeof MODES }) {
         <aside>
           <TrendsBox />
           <WhoToFollow />
-          <div className="faint xs" style={{ padding: '0 8px' }}>
-            SpaceUp · прототип · <Link to="/settings/about">О приложении</Link>
-          </div>
         </aside>
       </div>
     </div>

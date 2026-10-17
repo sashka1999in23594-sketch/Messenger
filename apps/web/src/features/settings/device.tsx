@@ -140,11 +140,10 @@ export function FontSettings() {
 }
 
 const START: { id: StartPage; label: string }[] = [
-  { id: '/home', label: 'Главная (сводка)' },
+  { id: '/home', label: 'Главная — лента' },
   { id: '/chats', label: 'Чаты' },
-  { id: '/feed', label: 'Лента' },
-  { id: '/photos', label: 'Фото' },
-  { id: '/shorts', label: 'Клипы' },
+  { id: '/channels', label: 'Каналы' },
+  { id: '/comets', label: 'Кометы' },
 ];
 
 export function BehaviorSettings() {
@@ -158,7 +157,7 @@ export function BehaviorSettings() {
           title="Стартовая страница"
           description="Что открывается при входе в SpaceUp"
           control={
-            <select className="select" style={{ width: 'auto' }} value={prefs.startPage ?? '/home'} onChange={(e) => prefs.set({ startPage: e.target.value as StartPage })} aria-label="Стартовая страница">
+            <select className="select" style={{ width: 'auto' }} value={START.some((x) => x.id === prefs.startPage) ? prefs.startPage : '/home'} onChange={(e) => prefs.set({ startPage: e.target.value as StartPage })} aria-label="Стартовая страница">
               {START.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.label}
@@ -174,7 +173,7 @@ export function BehaviorSettings() {
       </Panel>
       <Panel title="Сообщения">
         <SettingRow title="Крупные эмодзи" description="Сообщение из 1–3 эмодзи показывается без пузыря и крупно" control={<Switch checked={prefs.jumboEmoji ?? true} onChange={(v) => prefs.set({ jumboEmoji: v })} label="Крупные эмодзи" />} />
-        <SettingRow title="Автовоспроизведение видео" description="Клипы, кружки и истории запускаются сами" control={<Switch checked={prefs.autoplayVideo} onChange={(v) => prefs.set({ autoplayVideo: v })} label="Автовоспроизведение" />} />
+        <SettingRow title="Автовоспроизведение видео" description="Кометы, кружки и истории запускаются сами" control={<Switch checked={prefs.autoplayVideo} onChange={(v) => prefs.set({ autoplayVideo: v })} label="Автовоспроизведение" />} />
       </Panel>
     </SettingsPage>
   );

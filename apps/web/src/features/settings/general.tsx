@@ -188,7 +188,7 @@ export function ChatSettings({ section }: { section: 'input' | 'media' | 'wallpa
   ) : (
     <SettingsPage title="Медиа и трафик" icon={<MessageCircle size={22} />}>
       <Panel>
-        <SettingRow title="Автовоспроизведение видео" description="Клипы и истории запускаются сами" control={<Switch checked={prefs.autoplayVideo} onChange={(v) => prefs.set({ autoplayVideo: v })} label="Автовоспроизведение" />} />
+        <SettingRow title="Автовоспроизведение видео" description="Кометы и истории запускаются сами" control={<Switch checked={prefs.autoplayVideo} onChange={(v) => prefs.set({ autoplayVideo: v })} label="Автовоспроизведение" />} />
         <SettingRow title="Экономия трафика" description="Не загружать видео заранее" control={<Switch checked={prefs.dataSaver} onChange={(v) => prefs.set({ dataSaver: v })} label="Экономия трафика" />} />
       </Panel>
     </SettingsPage>
@@ -264,7 +264,7 @@ const SHORTCUTS: [string, string][] = [
   ['↑ в пустом поле', 'Редактировать последнее своё сообщение'],
   ['Esc', 'Закрыть окно, отменить ответ или редактирование'],
   ['Двойной клик по сообщению', 'Ответить'],
-  ['↑ / ↓ в клипах', 'Предыдущий / следующий клип'],
+  ['↑ / ↓ в кометах', 'Предыдущая / следующая комета'],
   ['← / → / пробел в историях', 'Навигация и пауза'],
   ['Ctrl + Enter', 'Опубликовать пост'],
 ];
@@ -290,7 +290,7 @@ export function AboutSettings() {
       <Panel>
         <div className="col gap-3" style={{ padding: 16 }}>
           <p>
-            <b>{APP_NAME}</b> — прототип платформы «всё в одном»: мессенджер, лента, видео, клипы, фото, истории и сообщества.
+            <b>{APP_NAME}</b> — всё общение на одной орбите: чаты и звонки, каналы, лента, кометы, видео, компании и сообщества.
           </p>
           <p className="muted small">Версия 0.1.0 · React 19 + Fastify 5 + SQLite · PWA</p>
         </div>
@@ -366,36 +366,6 @@ export function AdminReports() {
               </div>
             </div>
           ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function ServicesHome() {
-  const s = sections.find((x) => x.id === 'services')!;
-  return (
-    <div className="scroll">
-      <div className="page page--wide">
-        <PageHeader title="Сервисы" subtitle="Модули, которые встраиваются в ту же архитектуру: их место в навигации уже готово" icon={<Zap size={22} />} />
-        <div className="settings-grid">
-          {s.children.map((n) => {
-            const Icon = n.icon ?? Zap;
-            return (
-              <Link key={n.id} to={n.path!} className="settings-tile">
-                <span className="row" style={{ gap: 10 }}>
-                  <span className="list-item__icon">
-                    <Icon size={18} />
-                  </span>
-                  <span className="bold">{n.label}</span>
-                  <span className="tree__soon" style={{ marginLeft: 'auto' }}>
-                    скоро
-                  </span>
-                </span>
-                <span className="small muted">{n.planned?.join(' · ')}</span>
-              </Link>
-            );
-          })}
         </div>
       </div>
     </div>

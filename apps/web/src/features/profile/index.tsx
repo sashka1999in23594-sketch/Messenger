@@ -11,7 +11,7 @@ import { toast, useCrumb } from '../../shared/stores/ui';
 import { compactNumber, lastSeen, plural } from '../../shared/lib/format';
 import { Avatar, Button, ButtonLink, confirm, EmptyState, ErrorState, ListSkeleton, Loading, LoadMore, Menu, PageHeader, ReportDialog, RichText, TabLinks, useMenu, UserRow, Verified } from '../../shared/ui';
 import { PostCard } from '../posts/PostCard';
-import { PhotoGrid } from '../photos';
+import { PhotoGrid } from './PhotoGrid';
 import { VideoCard } from '../video/components';
 import { FollowButton } from '../feed';
 import { HighlightsRow, StoryViewer } from '../stories';
@@ -23,7 +23,7 @@ const TABS = [
   { id: 'posts', label: 'Публикации' },
   { id: 'photos', label: 'Фото' },
   { id: 'videos', label: 'Видео' },
-  { id: 'shorts', label: 'Клипы' },
+  { id: 'shorts', label: 'Кометы' },
   { id: 'likes', label: 'Лайки' },
 ] as const;
 

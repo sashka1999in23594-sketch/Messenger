@@ -21,6 +21,7 @@ export interface ChatRow {
   last_message_id: string | null;
   last_message_at: number | null;
   pinned_message_id: string | null;
+  comments_enabled: number;
   ttl_seconds: number;
   slow_mode_sec: number;
   secret_devices: string | null;
@@ -67,6 +68,9 @@ export interface MessageRow {
   deleted_at: number | null;
   expires_at: number | null;
   created_at: number;
+  thread_root_id: string | null;
+  view_count: number;
+  comment_count: number;
 }
 
 /** Загрузка и преобразование сообщений в DTO — пакетно, без N+1. */
@@ -102,6 +106,12 @@ export class MessagesRepo {
 
   toDto(rows: MessageRow[], viewerId: string): Message[] {
     if (rows.length === 0) return [];
+    // Просмотры показываем только у постов каналов
+    const chatTypes = new Map(
+      this.db
+        .all<{ id: string; type: string }>(`SELECT id, type FROM chats WHERE id IN (${DbClass.inList([...new Set(rows.map((r) => r.chat_id))], 'ct').sql})`, DbClass.inList([...new Set(rows.map((r) => r.chat_id))], 'ct').params)
+        .map((c) => [c.id, c.type]),
+    );
     const ids = rows.map((r) => r.id);
     const list = DbClass.inList(ids, 'm');
     const senders = this.users.summaries(rows.map((r) => r.sender_id));
@@ -161,6 +171,9 @@ export class MessagesRepo {
         deletedAt: isoOrNull(r.deleted_at),
         expiresAt: isoOrNull(r.expires_at),
         createdAt: iso(r.created_at),
+        threadRootId: r.thread_root_id ?? null,
+        viewCount: chatTypes.get(r.chat_id) === 'channel' && !r.thread_root_id ? Math.max(1, r.view_count ?? 0) : null,
+        commentCount: r.comment_count ?? 0,
       };
     });
   }

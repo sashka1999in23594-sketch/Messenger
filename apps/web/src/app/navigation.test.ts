@@ -4,14 +4,25 @@ import { findByPath, flatNodes, sectionFor, sections } from './navigation';
 
 /** Маршруты из routes.tsx (разбираем текст, чтобы не тянуть в тест весь React-рендеринг). */
 const routesSource = readFileSync(new URL('./routes.tsx', import.meta.url), 'utf8');
-const routePatterns = [...routesSource.matchAll(/path="([^"]+)"/g)]
-  .map((m) => m[1]!)
-  .filter((p) => p !== '*')
-  .map((p) => {
-    // Вложенные маршруты чатов объявлены относительно /chats
-    const full = /^(folder|saved|discover|new|:chatId)/.test(p) ? `/chats/${p}` : `/${p}`;
-    return new RegExp(`^${full.replace(/:[a-zA-Z]+/g, '[^/]+')}$`);
-  });
+const routePatterns: RegExp[] = [];
+{
+  // Вложенные маршруты (чаты, каналы) объявлены относительно родителя: собираем полный путь по стеку
+  const stack: string[] = [];
+  for (const raw of routesSource.split('\n')) {
+    const line = raw.trim();
+    if (line.startsWith('</Route>')) {
+      stack.pop();
+      continue;
+    }
+    if (!line.startsWith('<Route')) continue;
+    const path = line.match(/\spath="([^"]+)"/)?.[1] ?? '';
+    if (path && path !== '*') {
+      const full = '/' + [...stack, path].filter(Boolean).join('/');
+      routePatterns.push(new RegExp(`^${full.replace(/:[a-zA-Z]+/g, '[^/]+')}$`));
+    }
+    if (!line.endsWith('/>')) stack.push(path);
+  }
+}
 
 describe('реестр навигации', () => {
   it('у всех узлов уникальные id', () => {
@@ -43,8 +54,8 @@ describe('реестр навигации', () => {
     }
   });
 
-  it('лабиринт действительно большой: десятки разделов и 3+ уровня вложенности', () => {
-    expect(flatNodes.length).toBeGreaterThan(120);
+  it('навигация глубокая: десятки разделов и 3+ уровня вложенности', () => {
+    expect(flatNodes.length).toBeGreaterThan(100);
     expect(Math.max(...flatNodes.map((f) => f.trail.length))).toBeGreaterThanOrEqual(2);
   });
 
@@ -54,5 +65,9 @@ describe('реестр навигации', () => {
     expect(sectionFor('/u/alice').id).toBe('profile');
     expect(findByPath('/settings/security/2fa')?.node.id).toBe('settings.security.2fa');
     expect(findByPath('/chats/folder/groups')?.node.id).toBe('messenger.folders.groups');
+    expect(sectionFor('/channels/01ABC').id).toBe('channels');
+    expect(findByPath('/channels/discover')?.node.id).toBe('channels.discover');
+    expect(sectionFor('/comets/mine').id).toBe('comets');
+    expect(sectionFor('/home/popular').id).toBe('home');
   });
 });

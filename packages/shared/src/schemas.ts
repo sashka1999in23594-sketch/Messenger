@@ -263,6 +263,9 @@ export const createGroupSchema = z.object({
   description: text(LIMITS.chatDescriptionMax).default(''),
   memberIds: z.array(id).max(LIMITS.groupMembersMax).default([]),
   avatarMediaId: id.nullable().optional(),
+  /** Открытая группа: найти и вступить может любой; закрытая — только по приглашению */
+  isPublic: z.boolean().default(false),
+  handle: slug.nullable().optional(),
 });
 
 export const createChannelSchema = z.object({
@@ -291,8 +294,28 @@ export const updateChatSchema = z
     /** Автоудаление: в секретных чатах — таймер, в остальных — удаление новых сообщений */
     ttlSeconds: z.number().int().refine((v) => (SECRET_TTL_OPTIONS as readonly number[]).includes(v)),
     slowModeSec: z.number().int().refine((v) => (SLOW_MODE_OPTIONS as readonly number[]).includes(v)),
+    isPublic: z.boolean(),
+    handle: slug.nullable(),
+    commentsEnabled: z.boolean(),
   })
   .partial();
+
+/** Комментарий к посту канала */
+export const commentSchema = z
+  .object({
+    clientId: z.string().regex(/^[A-Za-z0-9_-]{8,64}$/),
+    text: text(LIMITS.messageMax).optional(),
+    mediaIds: z.array(id).max(4).default([]),
+  })
+  .refine((v) => (v.text && v.text.length > 0) || v.mediaIds.length > 0, { message: 'Пустой комментарий', path: ['text'] });
+
+export const viewsSchema = z.object({ messageIds: z.array(id).min(1).max(100) });
+
+export const banSchema = z.object({
+  userId: id,
+  /** Срок в днях (0 — навсегда) */
+  days: z.number().int().min(0).max(3650).default(0),
+});
 
 export const chatPrefsSchema = z
   .object({

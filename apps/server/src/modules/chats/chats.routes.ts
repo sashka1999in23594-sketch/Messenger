@@ -2,6 +2,9 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import {
   addMembersSchema,
+  banSchema,
+  commentSchema,
+  viewsSchema,
   chatFolderSchema,
   chatPrefsSchema,
   createInviteSchema,
@@ -179,6 +182,31 @@ export async function chatsRoutes(app: FastifyInstance): Promise<void> {
   app.get<PM>('/chats/:id/messages/:messageId/readers', async (req) => ({
     items: chats.readers(requireAuth(req).userId, req.params.id, req.params.messageId),
   }));
+
+  // ─── Каналы: комментарии, просмотры, блокировки ───────────────────────────
+  const threadQuery = z.object({
+    after: z.coerce.number().int().min(0).optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+  });
+  app.get<PM>('/chats/:id/messages/:messageId/comments', async (req) =>
+    chats.comments(requireAuth(req).userId, req.params.id, req.params.messageId, parse(threadQuery, req.query)),
+  );
+  app.post<PM>('/chats/:id/messages/:messageId/comments', { config: sendLimit }, async (req, reply) =>
+    reply.status(201).send(chats.comment(requireAuth(req).userId, req.params.id, req.params.messageId, parse(commentSchema, req.body))),
+  );
+  app.post<P>('/chats/:id/views', { config: { rateLimit: { max: 120, timeWindow: '1 minute' } } }, async (req) => ({
+    views: chats.markViews(requireAuth(req).userId, req.params.id, parse(viewsSchema, req.body).messageIds),
+  }));
+  app.get<P>('/chats/:id/bans', async (req) => ({ items: chats.bans(requireAuth(req).userId, req.params.id) }));
+  app.post<P>('/chats/:id/bans', async (req) => {
+    const b = parse(banSchema, req.body);
+    chats.ban(requireAuth(req).userId, req.params.id, b.userId, b.days);
+    return { ok: true };
+  });
+  app.delete<PU>('/chats/:id/bans/:userId', async (req) => {
+    chats.unban(requireAuth(req).userId, req.params.id, req.params.userId);
+    return { ok: true };
+  });
 
   /** Поиск по всем перепискам пользователя (кроме секретных чатов). */
   app.get('/messages/search', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (req) => ({

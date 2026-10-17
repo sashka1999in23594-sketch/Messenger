@@ -441,7 +441,7 @@ interface StudioData {
   top: Post[];
 }
 
-const KIND_LABEL: Record<PostKind, string> = { note: 'Заметки', photo: 'Фото', video: 'Видео', short: 'Клипы' };
+const KIND_LABEL: Record<PostKind, string> = { note: 'Заметки', photo: 'Фото', video: 'Видео', short: 'Кометы' };
 
 export function StudioPage({ tab }: { tab: 'dashboard' | 'content' }) {
   const q = useQuery({ queryKey: ['studio'], queryFn: () => api.get<StudioData>('/me/studio') });

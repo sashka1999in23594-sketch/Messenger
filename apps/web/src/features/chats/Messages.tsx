@@ -1,9 +1,9 @@
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
-import { AlertCircle, BellOff, Check, CheckCheck, Clock, Copy, Ellipsis, Eye, Flag, Forward, Lock, Pencil, Pin, Plus, Reply, RotateCcw, Trash2 } from 'lucide-react';
+import { AlertCircle, BellOff, Check, CheckCheck, ChevronRight, Clock, Copy, Ellipsis, Eye, Flag, Forward, Lock, MessageSquare, Pencil, Pin, Plus, Reply, RotateCcw, SmilePlus, Trash2 } from 'lucide-react';
 import { REACTIONS, type ChatSummary } from '@omni/shared';
 import { Avatar, EmojiPicker, Menu, MediaGrid, RichText, useMenu, type MenuEntry } from '../../shared/ui';
 import { CallMessage, PollMessage, RoundMessage, VoiceMessage } from './bubbles';
-import { clockTime, cn, dayLabel, isJumboEmoji } from '../../shared/lib/format';
+import { clockTime, cn, compactNumber, dayLabel, isJumboEmoji, plural } from '../../shared/lib/format';
 import { usePrefs } from '../../shared/stores/prefs';
 import { useInfiniteScroll } from '../../shared/hooks';
 import type { LocalMessage } from './cache';
@@ -21,6 +21,8 @@ export interface MessageActions {
   copy: (text: string) => void;
   readers: (m: LocalMessage) => void;
   callBack?: (video: boolean) => void;
+  /** Открыть комментарии к посту канала */
+  comments?: (m: LocalMessage) => void;
 }
 
 const EDIT_WINDOW = 48 * 3600 * 1000;
@@ -57,8 +59,11 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
   const menu = useMenu();
   const [picker, setPicker] = useState<{ x: number; y: number } | null>(null);
   const longPress = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const out = msg.sender?.id === myId;
-  const showSender = !out && !grouped && (chat.type === 'group' || chat.type === 'channel');
+  // Пост канала — широкая карточка от имени канала, а не «пузырь» отправителя
+  const post = chat.type === 'channel';
+  const mine = msg.sender?.id === myId;
+  const out = mine && !post;
+  const showSender = !out && !grouped && chat.type === 'group';
   const showAvatar = !out && chat.type === 'group';
   const special = msg.kind === 'voice' || msg.kind === 'round' || msg.kind === 'poll' || msg.kind === 'call';
   const hasMedia = msg.media.length > 0 && !special;
@@ -68,7 +73,7 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
   const jumboOn = usePrefs((s) => s.jumboEmoji ?? true);
   const jumbo = jumboOn && !hasMedia && !msg.replyTo && !msg.forwardedFrom && isJumboEmoji(plain);
   const mediaOnly = hasMedia && !plain && !msg.replyTo && !msg.forwardedFrom;
-  const canEdit = out && !msg.local && Date.now() - Date.parse(msg.createdAt) < EDIT_WINDOW && (msg.kind === 'text' || (msg.kind === 'encrypted' && secretPlain !== null));
+  const canEdit = mine && !msg.local && Date.now() - Date.parse(msg.createdAt) < EDIT_WINDOW && (msg.kind === 'text' || (msg.kind === 'encrypted' && secretPlain !== null));
   const canPin = !msg.local && msg.kind !== 'call' && (chat.type === 'direct' || chat.type === 'saved' || chat.type === 'secret' || isAdmin);
   const canForward = chat.type !== 'secret' && !msg.local && msg.kind !== 'poll' && msg.kind !== 'call';
 
@@ -78,20 +83,21 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
         { label: 'Удалить', icon: <Trash2 size={18} />, danger: true, onClick: () => actions.remove(msg) },
       ]
     : [
-        { label: 'Ответить', icon: <Reply size={18} />, onClick: () => actions.reply(msg), hidden: !!msg.local },
+        { label: 'Ответить', icon: <Reply size={18} />, onClick: () => actions.reply(msg), hidden: !!msg.local || post },
+        { label: 'Комментарии', icon: <MessageSquare size={18} />, onClick: () => actions.comments?.(msg), hidden: !post || !chat.commentsEnabled || !!msg.local },
         { label: 'Копировать текст', icon: <Copy size={18} />, onClick: () => actions.copy(plain ?? ''), hidden: !plain },
         { label: 'Изменить', icon: <Pencil size={18} />, onClick: () => actions.edit(msg, plain ?? ''), hidden: !canEdit },
         { label: 'Переслать', icon: <Forward size={18} />, onClick: () => actions.forward(msg), hidden: !canForward },
         { label: 'Прочитали', icon: <Eye size={18} />, onClick: () => actions.readers(msg), hidden: !out || chat.type !== 'group' || !!msg.local },
         { label: chat.pinnedMessage?.id === msg.id ? 'Открепить' : 'Закрепить', icon: <Pin size={18} />, onClick: () => actions.pin(msg), hidden: !canPin },
-        { label: 'Пожаловаться', icon: <Flag size={18} />, onClick: () => actions.report(msg), hidden: out || chat.type === 'saved' },
+        { label: 'Пожаловаться', icon: <Flag size={18} />, onClick: () => actions.report(msg), hidden: mine || chat.type === 'saved' },
         'separator',
-        { label: 'Удалить', icon: <Trash2 size={18} />, danger: true, onClick: () => actions.remove(msg), hidden: !!msg.local },
+        { label: 'Удалить', icon: <Trash2 size={18} />, danger: true, onClick: () => actions.remove(msg), hidden: !!msg.local || (post && !isAdmin) },
       ];
 
   return (
     <div
-      className={cn('msg', out && 'msg--out', grouped && 'msg--grouped', groupedNext && 'msg--grouped-next')}
+      className={cn('msg', out && 'msg--out', post && 'msg--post', grouped && 'msg--grouped', groupedNext && 'msg--grouped-next')}
       onContextMenu={(e) => menu.openFromEvent(e)}
       onTouchStart={(e) => {
         const t = e.touches[0];
@@ -99,7 +105,7 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
       }}
       onTouchEnd={() => longPress.current && clearTimeout(longPress.current)}
       onTouchMove={() => longPress.current && clearTimeout(longPress.current)}
-      onDoubleClick={() => !msg.local && actions.reply(msg)}
+      onDoubleClick={() => !msg.local && !post && actions.reply(msg)}
     >
       {showAvatar && (
         <span className="msg__avatar-slot">
@@ -116,10 +122,18 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
           msg.kind === 'poll' && 'bubble--poll',
           msg.kind === 'voice' && 'bubble--voice',
           msg.local?.status === 'failed' && 'bubble--failed',
+          post && 'bubble--post',
         )}
         data-mid={msg.id}
         data-seq={msg.seq}
+        data-view={post && !msg.local ? msg.id : undefined}
       >
+        {post && (
+          <div className="post-head">
+            <Avatar src={chat.avatarUrl} name={chat.title} id={chat.id} size={28} />
+            <b className="ellipsis">{chat.title}</b>
+          </div>
+        )}
         {showSender && msg.sender && (
           <div className="bubble__sender" style={{ color: `hsl(${(msg.sender.id.charCodeAt(12) * 37) % 360} 65% 55%)` }}>
             {msg.sender.displayName}
@@ -142,21 +156,56 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
         ) : (
           !special && msg.text && <RichText text={msg.text} className="bubble__text" />
         )}
-        <span className="bubble__meta">
-          {msg.silent && out && <BellOff size={11} aria-label="без звука" />}
-          {msg.editedAt && <span>изм.</span>}
-          {msg.expiresAt && <Clock size={11} />}
-          <span>{clockTime(msg.createdAt)}</span>
-          {out && <Ticks msg={msg} chat={chat} />}
-        </span>
-        {msg.reactions.length > 0 && (
+        {!post && (
+          <span className="bubble__meta">
+            {msg.silent && out && <BellOff size={11} aria-label="без звука" />}
+            {msg.editedAt && <span>изм.</span>}
+            {msg.expiresAt && <Clock size={11} />}
+            <span>{clockTime(msg.createdAt)}</span>
+            {out && <Ticks msg={msg} chat={chat} />}
+          </span>
+        )}
+        {(msg.reactions.length > 0 || (post && !msg.local && !!chat.role)) && (
           <div className="reactions">
             {msg.reactions.map((r) => (
               <button key={r.emoji} className={cn('reaction', r.mine && 'reaction--mine')} onClick={() => actions.react(msg, r.emoji)}>
-                {r.emoji} {r.count > 1 && r.count}
+                {r.emoji} {(post || r.count > 1) && compactNumber(r.count)}
               </button>
             ))}
+            {post && !msg.local && !!chat.role && (
+              <button
+                className="reaction reaction--add"
+                aria-label="Поставить реакцию"
+                title="Поставить реакцию"
+                onClick={(ev) => {
+                  const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+                  setPicker({ x: rect.left + 160, y: rect.bottom });
+                }}
+              >
+                <SmilePlus size={15} />
+              </button>
+            )}
           </div>
+        )}
+        {post && (
+          <span className="post-meta">
+            {msg.local?.status === 'sending' && <Clock size={12} />}
+            {msg.local?.status === 'failed' && <AlertCircle size={13} style={{ color: 'var(--danger)' }} />}
+            {msg.viewCount !== null && !msg.local && (
+              <span className="row gap-1" title="Просмотры">
+                <Eye size={13} /> {compactNumber(msg.viewCount)}
+              </span>
+            )}
+            {msg.editedAt && <span>изм.</span>}
+            <span>{clockTime(msg.createdAt)}</span>
+          </span>
+        )}
+        {post && chat.commentsEnabled && !msg.local && (
+          <button type="button" className="post-comments" onClick={() => actions.comments?.(msg)}>
+            <MessageSquare size={16} />
+            <span className="grow">{msg.commentCount ? `${compactNumber(msg.commentCount)} ${plural(msg.commentCount, 'комментарий', 'комментария', 'комментариев')}` : 'Прокомментировать'}</span>
+            <ChevronRight size={16} />
+          </button>
         )}
       </div>
       <button className="icon-btn icon-btn--sm msg__actions" aria-label="Действия с сообщением" onClick={(e) => menu.openFromEvent(e)}>
@@ -256,8 +305,9 @@ export function MessageList({ messages, chat, myId, secret, actions, hasOlder, l
     const next = messages[i + 1];
     const same = (a?: LocalMessage, b?: LocalMessage) =>
       !!a && !!b && a.kind !== 'system' && b.kind !== 'system' && a.sender?.id === b.sender?.id && Math.abs(Date.parse(a.createdAt) - Date.parse(b.createdAt)) < GROUP_MS && new Date(a.createdAt).toDateString() === new Date(b.createdAt).toDateString();
+    const flat = chat.type === 'channel';
     rendered.push(
-      <Bubble key={m.clientId ?? m.id} msg={m} chat={chat} myId={myId} grouped={same(prev, m)} groupedNext={same(m, next)} secret={secret} actions={actions} />,
+      <Bubble key={m.clientId ?? m.id} msg={m} chat={chat} myId={myId} grouped={!flat && same(prev, m)} groupedNext={!flat && same(m, next)} secret={secret} actions={actions} />,
     );
   });
 

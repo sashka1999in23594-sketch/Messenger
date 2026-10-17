@@ -11,6 +11,7 @@ import { handleCallEvent, restoreIncomingCall } from '../shared/calls/engine';
 import { desktopNotify, playSound } from '../shared/lib/sounds';
 import { isQuietNow, usePrefs } from '../shared/stores/prefs';
 import { activeChat, forgetChat, onIncomingMessage, patchChat, patchMessage, removeMessage } from '../features/chats/cache';
+import { onCommentDeleted, onIncomingComment } from '../features/chats/channel';
 
 type Navigate = (to: string) => void;
 let navigateFn: Navigate = (to) => window.location.assign(to);
@@ -25,6 +26,11 @@ function handle(event: ServerEvent): void {
   if (!me) return;
   switch (event.t) {
     case 'message.new': {
+      // Комментарий к посту канала — в ветку, а не в ленту канала
+      if (event.message.threadRootId) {
+        onIncomingComment(event.message);
+        break;
+      }
       onIncomingMessage(event.message, me.id);
       useRealtime.getState().clearTyping(event.chatId, event.message.sender?.id ?? '');
       const fromOther = event.message.sender && event.message.sender.id !== me.id;
@@ -35,7 +41,8 @@ function handle(event: ServerEvent): void {
         // «Не беспокоить» по расписанию: сообщения приходят, но без всплывашек и звука
         if (!chat?.mutedUntil && me.notifications.messages && !isQuietNow(usePrefs.getState().quietHours)) {
           const preview = me.notifications.showPreviews ? excerpt(messageLabel(event.message.kind, event.message.text), 80) || 'Медиа' : 'Новое сообщение';
-          const open = () => navigateFn(`/chats/${event.chatId}`);
+          const isChannel = queryClient.getQueryData<{ type: string }>(qk.chat(event.chatId))?.type === 'channel';
+          const open = () => navigateFn(`/${isChannel ? 'channels' : 'chats'}/${event.chatId}`);
           if (activeChat.id !== event.chatId) toast({ text: `${event.message.sender!.displayName}: ${preview}`, action: { label: 'Открыть', onClick: open } });
           playSound('message');
           desktopNotify(event.message.sender!.displayName, preview, open);
@@ -48,6 +55,7 @@ function handle(event: ServerEvent): void {
       break;
     case 'message.deleted':
       removeMessage(event.chatId, event.messageId);
+      onCommentDeleted(event.chatId, event.messageId);
       void queryClient.invalidateQueries({ queryKey: qk.chatsAll });
       break;
     case 'chat.changed':
@@ -57,7 +65,7 @@ function handle(event: ServerEvent): void {
       break;
     case 'chat.removed':
       forgetChat(event.chatId);
-      if (activeChat.id === event.chatId) navigateFn('/chats');
+      if (activeChat.id === event.chatId) navigateFn(window.location.pathname.startsWith('/channels') ? '/channels' : '/chats');
       break;
     case 'typing':
       useRealtime.getState().addTyping(event.chatId, event.userId, event.displayName, event.activity);

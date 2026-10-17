@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useInfiniteQuery, useMutation, useQuery, type InfiniteData } from '@tanstack/react-query';
 import { ArrowDown, ArrowLeft, Ban, Bell, BellOff, CalendarClock, Eraser, Flag, Info, Lock, LogOut, Megaphone, Phone, Pin, Search, ShieldAlert, Trash2, Video, X } from 'lucide-react';
 import type { ChatSummary, EncryptedPayload, Message, PollInput, ScheduledMessage } from '@omni/shared';
@@ -20,6 +20,7 @@ import { Composer, type ComposerSubmit } from './Composer';
 import { ForwardDialog, InChatSearch } from './dialogs';
 import { ReadersDialog, ScheduledListDialog, scheduledKey } from './extras';
 import { MessageList, type MessageActions } from './Messages';
+import { CommentsDialog, useViewTracker } from './channel';
 import { rememberPlaintext, useSecretChat } from './secret';
 import { useChatUi } from './store';
 
@@ -38,6 +39,8 @@ export function ChatView() {
   const { chatId = '' } = useParams();
   const me = useMe();
   const navigate = useNavigate();
+  // Каналы открываются в своём разделе, остальные чаты — в мессенджере
+  const base = useLocation().pathname.startsWith('/channels') ? '/channels' : '/chats';
   useImmersive(true);
   const toggleInfo = useChatUi((s) => s.toggleInfo);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -51,6 +54,16 @@ export function ChatView() {
   const [readersOf, setReadersOf] = useState<LocalMessage | null>(null);
   const [scheduledOpen, setScheduledOpen] = useState(false);
   const [params, setParams] = useSearchParams();
+  const commentsOf = params.get('post');
+  const openComments = useCallback(
+    (id: string | null) => {
+      const next = new URLSearchParams(params);
+      if (id) next.set('post', id);
+      else next.delete('post');
+      setParams(next, { replace: !id });
+    },
+    [params, setParams],
+  );
   const jumpSeq = Number(params.get('m')) || null;
   const headerMenu = useMenu();
 
@@ -66,6 +79,7 @@ export function ChatView() {
   });
   const messages = useMemo(() => (msgsQ.data ? [...msgsQ.data.pages].reverse().flatMap((p) => p.items) : []), [msgsQ.data]);
   const secret = useSecretChat(chat, me.id);
+  useViewTracker(chat, scrollRef, messages);
   const scheduledQ = useQuery({
     queryKey: scheduledKey(chatId),
     queryFn: () => api.get<{ items: ScheduledMessage[] }>(`/chats/${chatId}/scheduled`),
@@ -180,6 +194,9 @@ export function ChatView() {
         deletedAt: null,
         expiresAt: null,
         createdAt: new Date().toISOString(),
+        threadRootId: null,
+        viewCount: chat.type === 'channel' ? 1 : null,
+        commentCount: 0,
         local: { status: 'sending' },
       };
       upsertMessage(chat.id, local);
@@ -244,8 +261,9 @@ export function ChatView() {
       },
       readers: (m) => setReadersOf(m),
       callBack: chat?.peer ? (video) => void startCall(chatId, video) : undefined,
+      comments: (m) => openComments(m.id),
     }),
-    [chatId, chat?.pinnedMessage?.id, chat?.peer, deliver],
+    [chatId, chat?.pinnedMessage?.id, chat?.peer, deliver, openComments],
   );
 
   const prefs = useMutation({
@@ -289,13 +307,13 @@ export function ChatView() {
     if (!ok) return;
     await api.del(`/chats/${chatId}`);
     forgetChat(chatId);
-    navigate('/chats');
+    navigate(base);
   };
 
   return (
     <>
       <header className="chat-header">
-        <IconButton label="К списку чатов" className="mobile-only" onClick={() => navigate('/chats')}>
+        <IconButton label={base === '/channels' ? 'К списку каналов' : 'К списку чатов'} className="mobile-only" onClick={() => navigate(base)}>
           <ArrowLeft size={22} />
         </IconButton>
         <button className="chat-header__info" onClick={toggleInfo}>
@@ -492,6 +510,7 @@ export function ChatView() {
       {searchOpen && <InChatSearch chatId={chatId} onClose={() => setSearchOpen(false)} />}
       {readersOf && <ReadersDialog chatId={chatId} messageId={readersOf.id} onClose={() => setReadersOf(null)} />}
       {scheduledOpen && <ScheduledListDialog chatId={chatId} onClose={() => setScheduledOpen(false)} />}
+      {commentsOf && chat.type === 'channel' && <CommentsDialog chat={chat} rootId={commentsOf} onClose={() => openComments(null)} />}
       {deleting && (
         <Modal
           open

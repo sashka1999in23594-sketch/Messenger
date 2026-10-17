@@ -12,7 +12,8 @@ export type AuroraMode = 'animated' | 'static' | 'off';
 export type Wallpaper = 'aurora' | 'plain' | 'mesh' | 'sunset' | 'ocean' | 'forest' | 'night' | 'candy' | 'grid' | 'waves';
 export type FontFamily = 'inter' | 'system' | 'rounded' | 'serif' | 'mono';
 export type Corners = 'sharp' | 'normal' | 'round';
-export type StartPage = '/home' | '/chats' | '/feed' | '/photos' | '/shorts';
+export type StartPage = '/home' | '/chats' | '/channels' | '/comets';
+export const START_PAGES: readonly StartPage[] = ['/home', '/chats', '/channels', '/comets'];
 
 export interface SoundPrefs {
   /** Входящие сообщения и уведомления */

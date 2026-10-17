@@ -286,3 +286,69 @@ describe('звонки', () => {
     expect((await a.client.get('/calls')).body.items).toHaveLength(1);
   });
 });
+
+describe('каналы', () => {
+  it('комментарии, просмотры, блокировки и настройки доступа', async () => {
+    const owner = await registerUser(app);
+    const reader = await registerUser(app);
+    const troll = await registerUser(app);
+    const ch = await owner.client.post('/chats/channel', { title: 'Канал', isPublic: true });
+    const id = ch.body.id as string;
+    expect(ch.body.commentsEnabled).toBe(true);
+    await reader.client.post(`/chats/${id}/join`);
+    await troll.client.post(`/chats/${id}/join`);
+    const post = await owner.client.post(`/chats/${id}/messages`, { clientId: cid(), text: 'Первый пост' });
+    expect(post.body.viewCount).toBe(1);
+
+    // Комментарий не попадает в ленту канала, но увеличивает счётчик
+    const c1 = await reader.client.post(`/chats/${id}/messages/${post.body.id}/comments`, { clientId: cid(), text: 'Отлично!' });
+    expect(c1.status).toBe(201);
+    expect(c1.body.threadRootId).toBe(post.body.id);
+    const feed = await reader.client.get(`/chats/${id}/messages`);
+    expect(feed.body.items.map((m: { id: string }) => m.id)).not.toContain(c1.body.id);
+    const thread = await owner.client.get(`/chats/${id}/messages/${post.body.id}/comments`);
+    expect(thread.body.items).toHaveLength(1);
+    expect(thread.body.root.commentCount).toBe(1);
+    // Подписчик по-прежнему не может публиковать посты
+    expect((await reader.client.post(`/chats/${id}/messages`, { clientId: cid(), text: 'спам' })).status).toBe(403);
+
+    // Просмотр считается один раз на человека
+    await reader.client.post(`/chats/${id}/views`, { messageIds: [post.body.id] });
+    const again = await reader.client.post(`/chats/${id}/views`, { messageIds: [post.body.id] });
+    expect(again.body.views[post.body.id]).toBe(1);
+    await troll.client.post(`/chats/${id}/views`, { messageIds: [post.body.id] });
+    const counted = await owner.client.get(`/chats/${id}/messages`);
+    expect(counted.body.items.find((m: { id: string }) => m.id === post.body.id).viewCount).toBe(2);
+
+    // Блокировка: только администраторы; заблокированный не вернётся
+    expect((await reader.client.post(`/chats/${id}/bans`, { userId: troll.user.id })).status).toBe(403);
+    expect((await owner.client.post(`/chats/${id}/bans`, { userId: troll.user.id, days: 0 })).status).toBe(200);
+    expect((await troll.client.post(`/chats/${id}/join`)).status).toBe(403);
+    expect((await troll.client.post(`/chats/${id}/messages/${post.body.id}/comments`, { clientId: cid(), text: 'а я вернулся' })).status).toBe(404);
+    expect((await owner.client.get(`/chats/${id}/bans`)).body.items[0].user.id).toBe(troll.user.id);
+    await owner.client.del(`/chats/${id}/bans/${troll.user.id}`);
+    expect((await troll.client.post(`/chats/${id}/join`)).status).toBe(200);
+
+    // Администратор, назначенный владельцем, модерирует комментарии
+    await owner.client.patch(`/chats/${id}/members/${reader.user.id}`, { role: 'admin' });
+    const c2 = await troll.client.post(`/chats/${id}/messages/${post.body.id}/comments`, { clientId: cid(), text: 'грубость' });
+    expect((await reader.client.del(`/chats/${c2.body.chatId}/messages/${c2.body.id}?forEveryone=true`)).status).toBe(200);
+    expect((await owner.client.get(`/chats/${id}/messages/${post.body.id}/comments`)).body.root.commentCount).toBe(1);
+
+    // Комментарии выключает администратор; закрытый канал не виден в поиске
+    expect((await troll.client.patch(`/chats/${id}`, { commentsEnabled: false })).status).toBe(403);
+    expect((await owner.client.patch(`/chats/${id}`, { commentsEnabled: false, isPublic: false })).body).toMatchObject({ commentsEnabled: false, isPublic: false });
+    expect((await troll.client.post(`/chats/${id}/messages/${post.body.id}/comments`, { clientId: cid(), text: 'ещё' })).status).toBe(403);
+    expect((await troll.client.get('/chats/discover')).body.items.map((c: { id: string }) => c.id)).not.toContain(id);
+  });
+
+  it('открытые и закрытые группы', async () => {
+    const a = await registerUser(app);
+    const b = await registerUser(app);
+    const open = await a.client.post('/chats/group', { title: 'Открытая', isPublic: true });
+    const closed = await a.client.post('/chats/group', { title: 'Закрытая' });
+    expect(open.body.isPublic).toBe(true);
+    expect((await b.client.post(`/chats/${open.body.id}/join`)).status).toBe(200);
+    expect((await b.client.post(`/chats/${closed.body.id}/join`)).status).toBe(403);
+  });
+});

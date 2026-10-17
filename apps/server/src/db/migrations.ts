@@ -703,4 +703,40 @@ ALTER TABLE users ADD COLUMN phone TEXT;
 CREATE UNIQUE INDEX users_phone ON users(phone) WHERE phone IS NOT NULL;
 `,
   },
+  {
+    version: '006_channels',
+    sql: /* sql */ `
+-- ── Каналы как в Telegram: комментарии к постам, просмотры, баны ───────────
+ALTER TABLE messages ADD COLUMN thread_root_id TEXT;
+ALTER TABLE messages ADD COLUMN view_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE messages ADD COLUMN comment_count INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX messages_thread ON messages(thread_root_id, seq) WHERE thread_root_id IS NOT NULL;
+ALTER TABLE chats ADD COLUMN comments_enabled INTEGER NOT NULL DEFAULT 1;
+
+CREATE TABLE message_views (
+  message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  viewed_at  INTEGER NOT NULL,
+  PRIMARY KEY (message_id, user_id)
+);
+
+CREATE TABLE chat_bans (
+  chat_id    TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  banned_by  TEXT REFERENCES users(id) ON DELETE SET NULL,
+  until      INTEGER,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (chat_id, user_id)
+);
+
+-- ── Статистика по дням: просмотры, подписки, посещения профиля ─────────────
+CREATE TABLE stat_daily (
+  metric    TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  day       TEXT NOT NULL,
+  value     INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (metric, entity_id, day)
+);
+`,
+  },
 ];

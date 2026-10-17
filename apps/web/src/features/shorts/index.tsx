@@ -154,7 +154,7 @@ export function ShortsFeed({ mode }: { mode: 'for-you' | 'following' | 'trending
   const navigate = useNavigate();
   const scroller = useRef<HTMLDivElement>(null);
 
-  // Клавиши ↑/↓ — переход между клипами
+  // Клавиши ↑/↓ — переход между кометами
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!scroller.current || (e.target as HTMLElement).closest('input, textarea')) return;
@@ -172,29 +172,29 @@ export function ShortsFeed({ mode }: { mode: 'for-you' | 'following' | 'trending
       <div className="shorts__tabs">
         {(
           [
-            ['for-you', 'Для вас', '/shorts'],
-            ['following', 'Подписки', '/shorts/following'],
-            ['trending', 'Популярные', '/shorts/trending'],
+            ['for-you', 'Для вас', '/comets'],
+            ['following', 'Подписки', '/comets/following'],
+            ['trending', 'Популярные', '/comets/popular'],
           ] as const
         ).map(([m, label, to]) => (
           <button key={m} className={cn('shorts__tab', mode === m && 'shorts__tab--active')} onClick={() => navigate(to)}>
             {label}
           </button>
         ))}
-        <Link to="/shorts/create" className="shorts__tab" aria-label="Снять клип">
+        <Link to="/comets/new" className="shorts__tab" aria-label="Запустить комету">
           <Plus size={20} />
         </Link>
       </div>
       {all.length === 0 ? (
         <div className="short">
-          <EmptyState icon={<Clapperboard size={28} />} title="Клипов пока нет" action={<ButtonLink to="/shorts/create">Снять первый клип</ButtonLink>} />
+          <EmptyState icon={<Clapperboard size={28} />} title="Комет пока нет" text="Короткие вертикальные видео — снимите первое" action={<ButtonLink to="/comets/new">Запустить комету</ButtonLink>} />
         </div>
       ) : (
         all.map((p) => <ShortItem key={p.id} post={p} active={false} />)
       )}
       <div className="short short--loader">
         <LoadMore hasMore={!!list.hasNextPage} loading={list.isFetchingNextPage} onLoad={() => void list.fetchNextPage()} />
-        {!list.hasNextPage && all.length > 0 && <span className="muted">Вы посмотрели все клипы 🎉</span>}
+        {!list.hasNextPage && all.length > 0 && <span className="muted">Вы посмотрели все кометы</span>}
       </div>
     </div>
   );
@@ -205,8 +205,8 @@ export function CreateShortPage() {
   return (
     <div className="scroll">
       <div className="page">
-        <PageHeader title="Новый клип" subtitle="Вертикальное видео 9:16 смотрится лучше всего" icon={<Clapperboard size={22} />} />
-        <UploadVideoForm kind="short" onDone={(p) => navigate(`/shorts?start=${p.id}`)} />
+        <PageHeader title="Новая комета" subtitle="Короткое вертикальное видео — лучше всего в формате 9:16" icon={<Clapperboard size={22} />} />
+        <UploadVideoForm kind="short" onDone={(p) => navigate(`/comets?start=${p.id}`)} />
       </div>
     </div>
   );
@@ -219,8 +219,8 @@ export function MyShortsPage() {
   return (
     <div className="scroll">
       <div className="page page--wide">
-        <PageHeader title="Мои клипы" icon={<Clapperboard size={22} />} actions={<ButtonLink to="/shorts/create" size="sm" icon={<Plus size={16} />}>Новый клип</ButtonLink>} />
-        {items.length === 0 && !list.isLoading && <EmptyState icon={<Clapperboard size={28} />} title="У вас пока нет клипов" />}
+        <PageHeader title="Мои кометы" icon={<Clapperboard size={22} />} actions={<ButtonLink to="/comets/new" size="sm" icon={<Plus size={16} />}>Новая комета</ButtonLink>} />
+        {items.length === 0 && !list.isLoading && <EmptyState icon={<Clapperboard size={28} />} title="У вас пока нет комет" />}
         <div className="video-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
           {items.map((p) => (
             <VideoCard key={p.id} post={p} />

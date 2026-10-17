@@ -7,7 +7,6 @@ export {
   DataSettings,
   LanguageSettings,
   NotificationSettingsPage,
-  ServicesHome,
   SettingsHome,
   ShortcutsSettings,
 } from './general';

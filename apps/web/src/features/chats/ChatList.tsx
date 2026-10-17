@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import { Archive, ArchiveRestore, Bell, BellOff, FolderPlus, Lock, Megaphone, Menu as MenuIcon, PanelLeftOpen, Pin, PinOff, Search, SlidersHorizontal, SquarePen, Trash2, Users, X } from 'lucide-react';
+import { Archive, ArchiveRestore, Bell, BellOff, Compass, FolderPlus, Lock, Megaphone, Menu as MenuIcon, PanelLeftOpen, Pin, PinOff, Search, SlidersHorizontal, SquarePen, Trash2, Users, X } from 'lucide-react';
 import type { ChatSummary } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { flatPages, qk, queryClient, useCursorList } from '../../shared/api/query';
@@ -20,7 +20,6 @@ export const FOLDERS: { id: string; label: string }[] = [
   { id: 'unread', label: 'Непрочитанные' },
   { id: 'direct', label: 'Личные' },
   { id: 'groups', label: 'Группы' },
-  { id: 'channels', label: 'Каналы' },
   { id: 'secret', label: 'Секретные' },
   { id: 'archived', label: 'Архив' },
 ];
@@ -28,7 +27,7 @@ export const FOLDERS: { id: string; label: string }[] = [
 export function previewText(chat: ChatSummary, myId: string): React.ReactNode {
   const m = chat.lastMessage;
   if (!m) return chat.type === 'secret' ? 'Секретный чат создан' : 'Нет сообщений';
-  const who = m.senderId === myId ? 'Вы' : chat.type === 'group' ? m.senderName?.split(' ')[0] : null;
+  const who = chat.type === 'channel' ? null : m.senderId === myId ? 'Вы' : chat.type === 'group' ? m.senderName?.split(' ')[0] : null;
   const body = m.kind === 'system' ? `${m.senderName ?? ''} ${m.text ?? ''}` : messageLabel(m.kind, m.text);
   return (
     <>
@@ -38,7 +37,7 @@ export function previewText(chat: ChatSummary, myId: string): React.ReactNode {
   );
 }
 
-function ChatItem({ chat, active, myId }: { chat: ChatSummary; active: boolean; myId: string }) {
+function ChatItem({ chat, active, myId, base }: { chat: ChatSummary; active: boolean; myId: string; base: string }) {
   const menu = useMenu();
   const navigate = useNavigate();
   const typing = useRealtime((s) => s.typing[chat.id]);
@@ -67,7 +66,7 @@ function ChatItem({ chat, active, myId }: { chat: ChatSummary; active: boolean; 
     try {
       await api.del(`/chats/${chat.id}`);
       forgetChat(chat.id);
-      if (active) navigate('/chats');
+      if (active) navigate(base);
     } catch (e) {
       toast({ text: errorMessage(e), kind: 'error' });
     }
@@ -79,7 +78,7 @@ function ChatItem({ chat, active, myId }: { chat: ChatSummary; active: boolean; 
   return (
     <>
       <Link
-        to={`/chats/${chat.id}`}
+        to={`${base}/${chat.id}`}
         className={cn('chat-item', active && 'chat-item--active', chat.unreadCount > 0 && !muted && 'chat-item--unread')}
         onContextMenu={(e) => menu.openFromEvent(e)}
         aria-current={active ? 'page' : undefined}
@@ -136,7 +135,22 @@ function ChatItem({ chat, active, myId }: { chat: ChatSummary; active: boolean; 
   );
 }
 
-export function ChatList({ folder, activeId, onFolder }: { folder: string; activeId: string | null; onFolder: (f: string) => void }) {
+export function ChatList({
+  folder,
+  activeId,
+  onFolder,
+  variant = 'chats',
+}: {
+  folder: string;
+  activeId: string | null;
+  onFolder: (f: string) => void;
+  /** «Каналы» — отдельный раздел со своим списком, без папок мессенджера */
+  variant?: 'chats' | 'channels';
+}) {
+  const channels = variant === 'channels';
+  const base = channels ? '/channels' : '/chats';
+  const createPath = channels ? '/channels/new' : '/chats/new/direct';
+  const onDiscover = useLocation().pathname.startsWith('/channels/discover');
   const me = useMe();
   const navigate = useNavigate();
   const [q, setQ] = useState('');
@@ -170,24 +184,34 @@ export function ChatList({ folder, activeId, onFolder }: { folder: string; activ
               <PanelLeftOpen size={20} />
             </IconButton>
           </span>
-          <h1 className="chats__title">{status === 'offline' ? 'Соединение…' : 'Чаты'}</h1>
+          <h1 className="chats__title">{status === 'offline' ? 'Соединение…' : channels ? 'Каналы' : 'Чаты'}</h1>
           <IconButton label="Поиск и навигация (Ctrl+K)" onClick={() => setPalette(true)}>
             <Search size={20} />
           </IconButton>
-          <IconButton label="Новый чат" onClick={() => navigate('/chats/new/direct')}>
+          <IconButton label={channels ? 'Создать канал' : 'Новый чат'} onClick={() => navigate(createPath)}>
             <SquarePen size={20} />
           </IconButton>
         </div>
-        {!q && <StoriesBar compact hideEmpty />}
+        {!q && !channels && <StoriesBar compact hideEmpty />}
         <div className="input-group">
           <Search size={16} className="input-group__icon" />
-          <input className="input" placeholder="Поиск по чатам" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className="input" placeholder={channels ? 'Поиск по подпискам' : 'Поиск по чатам'} value={q} onChange={(e) => setQ(e.target.value)} />
           {q && (
             <button className="icon-btn icon-btn--sm input-group__action" onClick={() => setQ('')} aria-label="Очистить">
               <X size={16} />
             </button>
           )}
         </div>
+        {channels ? (
+          <div className="chips" role="tablist" aria-label="Каналы">
+            <button role="tab" aria-selected={!onDiscover} className={cn('chip', !onDiscover && 'chip--active')} onClick={() => navigate('/channels')}>
+              Мои подписки
+            </button>
+            <button role="tab" aria-selected={onDiscover} className={cn('chip', onDiscover && 'chip--active')} onClick={() => navigate('/channels/discover')}>
+              <Compass size={14} /> Обзор
+            </button>
+          </div>
+        ) : (
         <div className="chips" role="tablist" aria-label="Папки">
           {FOLDERS.slice(0, 1).map((f) => (
             <button key={f.id} role="tab" aria-selected={folder === f.id} className={cn('chip', folder === f.id && 'chip--active')} onClick={() => onFolder(f.id)}>
@@ -210,22 +234,23 @@ export function ChatList({ folder, activeId, onFolder }: { folder: string; activ
             <SlidersHorizontal size={14} />
           </button>
         </div>
+        )}
       </div>
       <div className="chats__scroll">
         {list.isLoading ? (
           <ListSkeleton rows={8} avatar={52} />
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon={<SquarePen size={28} />}
-            title={q ? 'Ничего не найдено' : folder === 'archived' ? 'Архив пуст' : 'Здесь пока пусто'}
-            text={q ? 'Попробуйте другой запрос или глобальный поиск (Ctrl+K)' : 'Начните новый разговор — кнопка внизу'}
+            icon={channels ? <Megaphone size={28} /> : <SquarePen size={28} />}
+            title={q ? 'Ничего не найдено' : channels ? 'Нет подписок' : folder === 'archived' ? 'Архив пуст' : 'Здесь пока пусто'}
+            text={q ? 'Попробуйте другой запрос или глобальный поиск (Ctrl+K)' : channels ? 'Найдите интересные каналы в обзоре или создайте свой' : 'Начните новый разговор — кнопка внизу'}
           />
         ) : (
-          filtered.map((c) => <ChatItem key={c.id} chat={c} active={c.id === activeId} myId={me.id} />)
+          filtered.map((c) => <ChatItem key={c.id} chat={c} active={c.id === activeId} myId={me.id} base={base} />)
         )}
         <LoadMore hasMore={!!list.hasNextPage} loading={list.isFetchingNextPage} onLoad={() => void list.fetchNextPage()} />
       </div>
-      <Link to="/chats/new/direct" className="chat-fab" aria-label="Новый чат" title="Новый чат">
+      <Link to={createPath} className="chat-fab" aria-label={channels ? 'Создать канал' : 'Новый чат'} title={channels ? 'Создать канал' : 'Новый чат'}>
         <SquarePen size={24} />
       </Link>
     </div>

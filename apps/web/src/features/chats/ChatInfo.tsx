@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { AtSign, Bell, BellOff, Crown, FolderPlus, Hourglass, Image, Link2, Lock, Paintbrush, Pencil, Shield, Timer, UserMinus, UserPlus, Users, X } from 'lucide-react';
+import { AtSign, Ban, Bell, BellOff, Crown, FolderPlus, Globe, Hourglass, Image, Link2, Lock, MessageSquare, Paintbrush, Pencil, Shield, Timer, UserMinus, UserPlus, Users, UserX, X } from 'lucide-react';
 import { SECRET_TTL_OPTIONS, SLOW_MODE_OPTIONS, type ChatMember, type ChatSummary, type MediaItem, type Paginated, type UserSummary } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { qk, queryClient } from '../../shared/api/query';
@@ -10,7 +10,8 @@ import { usePrefs } from '../../shared/stores/prefs';
 import { useMe } from '../../shared/stores/session';
 import { toast } from '../../shared/stores/ui';
 import { members as membersLabel } from '../../shared/lib/format';
-import { Avatar, Button, IconButton, Input, Lightbox, Menu, Modal, Notice, RichText, SettingRow, Textarea, UserName, useMenu, Verified } from '../../shared/ui';
+import { Avatar, Button, IconButton, Input, Lightbox, Menu, Modal, Notice, RichText, SettingRow, Switch, Textarea, UserName, useMenu, Verified } from '../../shared/ui';
+import { BanDialog, BansDialog } from './channel';
 import { patchChat } from './cache';
 import { useSecretChat } from './secret';
 import { UserPicker } from './dialogs';
@@ -36,15 +37,16 @@ function slowLabel(sec: number): string {
 
 /** Настройки чата: автоудаление, медленный режим, ссылки, обои, папки. */
 function ChatSettingsBlock({ chat }: { chat: ChatSummary }) {
-  const [dialog, setDialog] = useState<'invites' | 'wallpaper' | 'folder' | null>(null);
+  const [dialog, setDialog] = useState<'invites' | 'wallpaper' | 'folder' | 'bans' | null>(null);
   const globalWp = usePrefs((s) => s.wallpaper ?? 'aurora');
   const ownWp = usePrefs((s) => s.chatWallpapers?.[chat.id] ?? null);
   const isAdmin = chat.role === 'owner' || chat.role === 'admin';
   const shared = chat.type === 'group' || chat.type === 'channel';
   const update = useMutation({
-    mutationFn: (body: { ttlSeconds?: number; slowModeSec?: number }) => api.patch<ChatSummary>(`/chats/${chat.id}`, body),
+    mutationFn: (body: { ttlSeconds?: number; slowModeSec?: number; isPublic?: boolean; commentsEnabled?: boolean }) => api.patch<ChatSummary>(`/chats/${chat.id}`, body),
     onSuccess: (c) => {
       queryClient.setQueryData(qk.chat(chat.id), c);
+      patchChat(chat.id, () => c);
       toast({ text: 'Сохранено', kind: 'success' });
     },
     onError: (e) => toast({ text: errorMessage(e), kind: 'error' }),
@@ -53,7 +55,30 @@ function ChatSettingsBlock({ chat }: { chat: ChatSummary }) {
   const canTtl = chat.type !== 'secret' && (!shared || isAdmin);
   return (
     <div className="panel info-settings">
-      <div className="panel__title">Настройки чата</div>
+      <div className="panel__title">{chat.type === 'channel' ? 'Настройки канала' : 'Настройки чата'}</div>
+      {shared && isAdmin && (
+        <SettingRow
+          icon={chat.isPublic ? <Globe size={18} /> : <Lock size={18} />}
+          tile={chat.isPublic ? 'tile-green' : 'tile-violet'}
+          title={chat.type === 'channel' ? 'Тип канала' : 'Тип группы'}
+          description={chat.isPublic ? 'Открытый: найти и вступить может любой' : 'Закрытый: только по приглашению или ссылке'}
+          control={
+            <select className="select" value={chat.isPublic ? 'open' : 'closed'} onChange={(e) => update.mutate({ isPublic: e.target.value === 'open' })} aria-label="Тип доступа">
+              <option value="open">Открытый</option>
+              <option value="closed">Закрытый</option>
+            </select>
+          }
+        />
+      )}
+      {chat.type === 'channel' && isAdmin && (
+        <SettingRow
+          icon={<MessageSquare size={18} />}
+          tile="tile-blue"
+          title="Комментарии"
+          description="Подписчики обсуждают посты, администраторы модерируют"
+          control={<Switch checked={chat.commentsEnabled} onChange={(v) => update.mutate({ commentsEnabled: v })} label="Комментарии" />}
+        />
+      )}
       {canTtl && (
         <SettingRow
           icon={<Hourglass size={18} />}
@@ -89,6 +114,7 @@ function ChatSettingsBlock({ chat }: { chat: ChatSummary }) {
         />
       )}
       {shared && isAdmin && <SettingRow icon={<Link2 size={18} />} tile="tile-blue" title="Пригласительные ссылки" description="Срок, лимит, отзыв" onClick={() => setDialog('invites')} />}
+      {shared && isAdmin && <SettingRow icon={<UserX size={18} />} tile="tile-red" title="Заблокированные" description="Кто не может вернуться" onClick={() => setDialog('bans')} />}
       <SettingRow
         icon={<Paintbrush size={18} />}
         tile="tile-pink"
@@ -98,6 +124,7 @@ function ChatSettingsBlock({ chat }: { chat: ChatSummary }) {
       />
       <SettingRow icon={<FolderPlus size={18} />} tile="tile-violet" title="Добавить в папку" onClick={() => setDialog('folder')} />
       {dialog === 'invites' && <InvitesDialog chat={chat} onClose={() => setDialog(null)} />}
+      {dialog === 'bans' && <BansDialog chat={chat} onClose={() => setDialog(null)} />}
       {dialog === 'folder' && <AddToFolderDialog chat={chat} onClose={() => setDialog(null)} />}
       {dialog === 'wallpaper' && (
         <Modal open onClose={() => setDialog(null)} title="Обои этого чата">
@@ -190,13 +217,14 @@ function MemberRow({ chat, m }: { chat: ChatSummary; m: ChatMember }) {
   const menu = useMenu();
   const canManage = (chat.role === 'owner' || (chat.role === 'admin' && m.role !== 'admin')) && m.role !== 'owner' && m.user.id !== me.id;
   const refresh = () => void queryClient.invalidateQueries({ queryKey: qk.members(chat.id) });
+  const [banning, setBanning] = useState(false);
   return (
     <div className="list-item">
       <Link to={`/u/${m.user.username}`} className="row grow" style={{ gap: 12, color: 'inherit' }}>
         <Avatar src={m.user.avatarUrl} name={m.user.displayName} id={m.user.id} size={40} />
         <span className="list-item__body">
           <UserName user={m.user} />
-          <span className="list-item__sub">{m.role === 'owner' ? 'владелец' : m.role === 'admin' ? 'администратор' : `@${m.user.username}`}</span>
+          <span className="list-item__sub">{m.role === 'owner' ? 'владелец' : m.role === 'admin' ? 'администратор' : m.role === 'subscriber' ? `подписчик · @${m.user.username}` : `@${m.user.username}`}</span>
         </span>
       </Link>
       {m.role === 'owner' && <Crown size={16} style={{ color: 'var(--warning)' }} />}
@@ -216,8 +244,10 @@ function MemberRow({ chat, m }: { chat: ChatSummary; m: ChatMember }) {
                 onClick: () => void api.patch(`/chats/${chat.id}/members/${m.user.id}`, { role: m.role === 'admin' ? 'member' : 'admin' }).then(refresh),
               },
               { label: 'Удалить из чата', icon: <UserMinus size={18} />, danger: true, onClick: () => void api.del(`/chats/${chat.id}/members/${m.user.id}`).then(refresh) },
+              { label: 'Заблокировать', icon: <Ban size={18} />, danger: true, onClick: () => setBanning(true) },
             ]}
           />
+          {banning && <BanDialog chat={chat} userId={m.user.id} name={m.user.displayName} onClose={() => setBanning(false)} />}
         </>
       )}
     </div>
