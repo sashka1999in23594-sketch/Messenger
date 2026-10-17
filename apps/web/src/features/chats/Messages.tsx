@@ -2,7 +2,7 @@ import { memo, useEffect, useRef, type ReactNode } from 'react';
 import { AlertCircle, Check, CheckCheck, Clock, Copy, Ellipsis, Flag, Forward, Lock, Pencil, Pin, Reply, RotateCcw, Trash2 } from 'lucide-react';
 import { REACTIONS, type ChatSummary } from '@omni/shared';
 import { Avatar, Menu, MediaGrid, RichText, useMenu, type MenuEntry } from '../../shared/ui';
-import { clockTime, cn, dayLabel } from '../../shared/lib/format';
+import { clockTime, cn, dayLabel, isJumboEmoji } from '../../shared/lib/format';
 import { useInfiniteScroll } from '../../shared/hooks';
 import type { LocalMessage } from './cache';
 import { useDecrypted, type SecretState } from './secret';
@@ -59,6 +59,8 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
   const secretPlain = useDecrypted(chat.id, msg.id, msg.clientId, msg.encrypted, secret).text;
   const plain = msg.kind === 'encrypted' ? secretPlain : msg.text;
   const isAdmin = chat.role === 'owner' || chat.role === 'admin';
+  const jumbo = !hasMedia && !msg.replyTo && !msg.forwardedFrom && isJumboEmoji(plain);
+  const mediaOnly = hasMedia && !plain && !msg.replyTo && !msg.forwardedFrom;
   const canEdit = out && !msg.local && Date.now() - Date.parse(msg.createdAt) < EDIT_WINDOW && (msg.kind === 'text' || (msg.kind === 'encrypted' && secretPlain !== null));
   const canPin = !msg.local && (chat.type === 'direct' || chat.type === 'saved' || chat.type === 'secret' || isAdmin);
 
@@ -95,7 +97,10 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
           {!groupedNext && msg.sender && <Avatar src={msg.sender.avatarUrl} name={msg.sender.displayName} id={msg.sender.id} size={34} />}
         </span>
       )}
-      <div className={cn('bubble', hasMedia && 'bubble--media', msg.local?.status === 'failed' && 'bubble--failed')}>
+      <div
+        className={cn('bubble', hasMedia && 'bubble--media', mediaOnly && !showSender && 'bubble--media-only', jumbo && 'bubble--jumbo', msg.local?.status === 'failed' && 'bubble--failed')}
+        data-mid={msg.id}
+      >
         {showSender && msg.sender && (
           <div className="bubble__sender" style={{ color: `hsl(${(msg.sender.id.charCodeAt(12) * 37) % 360} 65% 55%)` }}>
             {msg.sender.displayName}

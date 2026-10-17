@@ -22,6 +22,7 @@ export function Shell() {
   const navOpen = useUi((s) => s.navOpen);
   const setNavOpen = useUi((s) => s.setNavOpen);
   const immersive = useUi((s) => s.immersive);
+  const bare = useUi((s) => s.bare);
 
   useEffect(() => setRealtimeNavigate((to) => navigate(to)), [navigate]);
   useEffect(() => {
@@ -34,11 +35,19 @@ export function Shell() {
   }, [pathname, pushRecent, setNavOpen]);
 
   return (
-    <div className={cn('shell', navCollapsed && 'shell--nav-collapsed', navOpen && 'shell--nav-open', immersive && 'shell--immersive')}>
+    <div
+      className={cn(
+        'shell',
+        navCollapsed && !bare && 'shell--nav-collapsed',
+        bare && 'shell--bare',
+        navOpen && 'shell--nav-open',
+        immersive && 'shell--immersive',
+      )}
+    >
       <Rail current={section} />
       <SectionNav section={section} />
       {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
-      <main className="main">
+      <main className="main pane">
         <TopBar section={section} />
         <div className="content">
           <Suspense fallback={<Loading />}>
@@ -57,6 +66,18 @@ export function Shell() {
 /** Страница, которой нужен весь экран на телефоне (переписка, клипы). */
 export function useImmersive(on = true) {
   const set = useUi((s) => s.setImmersive);
+  useEffect(() => {
+    set(on);
+    return () => set(false);
+  }, [on, set]);
+}
+
+/**
+ * Страница рисует собственные панели (мессенджер): верхняя панель скрыта,
+ * дерево разделов прячется и выезжает по кнопке.
+ */
+export function useBareLayout(on = true) {
+  const set = useUi((s) => s.setBare);
   useEffect(() => {
     set(on);
     return () => set(false);

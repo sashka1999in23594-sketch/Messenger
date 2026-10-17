@@ -6,11 +6,20 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type Theme = 'system' | 'light' | 'dark';
-export type Accent = 'violet' | 'blue' | 'green' | 'orange' | 'pink' | 'teal';
+export type Palette = 'aurora' | 'sunset' | 'ocean' | 'forest' | 'sakura' | 'midnight' | 'graphite';
+export type Accent = 'auto' | 'violet' | 'blue' | 'cyan' | 'green' | 'yellow' | 'orange' | 'red' | 'pink' | 'purple';
+export type AuroraMode = 'animated' | 'static' | 'off';
+
+/** Настройки, которые влияют на внешний вид и применяются к <html>. */
+export type VisualPrefs = Pick<PrefsState, 'theme' | 'palette' | 'accent' | 'fontScale' | 'density' | 'reduceMotion' | 'glass' | 'aurora'>;
 
 interface PrefsState {
   theme: Theme;
+  palette: Palette;
   accent: Accent;
+  /** Эффект матового стекла у панелей (выключение ускоряет слабые устройства) */
+  glass: boolean;
+  aurora: AuroraMode;
   fontScale: number;
   density: 'comfortable' | 'compact';
   reduceMotion: boolean;
@@ -35,8 +44,11 @@ interface PrefsState {
 export const usePrefs = create<PrefsState>()(
   persist(
     (set) => ({
-      theme: 'system',
-      accent: 'violet',
+      theme: 'dark',
+      palette: 'aurora',
+      accent: 'auto',
+      glass: true,
+      aurora: 'animated',
       fontScale: 1,
       density: 'comfortable',
       reduceMotion: false,
@@ -54,18 +66,37 @@ export const usePrefs = create<PrefsState>()(
       pushRecent: (id) => set((s) => ({ recent: [id, ...s.recent.filter((r) => r !== id)].slice(0, 8) })),
       toggleExpanded: (id, value) => set((s) => ({ expanded: { ...s.expanded, [id]: value ?? !s.expanded[id] } })),
     }),
-    { name: 'omni.prefs', version: 1 },
+    {
+      name: 'omni.prefs',
+      version: 2,
+      // v1 → v2: появились палитры; старый акцент «teal» стал «cyan», тема по умолчанию — тёмная «Аврора»
+      migrate: (persisted, version) => {
+        const p = (persisted ?? {}) as Record<string, unknown>;
+        if (version < 2) {
+          if (p.accent === 'teal') p.accent = 'cyan';
+          if (p.accent === 'violet') p.accent = 'auto';
+          p.palette = 'aurora';
+          p.glass = true;
+          p.aurora = 'animated';
+        }
+        return p as unknown as PrefsState;
+      },
+    },
   ),
 );
 
-/** Применяет тему/акцент/масштаб к <html>. */
-export function applyPrefs(p: Pick<PrefsState, 'theme' | 'accent' | 'fontScale' | 'density' | 'reduceMotion'>) {
+/** Применяет тему, палитру, акцент и масштаб к <html>. */
+export function applyPrefs(p: VisualPrefs) {
   const d = document.documentElement;
   const theme = p.theme === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : p.theme;
   d.dataset.theme = theme;
+  d.dataset.palette = p.palette;
   d.dataset.accent = p.accent;
   d.dataset.density = p.density;
   d.dataset.reduceMotion = String(p.reduceMotion);
+  d.dataset.glass = p.glass ? 'on' : 'off';
+  d.dataset.aurora = p.reduceMotion && p.aurora === 'animated' ? 'static' : p.aurora;
   d.style.setProperty('--font-scale', String(p.fontScale));
-  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', theme === 'dark' ? '#0b0d14' : '#f4f5fa'));
+  const bg = getComputedStyle(d).getPropertyValue('--bg').trim() || (theme === 'dark' ? '#07080f' : '#eef0f8');
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', bg));
 }

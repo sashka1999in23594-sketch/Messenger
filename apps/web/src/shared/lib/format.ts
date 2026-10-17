@@ -110,3 +110,12 @@ export function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   return ((parts[0]?.[0] ?? '?') + (parts[1]?.[0] ?? '')).toUpperCase();
 }
+
+const EMOJI_ONLY = /^(?:\p{Extended_Pictographic}(?:️|\p{Emoji_Modifier}|‍\p{Extended_Pictographic}️?)*|\p{Regional_Indicator}{2}|\s)+$/u;
+
+/** Сообщение только из 1–3 эмодзи показывается крупно, без «пузыря». */
+export function isJumboEmoji(text: string | null | undefined): boolean {
+  if (!text || text.length > 40 || !EMOJI_ONLY.test(text)) return false;
+  const count = [...new Intl.Segmenter('ru', { granularity: 'grapheme' }).segment(text.trim())].filter((s) => s.segment.trim()).length;
+  return count >= 1 && count <= 3;
+}

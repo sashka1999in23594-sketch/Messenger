@@ -1,29 +1,37 @@
 .post {
   display: flex;
   gap: 12px;
-  padding: 14px 16px 10px;
-  border-bottom: 1px solid var(--border);
+  padding: 16px 16px 8px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
   background: var(--surface);
+  box-shadow: var(--panel-highlight);
   cursor: pointer;
-  transition: background var(--dur-fast) var(--ease);
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    transform var(--dur) var(--ease);
+  animation: rise-in var(--dur-slow) var(--ease);
 }
 .post:hover {
-  background: color-mix(in srgb, var(--surface) 92%, var(--text) 3%);
+  border-color: var(--border-strong);
+  background: color-mix(in oklab, var(--surface) 100%, var(--surface-hover));
 }
 .post--detail {
   cursor: default;
   flex-direction: column;
-  padding: 18px 18px 6px;
+  padding: 20px 20px 8px;
 }
 .post--detail:hover {
-  background: var(--surface);
+  border-color: var(--border);
 }
 .post__body {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 .post__head {
   display: flex;
@@ -45,70 +53,81 @@
   gap: 6px;
   font-size: var(--fs-sm);
   color: var(--text-2);
-  font-weight: 600;
+  font-weight: 620;
   margin: -4px 0 6px 40px;
 }
 .post__text {
   font-size: var(--fs-md);
-  line-height: 1.5;
+  line-height: 1.55;
 }
 .post--detail .post__text {
   font-size: var(--fs-lg);
 }
 .post__title {
-  font-weight: 700;
+  font-weight: 740;
   font-size: var(--fs-lg);
+  letter-spacing: -0.015em;
 }
 .post__quote {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 10px 12px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  background: var(--surface);
+  background: var(--surface-2);
+  transition: border-color var(--dur-fast) var(--ease);
+}
+.post__quote:hover {
+  border-color: var(--border-strong);
 }
 .post__actions {
   display: flex;
   justify-content: space-between;
-  max-width: 460px;
+  max-width: 480px;
   margin-left: -8px;
   color: var(--text-2);
 }
 .action {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 34px;
-  padding: 0 8px;
+  gap: 5px;
+  height: 36px;
+  padding: 0 10px;
   border-radius: var(--radius-full);
   color: var(--text-2);
   font-size: var(--fs-sm);
-  font-weight: 550;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   transition:
     background var(--dur-fast),
-    color var(--dur-fast);
+    color var(--dur-fast),
+    transform var(--dur-fast) var(--ease-spring);
 }
 .action:hover {
   background: var(--accent-soft);
   color: var(--accent-fg);
 }
+.action:active {
+  transform: scale(0.9);
+}
 .action--like:hover,
 .action--liked {
-  color: #f91880;
+  color: #ff3d7f;
 }
 .action--like:hover {
-  background: rgba(249, 24, 128, 0.1);
+  background: rgba(255, 61, 127, 0.12);
 }
 .action--liked svg {
-  animation: heart-pop 0.35s var(--ease);
+  animation: heart-pop 0.4s var(--ease-spring);
+  filter: drop-shadow(0 0 6px rgba(255, 61, 127, 0.6));
 }
 .action--repost:hover,
 .action--reposted {
-  color: #00ba7c;
+  color: #1fd48c;
 }
 .action--repost:hover {
-  background: rgba(0, 186, 124, 0.1);
+  background: rgba(31, 212, 140, 0.12);
 }
 .action--saved {
   color: var(--accent-fg);
@@ -117,9 +136,12 @@
 .composer-card {
   display: flex;
   gap: 12px;
-  padding: 14px 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  padding: 16px;
+  margin-bottom: 14px;
+  border-radius: var(--radius-xl);
+  background: var(--grad-soft);
+  border: 1px solid color-mix(in oklab, var(--accent) 20%, transparent);
+  box-shadow: var(--panel-highlight);
 }
 .composer-card textarea {
   width: 100%;
@@ -154,21 +176,95 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  backdrop-filter: blur(12px);
+  display: flex;
+  justify-content: center;
+  padding: 12px 0;
+  margin-bottom: 4px;
+}
+.feed-tabs .tabs {
+  background: var(--bg-elevated);
+  border-color: var(--panel-border);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(var(--blur)) saturate(1.6);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(1.6);
 }
 .feed-col {
-  max-width: 640px;
+  max-width: 660px;
+  width: 100%;
   margin: 0 auto;
   min-height: 100%;
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-  background: var(--surface);
+  padding: 0 0 var(--space-10);
+}
+.feed-col > .page-header {
+  padding-top: var(--space-6);
+}
+.feed-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 660px) 320px;
+  justify-content: center;
+  gap: var(--space-6);
+  padding: 0 var(--space-5);
+}
+.feed-layout > aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  position: sticky;
+  top: var(--space-4);
+  align-self: start;
+  padding-top: var(--space-4);
+}
+@media (max-width: 1100px) {
+  .feed-layout {
+    grid-template-columns: minmax(0, 660px);
+  }
+  .feed-layout > aside {
+    display: none;
+  }
 }
 @media (max-width: 767px) {
-  .feed-col {
-    border: 0;
+  .feed-layout {
+    padding: 0 var(--space-3);
   }
+  .post {
+    padding: 14px 12px 6px;
+    border-radius: var(--radius-lg);
+  }
+}
+
+/* Тренды */
+.trend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 16px;
+  color: var(--text);
+  text-decoration: none !important;
+  transition: background var(--dur-fast) var(--ease);
+}
+.trend:hover {
+  background: var(--surface-hover);
+}
+.trend__rank {
+  width: 26px;
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--text-3);
+}
+.trend:nth-child(-n + 4) .trend__rank {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.trend__tag {
+  font-weight: 680;
+}
+.trend__count {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
 }
 
 /* ─── Комментарии ─── */
@@ -233,4 +329,20 @@
 .post .media-grid--1 .media-grid__item,
 .post .media-grid--1 .media-grid__item img {
   max-height: 460px;
+}
+
+/* Публикация внутри панели (поиск, сообщество) — строка списка, а не отдельная карточка */
+.panel .post,
+.card .post {
+  margin: 0;
+  border-radius: 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  box-shadow: none;
+  background: transparent;
+  animation: none;
+}
+.panel .post:hover,
+.card .post:hover {
+  background: var(--surface-hover);
 }

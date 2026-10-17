@@ -41,7 +41,7 @@ export function SecurityOverview() {
       <Panel>
         <div className="row" style={{ padding: 20, gap: 20 }}>
           <div className="score-ring" style={{ background: `conic-gradient(${score >= 80 ? 'var(--success)' : score >= 50 ? 'var(--warning)' : 'var(--danger)'} ${score * 3.6}deg, var(--surface-3) 0)` }}>
-            <span style={{ background: 'var(--surface)', width: 76, height: 76, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{score}%</span>
+            <span className="score-ring__value">{score}%</span>
           </div>
           <div className="col">
             <h3>{score >= 80 ? 'Отличная защита' : score >= 50 ? 'Можно лучше' : 'Аккаунт уязвим'}</h3>

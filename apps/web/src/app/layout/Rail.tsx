@@ -2,8 +2,8 @@ import { Link, NavLink } from 'react-router';
 import { Moon, Sun } from 'lucide-react';
 import { sections, type NavSection } from '../navigation';
 import { useSession } from '../../shared/stores/session';
-import { applyPrefs, usePrefs } from '../../shared/stores/prefs';
-import { Avatar } from '../../shared/ui';
+import { usePrefs } from '../../shared/stores/prefs';
+import { Avatar, Logo } from '../../shared/ui';
 import { cn } from '../../shared/lib/format';
 
 export function useBadge(kind: NavSection['badge']): number {
@@ -25,7 +25,9 @@ export function RailItem({ section, active, onClick }: { section: NavSection; ac
       aria-label={section.label}
       title={`${section.label} — ${section.description ?? ''}`}
     >
-      <Icon size={24} strokeWidth={active ? 2.3 : 1.9} />
+      <span className="rail__icon">
+        <Icon size={22} strokeWidth={active ? 2.2 : 1.9} />
+      </span>
       <span className="rail__label">{section.short}</span>
       {badge > 0 && <span className="badge rail__badge">{badge > 99 ? '99+' : badge}</span>}
     </NavLink>
@@ -35,17 +37,12 @@ export function RailItem({ section, active, onClick }: { section: NavSection; ac
 export function Rail({ current }: { current: NavSection }) {
   const me = useSession((s) => s.me);
   const theme = usePrefs((s) => s.theme);
-  const prefs = usePrefs();
-  const isDark = document.documentElement.dataset.theme === 'dark';
-  const toggleTheme = () => {
-    const next = isDark ? 'light' : 'dark';
-    prefs.set({ theme: next });
-    applyPrefs({ ...prefs, theme: next });
-  };
+  const setPrefs = usePrefs((s) => s.set);
+  const isDark = theme === 'dark' || (theme === 'system' && document.documentElement.dataset.theme === 'dark');
   return (
-    <nav className="rail" aria-label="Разделы">
+    <nav className="rail pane" aria-label="Разделы">
       <Link to="/" className="rail__logo" aria-label="Omni — на главную">
-        <img src="/icons/icon-192.png" alt="" />
+        <Logo size={44} />
       </Link>
       {sections
         .filter((s) => s.id !== 'settings' && s.id !== 'profile')
@@ -53,14 +50,13 @@ export function Rail({ current }: { current: NavSection }) {
           <RailItem key={s.id} section={s} active={current.id === s.id} />
         ))}
       <div className="rail__spacer" />
-      <button className="rail__item" onClick={toggleTheme} aria-label="Сменить тему" title={`Тема: ${theme}`}>
-        {isDark ? <Sun size={22} /> : <Moon size={22} />}
-        <span className="rail__label">Тема</span>
+      <button className="rail__tool" onClick={() => setPrefs({ theme: isDark ? 'light' : 'dark' })} aria-label="Сменить тему" title={isDark ? 'Светлая тема' : 'Тёмная тема'}>
+        {isDark ? <Sun size={20} /> : <Moon size={20} />}
       </button>
       <RailItem section={sections.find((s) => s.id === 'settings')!} active={current.id === 'settings'} />
       {me && (
-        <Link to="/profile" className={cn('rail__item', current.id === 'profile' && 'rail__item--active')} aria-label="Мой профиль">
-          <Avatar src={me.avatarUrl} name={me.displayName} id={me.id} size={34} />
+        <Link to="/profile" className={cn('rail__me', current.id === 'profile' && 'rail__me--active')} aria-label="Мой профиль" title="Мой профиль">
+          <Avatar src={me.avatarUrl} name={me.displayName} id={me.id} size={38} />
         </Link>
       )}
     </nav>

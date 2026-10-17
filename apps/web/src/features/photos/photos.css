@@ -1,7 +1,7 @@
 .photo-col {
-  max-width: 520px;
+  max-width: 540px;
   margin: 0 auto;
-  padding: 12px 0 40px;
+  padding: 16px 0 40px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -33,16 +33,23 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.story-chip {
+  transition: transform var(--dur) var(--ease-spring);
+}
+.story-chip:hover {
+  transform: translateY(-2px);
+}
 .story-chip__add {
   position: absolute;
   right: 4px;
   top: 48px;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--grad);
   color: #fff;
-  border: 2px solid var(--bg);
+  border: 2.5px solid var(--panel-solid);
+  box-shadow: var(--glow);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,8 +57,10 @@
 .photo-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--panel-highlight);
   overflow: hidden;
+  animation: rise-in var(--dur-slow) var(--ease);
 }
 @media (max-width: 767px) {
   .photo-card {
@@ -64,7 +73,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 12px 14px;
 }
 .carousel {
   position: relative;
@@ -109,16 +118,24 @@
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.5);
 }
+.carousel__dots span {
+  transition:
+    width var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
 .carousel__dots span[data-on='true'] {
   background: #fff;
+  width: 16px;
+  border-radius: 6px;
 }
 .carousel__count {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 3px 9px;
+  top: 12px;
+  right: 12px;
+  padding: 3px 10px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
   color: #fff;
   font-size: 12px;
   font-weight: 650;

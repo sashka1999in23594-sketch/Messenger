@@ -13,6 +13,8 @@ interface UiState {
   navOpen: boolean;
   paletteOpen: boolean;
   immersive: boolean;
+  /** Страница занимает всю ширину, дерево разделов выезжает по кнопке (мессенджер) */
+  bare: boolean;
   /** Название текущей страницы для хлебных крошек (чат, публикация, профиль…) */
   crumb: string | null;
   toasts: Toast[];
@@ -20,6 +22,7 @@ interface UiState {
   setNavOpen: (v: boolean) => void;
   setPalette: (v: boolean) => void;
   setImmersive: (v: boolean) => void;
+  setBare: (v: boolean) => void;
   setCrumb: (v: string | null) => void;
   toast: (t: Omit<Toast, 'id'> | string) => void;
   dismiss: (id: number) => void;
@@ -32,12 +35,14 @@ export const useUi = create<UiState>((set, get) => ({
   navOpen: false,
   paletteOpen: false,
   immersive: false,
+  bare: false,
   crumb: null,
   toasts: [],
   setDrawer: (v) => set({ drawerOpen: v }),
   setNavOpen: (v) => set({ navOpen: v }),
   setPalette: (v) => set({ paletteOpen: v }),
   setImmersive: (v) => set({ immersive: v }),
+  setBare: (v) => set({ bare: v }),
   setCrumb: (v) => set({ crumb: v }),
   toast: (t) => {
     const toast: Toast = typeof t === 'string' ? { id: ++toastId, text: t } : { ...t, id: ++toastId };

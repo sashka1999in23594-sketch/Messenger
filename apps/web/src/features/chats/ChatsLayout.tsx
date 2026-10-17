@@ -10,6 +10,7 @@ import { useDebounced } from '../../shared/hooks';
 import { members } from '../../shared/lib/format';
 import { Avatar, Button, ButtonLink, EmptyState, ListSkeleton, Loading, PageHeader } from '../../shared/ui';
 import { cn } from '../../shared/lib/format';
+import { useBareLayout } from '../../app/layout/Shell';
 import { ChatInfo } from './ChatInfo';
 import { ChatList } from './ChatList';
 import { useChatUi } from './store';
@@ -26,6 +27,7 @@ export function ChatsLayout() {
   if (routeFolder) lastFolder = routeFolder;
   const folder = routeFolder ?? (chatId ? lastFolder : pathname === '/chats' ? 'all' : lastFolder);
   const hasDetail = !!chatId || /^\/chats\/(new|discover|saved)/.test(pathname);
+  useBareLayout(true);
   useEffect(() => {
     if (!chatId) setInfo(false);
   }, [chatId, setInfo]);
@@ -34,6 +36,7 @@ export function ChatsLayout() {
     <div className={cn('chats', hasDetail && 'chats--detail', infoOpen && chatId && 'chats--info')}>
       <ChatList folder={folder} activeId={chatId ?? null} onFolder={(f) => navigate(f === 'all' ? '/chats' : `/chats/folder/${f}`)} />
       <section className="chats__detail">
+        <div className="chat-wallpaper" aria-hidden />
         <Outlet />
       </section>
       {infoOpen && chatId && <ChatInfo chatId={chatId} onClose={() => setInfo(false)} />}
@@ -45,10 +48,10 @@ export function NoChatSelected() {
   return (
     <EmptyState
       icon={<MessageCircle size={30} />}
-      title="Выберите чат"
+      title="Выберите, кому написать"
       text={
         <>
-          Или начните новый разговор. Подсказка: <span className="kbd">Ctrl K</span> — быстрый переход к любому чату и разделу.
+          Личные чаты, группы, каналы и секретные переписки со сквозным шифрованием — всё здесь. Подсказка: <span className="kbd">Ctrl K</span> — быстрый переход к любому чату.
         </>
       }
       action={
@@ -90,7 +93,7 @@ export function DiscoverChannels() {
     onError: (e) => toast({ text: errorMessage(e), kind: 'error' }),
   });
   return (
-    <div className="scroll" style={{ background: 'var(--bg)' }}>
+    <div className="scroll">
       <div className="page">
         <PageHeader title="Каталог каналов и групп" subtitle="Публичные сообщества, на которые можно подписаться" icon={<Compass size={22} />} />
         <div className="input-group" style={{ marginBottom: 16 }}>

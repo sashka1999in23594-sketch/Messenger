@@ -3,7 +3,6 @@ export {
   AboutSettings,
   AccessibilitySettings,
   AdminReports,
-  AppearanceSettings,
   ChatSettings,
   DataSettings,
   LanguageSettings,
@@ -14,3 +13,4 @@ export {
 } from './general';
 export { PrivacySettings, RelationsList } from './privacy';
 export { KeysSettings, PasscodeSettings, PasswordSettings, SecurityLogSettings, SecurityOverview, SessionsSettings, TwoFactorSettings } from './security';
+export { AppearanceSettings } from './appearance';

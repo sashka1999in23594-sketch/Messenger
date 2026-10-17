@@ -1,11 +1,21 @@
-/* ─── Дизайн-токены Omni ──────────────────────────────────────────────────────
+/* ─── Дизайн-токены Omni «Аврора» ─────────────────────────────────────────────
  * Все цвета, отступы, радиусы и тени — только через переменные.
- * Темы: data-theme="light|dark", акцент: data-accent, масштаб текста: --font-scale.
+ *   data-theme="light|dark"          — светлая/тёмная основа
+ *   data-palette="aurora|…"          — палитра фона (цвета «северного сияния»)
+ *   data-accent="auto|violet|…"      — акцент (auto — из палитры)
+ *   data-glass="off"                 — без прозрачности (сплошные панели)
+ *   data-aurora="static|off"         — фон без анимации / без сияния
+ *   --font-scale                     — масштаб текста
  */
+@import '@fontsource-variable/inter/opsz.css';
+@import '@fontsource-variable/unbounded/index.css';
+
 :root {
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', Arial, sans-serif;
+  --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', Arial, sans-serif;
+  --font-display: 'Unbounded Variable', 'Inter Variable', system-ui, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'JetBrains Mono', Menlo, Consolas, monospace;
   --font-scale: 1;
+  --fs-2xs: calc(11px * var(--font-scale));
   --fs-xs: calc(12px * var(--font-scale));
   --fs-sm: calc(13.5px * var(--font-scale));
   --fs-md: calc(15px * var(--font-scale));
@@ -13,6 +23,7 @@
   --fs-xl: calc(20px * var(--font-scale));
   --fs-2xl: calc(26px * var(--font-scale));
   --fs-3xl: calc(34px * var(--font-scale));
+  --fs-4xl: calc(44px * var(--font-scale));
 
   --space-1: 4px;
   --space-2: 8px;
@@ -22,24 +33,31 @@
   --space-6: 24px;
   --space-8: 32px;
   --space-10: 40px;
+  --space-12: 48px;
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 22px;
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 30px;
   --radius-full: 999px;
+  /* Радиус и зазор «плавающих» панелей оболочки */
+  --radius-panel: 26px;
+  --gap: 10px;
 
   --rail-w: 76px;
-  --nav-w: 272px;
-  --topbar-h: 56px;
-  --tabs-h: 60px;
-  --content-max: 680px;
-  --wide-max: 1280px;
+  --nav-w: 280px;
+  --topbar-h: 60px;
+  --tabs-h: 64px;
+  --content-max: 700px;
+  --wide-max: 1320px;
 
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --dur-fast: 120ms;
-  --dur: 200ms;
-  --dur-slow: 320ms;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 140ms;
+  --dur: 220ms;
+  --dur-slow: 360ms;
 
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -52,138 +70,254 @@
   --z-modal: 80;
   --z-toast: 90;
   --z-lock: 100;
+
+  --blur: 22px;
+  --blur-strong: 34px;
 }
 
-/* ─── Светлая тема ─── */
+/* ─── Тёмная основа (по умолчанию) ─── */
 :root,
-[data-theme='light'] {
-  color-scheme: light;
-  --bg: #f4f5fa;
-  --bg-elevated: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #f1f2f8;
-  --surface-3: #e8eaf3;
-  --surface-hover: rgba(20, 24, 50, 0.05);
-  --surface-active: rgba(20, 24, 50, 0.09);
-  --border: #e3e6ef;
-  --border-strong: #cfd4e2;
-  --text: #11142a;
-  --text-2: #565e75;
-  --text-3: #8a91a6;
-  --text-inverse: #ffffff;
-  --overlay: rgba(10, 12, 28, 0.45);
-  --shadow-sm: 0 1px 2px rgba(16, 24, 64, 0.06), 0 1px 1px rgba(16, 24, 64, 0.04);
-  --shadow-md: 0 6px 20px rgba(16, 24, 64, 0.1), 0 2px 6px rgba(16, 24, 64, 0.06);
-  --shadow-lg: 0 18px 50px rgba(16, 24, 64, 0.18), 0 4px 12px rgba(16, 24, 64, 0.08);
-  --bubble-in: #ffffff;
-  --bubble-out: var(--accent-soft-strong);
-  --chat-bg: #e9ebf4;
-  --success: #12a150;
-  --warning: #d48806;
-  --danger: #e5484d;
-  --danger-soft: rgba(229, 72, 77, 0.12);
-  --success-soft: rgba(18, 161, 80, 0.12);
-  --warning-soft: rgba(212, 136, 6, 0.14);
-  --skeleton: #e6e8f1;
-  --skeleton-shine: #f3f4f9;
-}
-
-/* ─── Тёмная тема ─── */
 [data-theme='dark'] {
   color-scheme: dark;
-  --bg: #0b0d14;
-  --bg-elevated: #141824;
-  --surface: #11141e;
-  --surface-2: #181c29;
-  --surface-3: #212637;
-  --surface-hover: rgba(255, 255, 255, 0.05);
+  --bg: #07080f;
+  --bg-tint: #0b0d1a;
+  --panel: rgba(16, 18, 32, 0.62);
+  --panel-solid: #11131f;
+  --panel-border: rgba(255, 255, 255, 0.075);
+  --panel-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --bg-elevated: rgba(22, 25, 42, 0.9);
+  --bg-elevated-solid: #161929;
+  --surface: rgba(255, 255, 255, 0.035);
+  --surface-2: rgba(255, 255, 255, 0.06);
+  --surface-3: rgba(255, 255, 255, 0.1);
+  --surface-hover: rgba(255, 255, 255, 0.055);
   --surface-active: rgba(255, 255, 255, 0.09);
-  --border: #222839;
-  --border-strong: #31384d;
-  --text: #eceef5;
-  --text-2: #a3aac0;
-  --text-3: #6f7790;
+  --border: rgba(255, 255, 255, 0.075);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --text: #f1f2f9;
+  --text-2: rgba(226, 229, 246, 0.66);
+  --text-3: rgba(226, 229, 246, 0.4);
   --text-inverse: #0b0d14;
-  --overlay: rgba(0, 0, 0, 0.6);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
-  --bubble-in: #1b2030;
-  --bubble-out: var(--accent-deep);
-  --chat-bg: #0e1119;
-  --success: #3dd68c;
-  --warning: #f5b942;
-  --danger: #ff6369;
-  --danger-soft: rgba(255, 99, 105, 0.14);
-  --success-soft: rgba(61, 214, 140, 0.14);
-  --warning-soft: rgba(245, 185, 66, 0.14);
-  --skeleton: #1a1f2d;
-  --skeleton-shine: #232939;
+  --overlay: rgba(3, 4, 10, 0.62);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 10px 30px -8px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 30px 80px -20px rgba(0, 0, 0, 0.75), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-panel: 0 20px 60px -30px rgba(0, 0, 0, 0.8);
+  --bubble-in: rgba(36, 40, 62, 0.82);
+  --bubble-in-text: var(--text);
+  --bubble-out-text: #fff;
+  --chat-bg: transparent;
+  --success: #3ee08f;
+  --warning: #ffc34d;
+  --danger: #ff5c6c;
+  --info: #5cc8ff;
+  --danger-soft: rgba(255, 92, 108, 0.14);
+  --success-soft: rgba(62, 224, 143, 0.13);
+  --warning-soft: rgba(255, 195, 77, 0.14);
+  --info-soft: rgba(92, 200, 255, 0.14);
+  --skeleton: rgba(255, 255, 255, 0.05);
+  --skeleton-shine: rgba(255, 255, 255, 0.1);
+  --aurora-opacity: 0.55;
+  --noise-opacity: 0.05;
 }
 
-/* ─── Акцентные цвета ─── */
+/* ─── Светлая основа ─── */
+[data-theme='light'] {
+  color-scheme: light;
+  --bg: #eef0f8;
+  --bg-tint: #f6f7fc;
+  --panel: rgba(255, 255, 255, 0.66);
+  --panel-solid: #ffffff;
+  --panel-border: rgba(255, 255, 255, 0.85);
+  --panel-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --bg-elevated: rgba(255, 255, 255, 0.92);
+  --bg-elevated-solid: #ffffff;
+  --surface: rgba(255, 255, 255, 0.6);
+  --surface-2: rgba(20, 24, 60, 0.045);
+  --surface-3: rgba(20, 24, 60, 0.085);
+  --surface-hover: rgba(20, 24, 60, 0.05);
+  --surface-active: rgba(20, 24, 60, 0.09);
+  --border: rgba(20, 24, 60, 0.08);
+  --border-strong: rgba(20, 24, 60, 0.15);
+  --text: #0d1026;
+  --text-2: rgba(13, 16, 38, 0.64);
+  --text-3: rgba(13, 16, 38, 0.42);
+  --text-inverse: #ffffff;
+  --overlay: rgba(14, 16, 40, 0.38);
+  --shadow-sm: 0 1px 2px rgba(20, 24, 70, 0.07);
+  --shadow-md: 0 10px 30px -10px rgba(30, 30, 90, 0.22), 0 2px 6px rgba(20, 24, 70, 0.06);
+  --shadow-lg: 0 30px 80px -24px rgba(30, 30, 100, 0.35), 0 8px 24px rgba(20, 24, 70, 0.08);
+  --shadow-panel: 0 20px 50px -30px rgba(40, 40, 120, 0.35);
+  --bubble-in: rgba(255, 255, 255, 0.9);
+  --bubble-in-text: var(--text);
+  --bubble-out-text: #fff;
+  --chat-bg: transparent;
+  --success: #0f9d58;
+  --warning: #c77c02;
+  --danger: #e5394a;
+  --info: #0b84d8;
+  --danger-soft: rgba(229, 57, 74, 0.1);
+  --success-soft: rgba(15, 157, 88, 0.1);
+  --warning-soft: rgba(199, 124, 2, 0.12);
+  --info-soft: rgba(11, 132, 216, 0.1);
+  --skeleton: rgba(20, 24, 60, 0.06);
+  --skeleton-shine: rgba(255, 255, 255, 0.7);
+  --aurora-opacity: 0.5;
+  --noise-opacity: 0.035;
+}
+
+/* ─── Палитры фона: три цвета сияния + акцент по умолчанию ─── */
 :root,
+[data-palette='aurora'] {
+  --aurora-1: #6d4aff;
+  --aurora-2: #00c2ff;
+  --aurora-3: #ff4fd8;
+  --pal-accent: #7c5cff;
+  --pal-accent-2: #00b8ff;
+}
+[data-palette='sunset'] {
+  --aurora-1: #ff6a3d;
+  --aurora-2: #ff3d8b;
+  --aurora-3: #8b3dff;
+  --pal-accent: #ff5a5f;
+  --pal-accent-2: #ff9a3d;
+}
+[data-palette='ocean'] {
+  --aurora-1: #0066ff;
+  --aurora-2: #00d4c8;
+  --aurora-3: #3a2dff;
+  --pal-accent: #2f7bff;
+  --pal-accent-2: #00d0c0;
+}
+[data-palette='forest'] {
+  --aurora-1: #00b37a;
+  --aurora-2: #b6e000;
+  --aurora-3: #008c9e;
+  --pal-accent: #12b886;
+  --pal-accent-2: #94d82d;
+}
+[data-palette='sakura'] {
+  --aurora-1: #ff7eb6;
+  --aurora-2: #b88cff;
+  --aurora-3: #ffb86b;
+  --pal-accent: #f0609e;
+  --pal-accent-2: #a970ff;
+}
+[data-palette='midnight'] {
+  --aurora-1: #2b2bff;
+  --aurora-2: #7a1fff;
+  --aurora-3: #00a3ff;
+  --pal-accent: #5b6cff;
+  --pal-accent-2: #a855f7;
+}
+[data-palette='graphite'] {
+  --aurora-1: #8a8fa8;
+  --aurora-2: #5d6278;
+  --aurora-3: #b5b9cc;
+  --pal-accent: #8b93ad;
+  --pal-accent-2: #c4c9db;
+}
+[data-theme='dark'][data-palette='midnight'] {
+  --bg: #000000;
+  --bg-tint: #04040a;
+  --panel: rgba(8, 9, 18, 0.72);
+  --panel-solid: #08090f;
+  --aurora-opacity: 0.35;
+}
+[data-theme='dark'][data-palette='graphite'] {
+  --bg: #0c0d10;
+  --panel: rgba(24, 25, 30, 0.7);
+  --panel-solid: #17181d;
+  --aurora-opacity: 0.25;
+}
+[data-theme='light'][data-palette='graphite'] {
+  --bg: #eceef2;
+  --aurora-opacity: 0.25;
+}
+
+/* ─── Акценты: основной цвет + пара для градиента ─── */
+:root,
+[data-accent='auto'] {
+  --accent: var(--pal-accent);
+  --accent-2: var(--pal-accent-2);
+}
 [data-accent='violet'] {
-  --accent: #6c5ce7;
-  --accent-hover: #5b4bd6;
-  --accent-text: #ffffff;
-  --accent-soft: rgba(108, 92, 231, 0.12);
-  --accent-soft-strong: #e4e0ff;
-  --accent-deep: #3b3180;
-  --accent-fg: #6c5ce7;
+  --accent: #7c5cff;
+  --accent-2: #b26bff;
 }
 [data-accent='blue'] {
-  --accent: #2f80ed;
-  --accent-hover: #1f6fdc;
-  --accent-text: #ffffff;
-  --accent-soft: rgba(47, 128, 237, 0.12);
-  --accent-soft-strong: #dbe9ff;
-  --accent-deep: #1b4880;
-  --accent-fg: #2f80ed;
+  --accent: #2f7bff;
+  --accent-2: #00b8ff;
+}
+[data-accent='cyan'] {
+  --accent: #00b4d8;
+  --accent-2: #00e0b0;
 }
 [data-accent='green'] {
-  --accent: #10a37f;
-  --accent-hover: #0c8f6f;
-  --accent-text: #ffffff;
-  --accent-soft: rgba(16, 163, 127, 0.12);
-  --accent-soft-strong: #d6f5ea;
-  --accent-deep: #11594a;
-  --accent-fg: #0f9a77;
+  --accent: #12b886;
+  --accent-2: #74d43a;
+}
+[data-accent='yellow'] {
+  --accent: #f0a500;
+  --accent-2: #ffd43b;
 }
 [data-accent='orange'] {
-  --accent: #f2711c;
-  --accent-hover: #dc6110;
-  --accent-text: #ffffff;
-  --accent-soft: rgba(242, 113, 28, 0.13);
-  --accent-soft-strong: #ffe6d4;
-  --accent-deep: #7a3a12;
-  --accent-fg: #e1650f;
+  --accent: #ff6b2c;
+  --accent-2: #ffa94d;
+}
+[data-accent='red'] {
+  --accent: #f03e5a;
+  --accent-2: #ff7a59;
 }
 [data-accent='pink'] {
-  --accent: #e64980;
-  --accent-hover: #d6336c;
-  --accent-text: #ffffff;
-  --accent-soft: rgba(230, 73, 128, 0.12);
-  --accent-soft-strong: #ffdeea;
-  --accent-deep: #7a2246;
-  --accent-fg: #e03a75;
+  --accent: #f0609e;
+  --accent-2: #ff8fd0;
 }
-[data-accent='teal'] {
-  --accent: #0ea5b7;
-  --accent-hover: #0b8fa0;
-  --accent-text: #ffffff;
-  --accent-soft: rgba(14, 165, 183, 0.13);
-  --accent-soft-strong: #d3f3f7;
-  --accent-deep: #0f5560;
-  --accent-fg: #0a98a9;
+[data-accent='purple'] {
+  --accent: #a855f7;
+  --accent-2: #ec4899;
 }
-[data-theme='dark'] {
-  --accent-fg: color-mix(in srgb, var(--accent) 70%, white);
+
+/* Производные от акцента — считаются автоматически для любой пары цветов.
+ * Селекторы по атрибутам позволяют показать «живое» превью другой темы/палитры
+ * внутри любого элемента: <div data-theme="light" data-palette="sunset" data-accent="auto">. */
+:root,
+[data-accent],
+[data-palette],
+[data-theme] {
+  --accent-text: #ffffff;
+  --accent-hover: color-mix(in oklab, var(--accent) 86%, black);
+  --accent-soft: color-mix(in oklab, var(--accent) 15%, transparent);
+  --accent-soft-strong: color-mix(in oklab, var(--accent) 26%, transparent);
+  --accent-deep: color-mix(in oklab, var(--accent) 55%, black);
+  --accent-fg: color-mix(in oklab, var(--accent) 72%, white);
+  --grad: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  --grad-soft: linear-gradient(135deg, color-mix(in oklab, var(--accent) 22%, transparent), color-mix(in oklab, var(--accent-2) 16%, transparent));
+  --glow: 0 10px 30px -10px color-mix(in oklab, var(--accent) 75%, transparent);
+  --glow-strong: 0 14px 40px -8px color-mix(in oklab, var(--accent) 85%, transparent);
+  --ring: 0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent);
+  --bubble-out: var(--grad);
+}
+[data-theme='light'],
+[data-theme='light'] [data-accent],
+[data-theme='light'] [data-palette] {
+  --accent-fg: color-mix(in oklab, var(--accent) 85%, black);
+  --accent-soft: color-mix(in oklab, var(--accent) 12%, transparent);
+}
+
+/* Без прозрачности: панели сплошные, размытие выключено (быстрее на слабых устройствах) */
+[data-glass='off'] {
+  --panel: var(--panel-solid);
+  --bg-elevated: var(--bg-elevated-solid);
+  --blur: 0px;
+  --blur-strong: 0px;
 }
 
 /* Плотность интерфейса */
 [data-density='compact'] {
-  --topbar-h: 50px;
+  --topbar-h: 52px;
   --space-3: 10px;
   --space-4: 13px;
+  --gap: 6px;
+  --radius-panel: 20px;
 }

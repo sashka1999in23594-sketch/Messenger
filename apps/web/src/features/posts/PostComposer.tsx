@@ -124,7 +124,7 @@ export function PostComposer({
           </IconButton>
           <input ref={fileInput} type="file" hidden multiple accept="image/*,video/*" onChange={(e) => e.target.files && add(e.target.files)} />
           {!communityId && (
-            <select className="select" style={{ width: 'auto', minHeight: 34, padding: '4px 10px', borderRadius: 999 }} value={visibility} onChange={(e) => setVisibility(e.target.value as Visibility)} aria-label="Кто видит">
+            <select className="select" style={{ width: 'auto', minHeight: 36, paddingTop: 4, paddingBottom: 4, paddingLeft: 14, borderRadius: 999 }} value={visibility} onChange={(e) => setVisibility(e.target.value as Visibility)} aria-label="Кто видит">
               {Object.entries(VIS).map(([k, v]) => (
                 <option key={k} value={k}>
                   {v.label}

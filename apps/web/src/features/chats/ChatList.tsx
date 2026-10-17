@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import { Archive, ArchiveRestore, Bell, BellOff, Lock, Megaphone, SquarePen, Pin, PinOff, Search, Trash2, Users, X } from 'lucide-react';
+import { Archive, ArchiveRestore, Bell, BellOff, Lock, Megaphone, Menu as MenuIcon, PanelLeftOpen, Pin, PinOff, Search, SquarePen, Trash2, Users, X } from 'lucide-react';
 import type { ChatSummary } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { flatPages, qk, queryClient, useCursorList } from '../../shared/api/query';
 import { realtime } from '../../shared/realtime/socket';
 import { useRealtime } from '../../shared/stores/realtime';
 import { useMe } from '../../shared/stores/session';
-import { toast } from '../../shared/stores/ui';
+import { toast, useUi } from '../../shared/stores/ui';
 import { chatTime, cn } from '../../shared/lib/format';
-import { Avatar, confirm, EmptyState, ListSkeleton, LoadMore, Menu, useMenu, Verified } from '../../shared/ui';
+import { Avatar, confirm, EmptyState, IconButton, ListSkeleton, LoadMore, Menu, useMenu, Verified } from '../../shared/ui';
 import { patchChat, forgetChat } from './cache';
 
 export const FOLDERS: { id: string; label: string }[] = [
@@ -78,7 +78,7 @@ function ChatItem({ chat, active, myId }: { chat: ChatSummary; active: boolean; 
     <>
       <Link
         to={`/chats/${chat.id}`}
-        className={cn('chat-item', active && 'chat-item--active')}
+        className={cn('chat-item', active && 'chat-item--active', chat.unreadCount > 0 && !muted && 'chat-item--unread')}
         onContextMenu={(e) => menu.openFromEvent(e)}
         aria-current={active ? 'page' : undefined}
       >
@@ -133,7 +133,12 @@ function ChatItem({ chat, active, myId }: { chat: ChatSummary; active: boolean; 
 
 export function ChatList({ folder, activeId, onFolder }: { folder: string; activeId: string | null; onFolder: (f: string) => void }) {
   const me = useMe();
+  const navigate = useNavigate();
   const [q, setQ] = useState('');
+  const status = useRealtime((s) => s.status);
+  const setDrawer = useUi((s) => s.setDrawer);
+  const setNavOpen = useUi((s) => s.setNavOpen);
+  const setPalette = useUi((s) => s.setPalette);
   const list = useCursorList<ChatSummary>(qk.chats(folder), `/chats?folder=${folder}`);
   const chats = flatPages(list.data);
   const filtered = useMemo(() => {
@@ -148,9 +153,28 @@ export function ChatList({ folder, activeId, onFolder }: { folder: string; activ
   return (
     <div className="chats__list">
       <div className="chats__head">
+        <div className="chats__title-row">
+          <span className="mobile-only">
+            <IconButton label="Меню" onClick={() => setDrawer(true)}>
+              <MenuIcon size={22} />
+            </IconButton>
+          </span>
+          <span className="desktop-only">
+            <IconButton label="Разделы мессенджера" onClick={() => setNavOpen(true)}>
+              <PanelLeftOpen size={20} />
+            </IconButton>
+          </span>
+          <h1 className="chats__title">{status === 'offline' ? 'Соединение…' : 'Чаты'}</h1>
+          <IconButton label="Поиск и навигация (Ctrl+K)" onClick={() => setPalette(true)}>
+            <Search size={20} />
+          </IconButton>
+          <IconButton label="Новый чат" onClick={() => navigate('/chats/new/direct')}>
+            <SquarePen size={20} />
+          </IconButton>
+        </div>
         <div className="input-group">
           <Search size={16} className="input-group__icon" />
-          <input className="input" placeholder="Поиск по чатам" value={q} onChange={(e) => setQ(e.target.value)} style={{ borderRadius: 999, minHeight: 40 }} />
+          <input className="input" placeholder="Поиск по чатам" value={q} onChange={(e) => setQ(e.target.value)} />
           {q && (
             <button className="icon-btn icon-btn--sm input-group__action" onClick={() => setQ('')} aria-label="Очистить">
               <X size={16} />

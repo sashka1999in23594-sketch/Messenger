@@ -104,7 +104,7 @@ export function Notice({ kind = 'info', children, icon }: { kind?: 'info' | 'war
 export function PageHeader({ title, subtitle, actions, icon }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode; icon?: ReactNode }) {
   return (
     <div className="page-header">
-      {icon && <div className="list-item__icon" style={{ width: 44, height: 44, borderRadius: 14 }}>{icon}</div>}
+      {icon && <div className="page-icon">{icon}</div>}
       <div className="page-header__text">
         <h1>{title}</h1>
         {subtitle && <div className="page-header__sub">{subtitle}</div>}

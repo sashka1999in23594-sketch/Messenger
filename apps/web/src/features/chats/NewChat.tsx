@@ -160,7 +160,7 @@ export function NewChatPage() {
   const k = (kind in KINDS ? kind : 'direct') as keyof typeof KINDS;
   const meta = KINDS[k];
   return (
-    <div className="scroll" style={{ background: 'var(--bg)' }}>
+    <div className="scroll">
       <div className="page">
         <PageHeader title={meta.title} subtitle={meta.text} icon={meta.icon} />
         <TabLinks

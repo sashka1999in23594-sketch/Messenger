@@ -164,8 +164,11 @@ export function SectionNav({ section }: { section: NavSection }) {
   const setNavOpen = useUi((s) => s.setNavOpen);
   const setPalette = useUi((s) => s.setPalette);
   return (
-    <aside className="section-nav" aria-label={`Навигация: ${section.label}`}>
+    <aside className="section-nav pane" aria-label={`Навигация: ${section.label}`}>
       <div className="section-nav__head">
+        <span className="section-nav__icon">
+          <section.icon size={19} />
+        </span>
         <div className="section-nav__title">{section.label}</div>
         <IconButton label="Поиск по всему приложению (Ctrl+K)" size="sm" onClick={() => setPalette(true)}>
           <Search size={18} />
@@ -184,7 +187,7 @@ export function SectionNav({ section }: { section: NavSection }) {
       <div className="section-nav__search">
         <div className="input-group">
           <Search size={16} className="input-group__icon" />
-          <input className="input" placeholder="Фильтр разделов" value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Фильтр разделов" />
+          <input className="input" placeholder="Найти подраздел" value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Фильтр разделов" />
           {filter && (
             <button className="icon-btn icon-btn--sm input-group__action" onClick={() => setFilter('')} aria-label="Очистить">
               <X size={16} />

@@ -37,13 +37,11 @@ export function TrendsBox({ limit = 8 }: { limit?: number }) {
         <TrendingUp size={14} /> Актуальные темы
       </div>
       {q.data?.items.slice(0, limit).map((h, i) => (
-        <Link key={h.tag} to={`/tag/${encodeURIComponent(h.tag)}`} className="list-item">
-          <span className="list-item__body">
-            <span className="list-item__sub">{i + 1} · В тренде</span>
-            <span className="list-item__title" style={{ display: 'block' }}>
-              #{h.tag}
-            </span>
-            <span className="list-item__sub">
+        <Link key={h.tag} to={`/tag/${encodeURIComponent(h.tag)}`} className="trend">
+          <span className="trend__rank">{i + 1}</span>
+          <span className="col grow" style={{ gap: 0 }}>
+            <span className="trend__tag">#{h.tag}</span>
+            <span className="trend__count">
               {compactNumber(h.count)} {plural(h.count, 'публикация', 'публикации', 'публикаций')}
             </span>
           </span>
@@ -93,7 +91,7 @@ export function FeedPage({ mode }: { mode: keyof typeof MODES }) {
   const apiMode = MODES[mode];
   return (
     <div className="scroll">
-      <div className="with-aside" style={{ padding: 0, gap: 0 }}>
+      <div className="feed-layout">
         <div className="feed-col">
           <div className="feed-tabs">
             <TabLinks
@@ -108,7 +106,7 @@ export function FeedPage({ mode }: { mode: keyof typeof MODES }) {
           <PostComposer />
           <PostList queryKey={qk.feed(apiMode, 'all')} path={`/feed/${apiMode}?kind=all`} />
         </div>
-        <aside style={{ padding: '20px 16px' }}>
+        <aside>
           <TrendsBox />
           <WhoToFollow />
           <div className="faint xs" style={{ padding: '0 8px' }}>
@@ -126,9 +124,7 @@ export function ComposePage() {
     <div className="scroll">
       <div className="page">
         <PageHeader title="Новая публикация" icon={<PenLine size={22} />} subtitle="Ctrl+Enter — опубликовать" />
-        <div className="card" style={{ overflow: 'hidden' }}>
-          <PostComposer autoFocus onDone={(p) => navigate(`/post/${p.id}`)} />
-        </div>
+        <PostComposer autoFocus onDone={(p) => navigate(`/post/${p.id}`)} />
       </div>
     </div>
   );
@@ -152,14 +148,14 @@ export function PostPage() {
   const post = q.data;
   return (
     <div className="scroll">
-      <div className="with-aside" style={{ padding: 0, gap: 0 }}>
-        <div className="feed-col">
+      <div className="feed-layout">
+        <div className="feed-col" style={{ paddingTop: 'var(--space-4)' }}>
           <PostCard post={post} detail />
-          <div style={{ padding: '0 16px' }}>
+          <div className="card card--pad">
             <CommentsSection postId={post.id} postAuthorId={post.author.id} count={post.stats.comments} disabled={post.commentsDisabled} highlightId={highlight} />
           </div>
         </div>
-        <aside style={{ padding: '20px 16px' }}>
+        <aside>
           <WhoToFollow />
           <TrendsBox limit={5} />
         </aside>
@@ -203,10 +199,8 @@ export function TagPage() {
   useCrumb(`#${tag}`);
   return (
     <div className="scroll">
-      <div className="feed-col">
-        <div style={{ padding: '18px 16px', borderBottom: '1px solid var(--border)' }}>
-          <h1>#{tag}</h1>
-        </div>
+      <div className="feed-col page" style={{ maxWidth: 700 }}>
+        <PageHeader title={`#${tag}`} subtitle="Публикации с этим хэштегом" icon={<Hash size={22} />} />
         <PostList queryKey={['tag-posts', tag]} path={`/hashtags/${encodeURIComponent(tag)}/posts`} />
       </div>
     </div>
@@ -217,14 +211,12 @@ export function SavedPostsPage({ kind }: { kind: 'bookmarks' | 'liked' }) {
   const title = kind === 'bookmarks' ? 'Закладки' : 'Понравилось';
   return (
     <div className="scroll">
-      <div className="feed-col">
-        <div style={{ padding: '18px 16px', borderBottom: '1px solid var(--border)' }}>
-          <PageHeader
-            title={title}
-            subtitle={kind === 'bookmarks' ? 'Видны только вам' : 'Лайки видны только вам'}
-            icon={kind === 'bookmarks' ? <Bookmark size={22} /> : <Heart size={22} />}
-          />
-        </div>
+      <div className="feed-col page" style={{ maxWidth: 700 }}>
+        <PageHeader
+          title={title}
+          subtitle={kind === 'bookmarks' ? 'Видны только вам' : 'Лайки видны только вам'}
+          icon={kind === 'bookmarks' ? <Bookmark size={22} /> : <Heart size={22} />}
+        />
         <PostList
           queryKey={['saved-posts', kind]}
           path={kind === 'bookmarks' ? '/me/bookmarks?kind=all' : '/me/liked?kind=all'}

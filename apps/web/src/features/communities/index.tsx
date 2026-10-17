@@ -7,11 +7,12 @@ import { api, ApiError, errorMessage } from '../../shared/api/client';
 import { flatPages, qk, queryClient, useCursorList } from '../../shared/api/query';
 import { useDebounced } from '../../shared/hooks';
 import { toast, useCrumb } from '../../shared/stores/ui';
-import { compactNumber, members, plural } from '../../shared/lib/format';
+import { compactNumber, hueFor, members, plural } from '../../shared/lib/format';
 import { Avatar, Button, ButtonLink, confirm, EmptyState, ErrorState, Input, ListSkeleton, Loading, LoadMore, PageHeader, RichText, Segmented, Switch, Textarea, UserRow } from '../../shared/ui';
 import { PostList } from '../feed';
 import { PostComposer } from '../posts/PostComposer';
 import '../posts/posts.css';
+import './communities.css';
 
 function CommunityCard({ c }: { c: Community }) {
   const navigate = useNavigate();
@@ -24,26 +25,29 @@ function CommunityCard({ c }: { c: Community }) {
     onError: (e) => toast({ text: errorMessage(e), kind: 'error' }),
   });
   return (
-    <div className="list-item">
-      <button className="row grow" style={{ gap: 12, textAlign: 'left' }} onClick={() => navigate(`/c/${c.slug}`)}>
-        <Avatar src={c.avatarUrl} name={c.name} id={c.id} size={52} />
-        <span className="list-item__body">
-          <span className="list-item__title row gap-1">
-            {c.name} {c.visibility === 'private' && <Lock size={13} className="faint" />}
-          </span>
-          <span className="list-item__sub" style={{ display: 'block' }}>
-            {members(c.memberCount)} · {compactNumber(c.postCount)} {plural(c.postCount, 'пост', 'поста', 'постов')}
-          </span>
-          {c.description && <span className="list-item__sub clamp-2">{c.description}</span>}
+    <div className="community-card card card--hover" role="link" tabIndex={0} onClick={() => navigate(`/c/${c.slug}`)} onKeyDown={(e) => e.key === 'Enter' && navigate(`/c/${c.slug}`)}>
+      <div className="community-card__cover" style={{ '--hue': hueFor(c.id) } as React.CSSProperties} />
+      <div className="community-card__body">
+        <span className="community-card__avatar">
+          <Avatar src={c.avatarUrl} name={c.name} id={c.id} size={56} />
         </span>
-      </button>
-      {c.role ? (
-        <span className="tag tag--accent">{c.role === 'owner' ? 'Владелец' : c.role === 'moderator' ? 'Модератор' : 'Участник'}</span>
-      ) : (
-        <Button size="sm" loading={join.isPending} onClick={() => join.mutate()}>
-          Вступить
-        </Button>
-      )}
+        <span className="community-card__title">
+          <span className="ellipsis">{c.name}</span> {c.visibility === 'private' && <Lock size={14} className="faint" />}
+        </span>
+        <span className="small muted">
+          {members(c.memberCount)} · {compactNumber(c.postCount)} {plural(c.postCount, 'пост', 'поста', 'постов')}
+        </span>
+        {c.description && <span className="small muted clamp-2">{c.description}</span>}
+        <span className="community-card__action" onClick={(e) => e.stopPropagation()}>
+          {c.role ? (
+            <span className="tag tag--accent">{c.role === 'owner' ? 'Владелец' : c.role === 'moderator' ? 'Модератор' : 'Участник'}</span>
+          ) : (
+            <Button size="sm" pill loading={join.isPending} onClick={() => join.mutate()}>
+              Вступить
+            </Button>
+          )}
+        </span>
+      </div>
     </div>
   );
 }
@@ -52,14 +56,14 @@ export function MyCommunities() {
   const q = useQuery({ queryKey: qk.communities('mine'), queryFn: () => api.get<{ items: Community[] }>('/me/communities') });
   return (
     <div className="scroll">
-      <div className="page">
-        <PageHeader title="Мои сообщества" icon={<Users size={22} />} actions={<ButtonLink to="/communities/new" size="sm" icon={<Plus size={16} />}>Создать</ButtonLink>} />
+      <div className="page page--wide" style={{ maxWidth: 1100 }}>
+        <PageHeader title="Мои сообщества" subtitle="Общие ленты по интересам" icon={<Users size={22} />} actions={<ButtonLink to="/communities/new" size="sm" icon={<Plus size={16} />}>Создать</ButtonLink>} />
         {q.isLoading ? (
           <ListSkeleton />
         ) : q.data?.items.length === 0 ? (
           <EmptyState icon={<Users size={28} />} title="Вы пока не состоите в сообществах" action={<ButtonLink to="/communities/discover" icon={<Compass size={18} />}>Найти сообщества</ButtonLink>} />
         ) : (
-          <div className="card">
+          <div className="bento">
             {q.data?.items.map((c) => (
               <CommunityCard key={c.id} c={c} />
             ))}
@@ -77,14 +81,14 @@ export function DiscoverCommunities() {
   const items = flatPages(list.data);
   return (
     <div className="scroll">
-      <div className="page">
+      <div className="page page--wide" style={{ maxWidth: 1100 }}>
         <PageHeader title="Обзор сообществ" icon={<Compass size={22} />} />
         <div className="input-group" style={{ marginBottom: 16 }}>
           <Search size={16} className="input-group__icon" />
           <input className="input" placeholder="Поиск сообществ" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         {list.isLoading ? <ListSkeleton /> : items.length === 0 ? <EmptyState title="Ничего не найдено" /> : null}
-        <div className="card">
+        <div className="bento">
           {items.map((c) => (
             <CommunityCard key={c.id} c={c} />
           ))}

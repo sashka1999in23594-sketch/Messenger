@@ -71,6 +71,7 @@ export function TopBar({ section }: { section: NavSection }) {
   const me = useSession((s) => s.me);
   const notifications = useBadge('notifications');
   const isRoot = pathname === section.path;
+  const bare = useUi((s) => s.bare);
 
   return (
     <header className="topbar">
@@ -85,11 +86,11 @@ export function TopBar({ section }: { section: NavSection }) {
           </IconButton>
         )}
       </span>
-      {(!isDesktop || navCollapsed) && (
+      {(!isDesktop || navCollapsed || bare) && (
         <span className="desktop-only">
           <IconButton
             label="Показать разделы"
-            onClick={() => (isDesktop ? setPrefs({ navCollapsed: false }) : setNavOpen(!navOpen))}
+            onClick={() => (isDesktop && !bare ? setPrefs({ navCollapsed: false }) : setNavOpen(!navOpen))}
           >
             <PanelLeftOpen size={20} />
           </IconButton>
@@ -112,9 +113,9 @@ export function TopBar({ section }: { section: NavSection }) {
         </IconButton>
       </span>
       {me && (
-        <IconButton label="Уведомления" onClick={() => navigate('/notifications')}>
+        <IconButton label="Уведомления" className="topbar__bell" onClick={() => navigate('/notifications')}>
           <Bell size={21} />
-          {notifications > 0 && <span className="badge" style={{ position: 'absolute', top: 2, right: 0 }}>{notifications > 99 ? '99+' : notifications}</span>}
+          {notifications > 0 && <span className="badge">{notifications > 99 ? '99+' : notifications}</span>}
         </IconButton>
       )}
     </header>

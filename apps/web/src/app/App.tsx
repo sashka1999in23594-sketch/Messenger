@@ -4,26 +4,30 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '../shared/api/query';
 import { applyPrefs, usePrefs } from '../shared/stores/prefs';
 import { useSession } from '../shared/stores/session';
-import { ConfirmHost, Loading, Toasts } from '../shared/ui';
+import { Aurora, ConfirmHost, Loading, Toasts } from '../shared/ui';
 import { AuthPage } from '../features/auth/AuthPage';
 import { AppRoutes } from './routes';
 import { bootstrapSession } from './session';
 
+/** Внешний вид применяется к <html> при любом изменении настроек. */
 function PrefsSync() {
   const theme = usePrefs((s) => s.theme);
+  const palette = usePrefs((s) => s.palette);
   const accent = usePrefs((s) => s.accent);
   const fontScale = usePrefs((s) => s.fontScale);
   const density = usePrefs((s) => s.density);
   const reduceMotion = usePrefs((s) => s.reduceMotion);
+  const glass = usePrefs((s) => s.glass);
+  const aurora = usePrefs((s) => s.aurora);
   useEffect(() => {
-    const p = { theme, accent, fontScale, density, reduceMotion };
+    const p = { theme, palette, accent, fontScale, density, reduceMotion, glass, aurora };
     applyPrefs(p);
     if (theme !== 'system') return;
     const mql = matchMedia('(prefers-color-scheme: dark)');
     const onChange = () => applyPrefs(p);
     mql.addEventListener('change', onChange);
     return () => mql.removeEventListener('change', onChange);
-  }, [theme, accent, fontScale, density, reduceMotion]);
+  }, [theme, palette, accent, fontScale, density, reduceMotion, glass, aurora]);
   return null;
 }
 
@@ -42,6 +46,7 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <PrefsSync />
+        <Aurora />
         <Gate />
         <Toasts />
         <ConfirmHost />

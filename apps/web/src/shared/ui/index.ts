@@ -1,4 +1,5 @@
 export * from './Avatar';
+export * from './Brand';
 export * from './Button';
 export * from './Feedback';
 export * from './Field';

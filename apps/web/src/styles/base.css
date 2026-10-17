@@ -20,6 +20,8 @@ body {
   font-family: var(--font-sans);
   font-size: var(--fs-md);
   line-height: 1.45;
+  font-feature-settings: 'cv11', 'ss03';
+  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
@@ -40,17 +42,31 @@ p {
 
 h1 {
   font-size: var(--fs-2xl);
-  font-weight: 750;
-  letter-spacing: -0.02em;
+  font-weight: 760;
+  letter-spacing: -0.028em;
+  line-height: 1.15;
 }
 h2 {
   font-size: var(--fs-xl);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 h3 {
   font-size: var(--fs-lg);
-  font-weight: 650;
+  font-weight: 680;
+  letter-spacing: -0.012em;
+}
+.display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.gradient-text {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 a {
@@ -89,25 +105,89 @@ video {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 ::selection {
-  background: var(--accent-soft);
+  background: var(--accent-soft-strong);
+}
+
+/* ─── Фон «северное сияние»: три мягких пятна + зерно; анимируется только transform ─── */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(1200px 800px at 85% -10%, color-mix(in oklab, var(--aurora-2) 14%, transparent), transparent 60%),
+    linear-gradient(180deg, var(--bg-tint), var(--bg));
+}
+.aurora__blob {
+  position: absolute;
+  width: 70vmax;
+  height: 70vmax;
+  border-radius: 50%;
+  opacity: var(--aurora-opacity);
+  will-change: transform;
+  animation: aurora-drift 38s ease-in-out infinite alternate;
+}
+.aurora__blob--1 {
+  top: -30vmax;
+  left: -20vmax;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--aurora-1) 70%, transparent), transparent);
+}
+.aurora__blob--2 {
+  bottom: -35vmax;
+  right: -25vmax;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--aurora-2) 55%, transparent), transparent);
+  animation-duration: 46s;
+  animation-direction: alternate-reverse;
+}
+.aurora__blob--3 {
+  top: 20vmax;
+  left: 30vmax;
+  width: 50vmax;
+  height: 50vmax;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--aurora-3) 40%, transparent), transparent);
+  animation-duration: 54s;
+}
+.aurora__noise {
+  position: absolute;
+  inset: 0;
+  opacity: var(--noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+[data-aurora='static'] .aurora__blob {
+  animation: none;
+}
+[data-aurora='off'] .aurora__blob {
+  display: none;
+}
+@keyframes aurora-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(8vmax, 6vmax, 0) scale(1.12);
+  }
+  100% {
+    transform: translate3d(-6vmax, 10vmax, 0) scale(0.94);
+  }
 }
 
 /* Тонкие полосы прокрутки на десктопе */
 @media (hover: hover) {
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--border-strong) transparent;
+    scrollbar-color: var(--surface-3) transparent;
   }
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--border-strong);
+    background: var(--surface-3);
     border-radius: 10px;
     border: 3px solid transparent;
     background-clip: padding-box;
@@ -272,5 +352,43 @@ video {
   }
   100% {
     transform: scale(1);
+  }
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes gradient-pan {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
   }
 }

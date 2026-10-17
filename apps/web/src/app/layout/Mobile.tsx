@@ -5,7 +5,7 @@ import { mobileTabs, sectionFor, sections } from '../navigation';
 import { useSession } from '../../shared/stores/session';
 import { useUi } from '../../shared/stores/ui';
 import { useEscape } from '../../shared/hooks';
-import { Avatar, Button } from '../../shared/ui';
+import { Avatar, Button, Logo } from '../../shared/ui';
 import { cn } from '../../shared/lib/format';
 import { logout } from '../session';
 import { NavTreeView } from './NavTree';
@@ -19,7 +19,7 @@ function Tab({ id }: { id: (typeof mobileTabs)[number] }) {
   const Icon = section.icon;
   return (
     <NavLink to={section.path} className={cn('bottom-tabs__item', active && 'bottom-tabs__item--active')}>
-      <Icon size={24} strokeWidth={active ? 2.3 : 1.9} />
+      <Icon size={23} strokeWidth={active ? 2.3 : 1.9} />
       {section.short}
       {badge > 0 && <span className="badge bottom-tabs__badge">{badge > 99 ? '99+' : badge}</span>}
     </NavLink>
@@ -68,11 +68,12 @@ export function MobileDrawer() {
             close();
           }}
         >
-          <Avatar src={me.avatarUrl} name={me.displayName} id={me.id} size={48} />
+          <Avatar src={me.avatarUrl} name={me.displayName} id={me.id} size={54} />
           <span className="col grow" style={{ gap: 0, textAlign: 'left' }}>
-            <span className="bold">{me.displayName}</span>
+            <span className="bold" style={{ fontSize: 'var(--fs-lg)' }}>{me.displayName}</span>
             <span className="small muted">@{me.username}</span>
           </span>
+          <Logo size={34} />
         </button>
         <div className="drawer__sections">
           {sections.map((s) => (

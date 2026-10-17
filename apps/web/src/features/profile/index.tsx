@@ -98,9 +98,12 @@ export function ProfilePage() {
     <div className="scroll">
       <div className="profile">
         <div className="profile__banner" style={p.bannerUrl ? { backgroundImage: `url("${p.bannerUrl}")` } : undefined} />
+        <div className="profile__card">
         <div className="profile__head">
-          <Avatar src={p.avatarUrl} name={p.displayName} id={p.id} size={128} className="profile__avatar" online={p.presence?.online} />
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <span className="profile__avatar-wrap">
+            <Avatar src={p.avatarUrl} name={p.displayName} id={p.id} size={120} className="profile__avatar" online={p.presence?.online} />
+          </span>
+          <div className="profile__actions">
             {isMe ? (
               <ButtonLink to="/settings/account/profile" variant="secondary" pill icon={<PenLine size={16} />}>
                 Редактировать
@@ -129,14 +132,14 @@ export function ProfilePage() {
                 )}
               </>
             )}
-            <button className="icon-btn" style={{ border: '1px solid var(--border)' }} aria-label="Ещё" onClick={(e) => menu.openFromEvent(e)}>
+            <button className="icon-btn" style={{ border: '1px solid var(--border)', width: 42, height: 42 }} aria-label="Ещё" onClick={(e) => menu.openFromEvent(e)}>
               <Ellipsis size={20} />
             </button>
           </div>
         </div>
         <div className="profile__info">
-          <h1 className="row gap-1">
-            {p.displayName} {p.verified && <Verified size={22} />} {p.isPrivate && <Lock size={18} className="faint" />}
+          <h1 className="profile__name">
+            <span className="ellipsis">{p.displayName}</span> {p.verified && <Verified size={24} />} {p.isPrivate && <Lock size={20} className="faint" />}
           </h1>
           <div className="muted">
             @{p.username}
@@ -160,18 +163,21 @@ export function ProfilePage() {
             {!isMe && p.presence && <span>{lastSeen(p.presence)}</span>}
           </div>
           <div className="profile__stats">
-            <span>
+            <span className="profile__stat">
               <b>{compactNumber(p.stats.posts)}</b> {plural(p.stats.posts, 'публикация', 'публикации', 'публикаций')}
             </span>
-            <Link to={isMe ? '/contacts/followers' : `/u/${p.username}/followers`}>
+            <Link className="profile__stat" to={isMe ? '/contacts/followers' : `/u/${p.username}/followers`}>
               <b>{compactNumber(p.stats.followers)}</b> {plural(p.stats.followers, 'подписчик', 'подписчика', 'подписчиков')}
             </Link>
-            <Link to={isMe ? '/contacts/following' : `/u/${p.username}/following`}>
+            <Link className="profile__stat" to={isMe ? '/contacts/following' : `/u/${p.username}/following`}>
               <b>{compactNumber(p.stats.following)}</b> {plural(p.stats.following, 'подписка', 'подписки', 'подписок')}
             </Link>
           </div>
         </div>
-        <TabLinks tabs={TABS.filter((t) => t.id !== 'likes' || isMe).map((t) => ({ to: t.id === 'posts' ? base : `${base}/${t.id}`, label: t.label }))} />
+        </div>
+        <div className="profile__tabs">
+          <TabLinks tabs={TABS.filter((t) => t.id !== 'likes' || isMe).map((t) => ({ to: t.id === 'posts' ? base : `${base}/${t.id}`, label: t.label }))} />
+        </div>
         <div className="profile__content">
           <ProfileContent profile={p} tab={tab} />
         </div>

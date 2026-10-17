@@ -195,7 +195,11 @@ function WatchContent({
     <div className="scroll">
       <div className="watch">
         <div className="watch__main">
-          <div className="player">{m && <video ref={video} src={m.url} poster={m.posterUrl ?? undefined} controls autoPlay playsInline preload="metadata" />}</div>
+          <div className="player-wrap">
+            {/* «Атмосферная подсветка» как в YouTube: размытая обложка за плеером */}
+            {m?.posterUrl && <div className="player-ambient" style={{ backgroundImage: `url("${m.posterUrl}")` }} aria-hidden />}
+            <div className="player">{m && <video ref={video} src={m.url} poster={m.posterUrl ?? undefined} controls autoPlay playsInline preload="metadata" />}</div>
+          </div>
           <h1 className="watch__title">{post.title}</h1>
           <div className="watch__bar">
             <Link to={`/u/${post.author.username}`} className="row" style={{ color: 'inherit', gap: 10 }}>
