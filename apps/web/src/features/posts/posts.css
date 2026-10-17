@@ -1,0 +1,236 @@
+.post {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease);
+}
+.post:hover {
+  background: color-mix(in srgb, var(--surface) 92%, var(--text) 3%);
+}
+.post--detail {
+  cursor: default;
+  flex-direction: column;
+  padding: 18px 18px 6px;
+}
+.post--detail:hover {
+  background: var(--surface);
+}
+.post__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.post__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--fs-md);
+}
+.post__meta {
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--fs-sm);
+}
+.post__context {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  font-weight: 600;
+  margin: -4px 0 6px 40px;
+}
+.post__text {
+  font-size: var(--fs-md);
+  line-height: 1.5;
+}
+.post--detail .post__text {
+  font-size: var(--fs-lg);
+}
+.post__title {
+  font-weight: 700;
+  font-size: var(--fs-lg);
+}
+.post__quote {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface);
+}
+.post__actions {
+  display: flex;
+  justify-content: space-between;
+  max-width: 460px;
+  margin-left: -8px;
+  color: var(--text-2);
+}
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: var(--radius-full);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 550;
+  transition:
+    background var(--dur-fast),
+    color var(--dur-fast);
+}
+.action:hover {
+  background: var(--accent-soft);
+  color: var(--accent-fg);
+}
+.action--like:hover,
+.action--liked {
+  color: #f91880;
+}
+.action--like:hover {
+  background: rgba(249, 24, 128, 0.1);
+}
+.action--liked svg {
+  animation: heart-pop 0.35s var(--ease);
+}
+.action--repost:hover,
+.action--reposted {
+  color: #00ba7c;
+}
+.action--repost:hover {
+  background: rgba(0, 186, 124, 0.1);
+}
+.action--saved {
+  color: var(--accent-fg);
+}
+
+.composer-card {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.composer-card textarea {
+  width: 100%;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font-size: var(--fs-lg);
+  min-height: 56px;
+  padding: 8px 0;
+}
+.composer-card__tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+.counter {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.counter--warn {
+  color: var(--warning);
+}
+.counter--over {
+  color: var(--danger);
+}
+
+.feed-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(12px);
+}
+.feed-col {
+  max-width: 640px;
+  margin: 0 auto;
+  min-height: 100%;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+@media (max-width: 767px) {
+  .feed-col {
+    border: 0;
+  }
+}
+
+/* ─── Комментарии ─── */
+.comments {
+  display: flex;
+  flex-direction: column;
+}
+.comment {
+  display: flex;
+  gap: 10px;
+  padding: 10px 0;
+}
+.comment__body {
+  flex: 1;
+  min-width: 0;
+}
+.comment__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+}
+.comment__text {
+  margin-top: 2px;
+}
+.comment__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+  margin-left: -8px;
+}
+.comment__replies {
+  margin-left: 46px;
+}
+.comment--highlight {
+  background: var(--accent-soft);
+  border-radius: 12px;
+  margin: 0 -8px;
+  padding: 10px 8px;
+}
+.comment-input {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  padding: 10px 0;
+}
+.comment-input textarea {
+  flex: 1;
+  min-height: 42px;
+  max-height: 160px;
+  resize: none;
+  border-radius: 21px;
+  padding: 10px 16px;
+}
+.composer-card__tools {
+  flex-wrap: wrap;
+}
+.composer-card__tools .select {
+  max-width: 150px;
+}
+.post .media-grid--1 .media-grid__item,
+.post .media-grid--1 .media-grid__item img {
+  max-height: 460px;
+}

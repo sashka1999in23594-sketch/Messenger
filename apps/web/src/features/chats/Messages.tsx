@@ -1,0 +1,229 @@
+import { memo, useEffect, useRef, type ReactNode } from 'react';
+import { AlertCircle, Check, CheckCheck, Clock, Copy, Ellipsis, Flag, Forward, Lock, Pencil, Pin, Reply, RotateCcw, Trash2 } from 'lucide-react';
+import { REACTIONS, type ChatSummary } from '@omni/shared';
+import { Avatar, Menu, MediaGrid, RichText, useMenu, type MenuEntry } from '../../shared/ui';
+import { clockTime, cn, dayLabel } from '../../shared/lib/format';
+import { useInfiniteScroll } from '../../shared/hooks';
+import type { LocalMessage } from './cache';
+import { useDecrypted, type SecretState } from './secret';
+
+export interface MessageActions {
+  reply: (m: LocalMessage) => void;
+  edit: (m: LocalMessage, plaintext: string) => void;
+  remove: (m: LocalMessage) => void;
+  forward: (m: LocalMessage) => void;
+  react: (m: LocalMessage, emoji: string) => void;
+  pin: (m: LocalMessage) => void;
+  report: (m: LocalMessage) => void;
+  retry: (m: LocalMessage) => void;
+  copy: (text: string) => void;
+}
+
+const EDIT_WINDOW = 48 * 3600 * 1000;
+
+function Ticks({ msg, chat }: { msg: LocalMessage; chat: ChatSummary }) {
+  if (msg.local?.status === 'sending') return <Clock size={13} />;
+  if (msg.local?.status === 'failed') return <AlertCircle size={14} style={{ color: 'var(--danger)' }} />;
+  if (chat.type === 'channel' || chat.type === 'saved') return <Check size={14} />;
+  return msg.seq <= chat.peerReadSeq ? <CheckCheck size={15} className="bubble__ticks--read" /> : <Check size={15} />;
+}
+
+function SecretBody({ msg, chat, secret }: { msg: LocalMessage; chat: ChatSummary; secret: SecretState }) {
+  const { text, error } = useDecrypted(chat.id, msg.id, msg.clientId, msg.encrypted, secret);
+  if (text !== null) return <RichText text={text} className="bubble__text" />;
+  return (
+    <span className="secret-text--locked row gap-1" style={{ display: 'inline-flex' }}>
+      <Lock size={13} />
+      {error ? 'Не удалось расшифровать' : secret.status === 'wrong-device' ? 'Доступно только на устройстве чата' : 'Расшифровка…'}
+    </span>
+  );
+}
+
+interface BubbleProps {
+  msg: LocalMessage;
+  chat: ChatSummary;
+  myId: string;
+  grouped: boolean;
+  groupedNext: boolean;
+  secret: SecretState;
+  actions: MessageActions;
+}
+
+const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, secret, actions }: BubbleProps) {
+  const menu = useMenu();
+  const longPress = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const out = msg.sender?.id === myId;
+  const showSender = !out && !grouped && (chat.type === 'group' || chat.type === 'channel');
+  const showAvatar = !out && chat.type === 'group';
+  const hasMedia = msg.media.length > 0;
+  const secretPlain = useDecrypted(chat.id, msg.id, msg.clientId, msg.encrypted, secret).text;
+  const plain = msg.kind === 'encrypted' ? secretPlain : msg.text;
+  const isAdmin = chat.role === 'owner' || chat.role === 'admin';
+  const canEdit = out && !msg.local && Date.now() - Date.parse(msg.createdAt) < EDIT_WINDOW && (msg.kind === 'text' || (msg.kind === 'encrypted' && secretPlain !== null));
+  const canPin = !msg.local && (chat.type === 'direct' || chat.type === 'saved' || chat.type === 'secret' || isAdmin);
+
+  const items: MenuEntry[] = msg.local?.status === 'failed'
+    ? [
+        { label: 'Отправить снова', icon: <RotateCcw size={18} />, onClick: () => actions.retry(msg) },
+        { label: 'Удалить', icon: <Trash2 size={18} />, danger: true, onClick: () => actions.remove(msg) },
+      ]
+    : [
+        { label: 'Ответить', icon: <Reply size={18} />, onClick: () => actions.reply(msg), hidden: !!msg.local },
+        { label: 'Копировать текст', icon: <Copy size={18} />, onClick: () => actions.copy(plain ?? ''), hidden: !plain },
+        { label: 'Изменить', icon: <Pencil size={18} />, onClick: () => actions.edit(msg, plain ?? ''), hidden: !canEdit },
+        { label: 'Переслать', icon: <Forward size={18} />, onClick: () => actions.forward(msg), hidden: chat.type === 'secret' || !!msg.local },
+        { label: chat.pinnedMessage?.id === msg.id ? 'Открепить' : 'Закрепить', icon: <Pin size={18} />, onClick: () => actions.pin(msg), hidden: !canPin },
+        { label: 'Пожаловаться', icon: <Flag size={18} />, onClick: () => actions.report(msg), hidden: out || chat.type === 'saved' },
+        'separator',
+        { label: 'Удалить', icon: <Trash2 size={18} />, danger: true, onClick: () => actions.remove(msg), hidden: !!msg.local },
+      ];
+
+  return (
+    <div
+      className={cn('msg', out && 'msg--out', grouped && 'msg--grouped', groupedNext && 'msg--grouped-next')}
+      onContextMenu={(e) => menu.openFromEvent(e)}
+      onTouchStart={(e) => {
+        const t = e.touches[0];
+        longPress.current = setTimeout(() => t && menu.openAt(t.clientX, t.clientY), 450);
+      }}
+      onTouchEnd={() => longPress.current && clearTimeout(longPress.current)}
+      onTouchMove={() => longPress.current && clearTimeout(longPress.current)}
+      onDoubleClick={() => !msg.local && actions.reply(msg)}
+    >
+      {showAvatar && (
+        <span className="msg__avatar-slot">
+          {!groupedNext && msg.sender && <Avatar src={msg.sender.avatarUrl} name={msg.sender.displayName} id={msg.sender.id} size={34} />}
+        </span>
+      )}
+      <div className={cn('bubble', hasMedia && 'bubble--media', msg.local?.status === 'failed' && 'bubble--failed')}>
+        {showSender && msg.sender && (
+          <div className="bubble__sender" style={{ color: `hsl(${(msg.sender.id.charCodeAt(12) * 37) % 360} 65% 55%)` }}>
+            {msg.sender.displayName}
+          </div>
+        )}
+        {msg.forwardedFrom && <div className="bubble__forward">↪ Переслано от {msg.forwardedFrom.senderName}</div>}
+        {msg.replyTo && (
+          <div className="bubble__reply">
+            <span className="bubble__reply-name">{msg.replyTo.senderName ?? 'Сообщение'}</span>
+            <span className="ellipsis">{msg.replyTo.kind === 'encrypted' ? '🔒 Зашифрованное сообщение' : msg.replyTo.text || 'Вложение'}</span>
+          </div>
+        )}
+        {hasMedia && <MediaGrid media={msg.media} />}
+        {msg.kind === 'encrypted' ? (
+          <SecretBody msg={msg} chat={chat} secret={secret} />
+        ) : (
+          msg.text && <RichText text={msg.text} className="bubble__text" />
+        )}
+        <span className="bubble__meta">
+          {msg.editedAt && <span>изм.</span>}
+          {msg.expiresAt && <Clock size={11} />}
+          <span>{clockTime(msg.createdAt)}</span>
+          {out && <Ticks msg={msg} chat={chat} />}
+        </span>
+        {msg.reactions.length > 0 && (
+          <div className="reactions">
+            {msg.reactions.map((r) => (
+              <button key={r.emoji} className={cn('reaction', r.mine && 'reaction--mine')} onClick={() => actions.react(msg, r.emoji)}>
+                {r.emoji} {r.count > 1 && r.count}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <button className="icon-btn icon-btn--sm msg__actions" aria-label="Действия с сообщением" onClick={(e) => menu.openFromEvent(e)}>
+        <Ellipsis size={16} />
+      </button>
+      <Menu
+        anchor={menu.anchor}
+        onClose={menu.close}
+        items={items}
+        header={
+          !msg.local && msg.kind !== 'system' ? (
+            <div className="menu__reactions">
+              {REACTIONS.map((e) => (
+                <button
+                  key={e}
+                  onClick={() => {
+                    menu.close();
+                    actions.react(msg, e);
+                  }}
+                  aria-label={`Реакция ${e}`}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+          ) : null
+        }
+      />
+    </div>
+  );
+});
+
+interface ListProps {
+  messages: LocalMessage[];
+  chat: ChatSummary;
+  myId: string;
+  secret: SecretState;
+  actions: MessageActions;
+  hasOlder: boolean;
+  loadingOlder: boolean;
+  onLoadOlder: () => void;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+  onScroll: () => void;
+  footer?: ReactNode;
+}
+
+const GROUP_MS = 5 * 60_000;
+
+export function MessageList({ messages, chat, myId, secret, actions, hasOlder, loadingOlder, onLoadOlder, scrollRef, onScroll }: ListProps) {
+  const sentinel = useInfiniteScroll(onLoadOlder, hasOlder && !loadingOlder, '400px');
+  const rendered: ReactNode[] = [];
+  let lastDay = '';
+  messages.forEach((m, i) => {
+    const day = new Date(m.createdAt).toDateString();
+    if (day !== lastDay) {
+      rendered.push(
+        <div key={`day-${day}`} className="day-sep">
+          {dayLabel(m.createdAt)}
+        </div>,
+      );
+      lastDay = day;
+    }
+    if (m.kind === 'system') {
+      rendered.push(
+        <div key={m.id} className="sys-msg">
+          <b>{m.sender?.id === myId ? 'Вы' : m.sender?.displayName}</b> {m.text}
+        </div>,
+      );
+      return;
+    }
+    const prev = messages[i - 1];
+    const next = messages[i + 1];
+    const same = (a?: LocalMessage, b?: LocalMessage) =>
+      !!a && !!b && a.kind !== 'system' && b.kind !== 'system' && a.sender?.id === b.sender?.id && Math.abs(Date.parse(a.createdAt) - Date.parse(b.createdAt)) < GROUP_MS && new Date(a.createdAt).toDateString() === new Date(b.createdAt).toDateString();
+    rendered.push(
+      <Bubble key={m.clientId ?? m.id} msg={m} chat={chat} myId={myId} grouped={same(prev, m)} groupedNext={same(m, next)} secret={secret} actions={actions} />,
+    );
+  });
+
+  // Прокрутка вниз при открытии чата
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [chat.id, scrollRef]);
+
+  return (
+    <div className="messages" ref={scrollRef} onScroll={onScroll} role="log" aria-live="polite" aria-label="Сообщения">
+      <div className="messages__inner">
+        {hasOlder && <div ref={sentinel} style={{ height: 1 }} />}
+        {loadingOlder && <div className="center-fill" style={{ padding: 12 }}><span className="spinner" /></div>}
+        {!hasOlder && chat.type === 'secret' && (
+          <div className="sys-msg" style={{ maxWidth: 420 }}>
+            🔒 Сообщения в этом чате защищены сквозным шифрованием. Ключи хранятся только на ваших устройствах — сервер не может их прочитать.
+          </div>
+        )}
+        {rendered}
+      </div>
+    </div>
+  );
+}

@@ -86,6 +86,7 @@ export interface NotificationSettings {
 }
 
 export interface Me extends UserSummary {
+  role: 'user' | 'moderator' | 'admin';
   bio: string;
   website: string | null;
   location: string | null;

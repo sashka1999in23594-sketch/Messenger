@@ -1,0 +1,96 @@
+/** Обработка событий реального времени: обновление кэша, индикаторы, тосты. */
+import type { ServerEvent } from '@omni/shared';
+import { excerpt } from '@omni/shared';
+import { qk, queryClient } from '../shared/api/query';
+import { realtime } from '../shared/realtime/socket';
+import { useRealtime } from '../shared/stores/realtime';
+import { useSession } from '../shared/stores/session';
+import { toast } from '../shared/stores/ui';
+import { activeChat, forgetChat, onIncomingMessage, patchChat, patchMessage, removeMessage } from '../features/chats/cache';
+
+type Navigate = (to: string) => void;
+let navigateFn: Navigate = (to) => window.location.assign(to);
+export function setRealtimeNavigate(fn: Navigate) {
+  navigateFn = fn;
+}
+
+export const sessionEvents = new EventTarget();
+
+function handle(event: ServerEvent): void {
+  const me = useSession.getState().me;
+  if (!me) return;
+  switch (event.t) {
+    case 'message.new': {
+      onIncomingMessage(event.message, me.id);
+      useRealtime.getState().clearTyping(event.chatId, event.message.sender?.id ?? '');
+      const fromOther = event.message.sender && event.message.sender.id !== me.id;
+      if (fromOther && activeChat.id !== event.chatId && event.message.kind !== 'system') {
+        const chat = queryClient.getQueryData<{ mutedUntil: string | null; title: string }>(qk.chat(event.chatId));
+        if (!chat?.mutedUntil && me.notifications.messages) {
+          const preview = event.message.kind === 'encrypted' ? '🔒 Зашифрованное сообщение' : me.notifications.showPreviews ? excerpt(event.message.text, 80) || 'Медиа' : 'Новое сообщение';
+          toast({
+            text: `${event.message.sender!.displayName}: ${preview}`,
+            action: { label: 'Открыть', onClick: () => navigateFn(`/chats/${event.chatId}`) },
+          });
+        }
+      }
+      break;
+    }
+    case 'message.updated':
+      patchMessage(event.chatId, (m) => m.id === event.message.id, () => event.message);
+      break;
+    case 'message.deleted':
+      removeMessage(event.chatId, event.messageId);
+      void queryClient.invalidateQueries({ queryKey: qk.chatsAll });
+      break;
+    case 'chat.changed':
+      void queryClient.invalidateQueries({ queryKey: qk.chat(event.chatId) });
+      void queryClient.invalidateQueries({ queryKey: qk.chatsAll });
+      void queryClient.invalidateQueries({ queryKey: qk.members(event.chatId) });
+      break;
+    case 'chat.removed':
+      forgetChat(event.chatId);
+      if (activeChat.id === event.chatId) navigateFn('/chats');
+      break;
+    case 'typing':
+      useRealtime.getState().addTyping(event.chatId, event.userId, event.displayName);
+      break;
+    case 'read':
+      patchChat(event.chatId, (c) => ({ ...c, peerReadSeq: Math.max(c.peerReadSeq, event.seq) }));
+      break;
+    case 'presence':
+      useRealtime.getState().setPresence(event.userId, event.online, event.lastSeenAt);
+      break;
+    case 'notification.new':
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      if (event.notification.type === 'security') {
+        toast({ text: event.notification.preview ?? 'Событие безопасности', kind: 'error', action: { label: 'Проверить', onClick: () => navigateFn('/settings/security/sessions') } });
+      }
+      break;
+    case 'counters':
+      useSession.getState().setCounters(event.counters);
+      break;
+    case 'session.revoked':
+      sessionEvents.dispatchEvent(new Event('revoked'));
+      break;
+    default:
+      break;
+  }
+}
+
+let started = false;
+export function startRealtime(): void {
+  if (started) return;
+  started = true;
+  realtime.on(handle);
+  // После обрыва связи догружаем пропущенное
+  realtime.onReconnect(() => {
+    void queryClient.invalidateQueries({ queryKey: qk.chatsAll });
+    if (activeChat.id) void queryClient.invalidateQueries({ queryKey: qk.messages(activeChat.id) });
+  });
+  realtime.connect();
+}
+
+export function stopRealtime(): void {
+  realtime.disconnect();
+}

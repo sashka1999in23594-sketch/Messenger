@@ -36,6 +36,7 @@ export class UsersService {
     if (!u) throw notFound('Пользователь не найден');
     return {
       ...this.repo.toSummary(u),
+      role: u.role,
       bio: u.bio,
       website: u.website,
       location: u.location,

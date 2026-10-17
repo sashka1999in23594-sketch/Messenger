@@ -1,0 +1,109 @@
+.auth {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(380px, 1fr);
+  height: 100dvh;
+  overflow: auto;
+}
+.auth__hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-8);
+  padding: var(--space-10) clamp(32px, 6vw, 96px);
+  color: #fff;
+  background:
+    radial-gradient(1200px 600px at 10% 10%, rgba(255, 255, 255, 0.16), transparent 60%),
+    radial-gradient(800px 500px at 90% 90%, rgba(0, 212, 255, 0.35), transparent 60%),
+    linear-gradient(135deg, #6c5ce7 0%, #4834d4 45%, #2b1a8f 100%);
+  overflow: hidden;
+}
+.auth__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.auth__brand img {
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+.auth__name {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.auth__tagline {
+  font-size: var(--fs-lg);
+  opacity: 0.85;
+  margin-top: 6px;
+}
+.auth__features {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  max-width: 620px;
+}
+.auth__feature {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(6px);
+}
+.auth__feature .small {
+  opacity: 0.8;
+}
+.auth__security {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  font-size: var(--fs-sm);
+  opacity: 0.85;
+  max-width: 620px;
+}
+.auth__panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-6);
+  background: var(--bg);
+}
+.auth__form {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.auth__form h1 {
+  margin-bottom: -8px;
+}
+.auth__switch {
+  text-align: center;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+.auth__mobile-logo {
+  display: none;
+  border-radius: 18px;
+  align-self: center;
+}
+@media (max-width: 900px) {
+  .auth {
+    grid-template-columns: 1fr;
+  }
+  .auth__hero {
+    display: none;
+  }
+  .auth__mobile-logo {
+    display: block;
+  }
+  .auth__panel {
+    align-items: flex-start;
+    padding-top: calc(var(--space-10) + var(--safe-top));
+  }
+}

@@ -1,0 +1,187 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { useMutation } from '@tanstack/react-query';
+import { Archive, ArchiveRestore, Bell, BellOff, Lock, Megaphone, SquarePen, Pin, PinOff, Search, Trash2, Users, X } from 'lucide-react';
+import type { ChatSummary } from '@omni/shared';
+import { api, errorMessage } from '../../shared/api/client';
+import { flatPages, qk, queryClient, useCursorList } from '../../shared/api/query';
+import { realtime } from '../../shared/realtime/socket';
+import { useRealtime } from '../../shared/stores/realtime';
+import { useMe } from '../../shared/stores/session';
+import { toast } from '../../shared/stores/ui';
+import { chatTime, cn } from '../../shared/lib/format';
+import { Avatar, confirm, EmptyState, ListSkeleton, LoadMore, Menu, useMenu, Verified } from '../../shared/ui';
+import { patchChat, forgetChat } from './cache';
+
+export const FOLDERS: { id: string; label: string }[] = [
+  { id: 'all', label: 'Все' },
+  { id: 'unread', label: 'Непрочитанные' },
+  { id: 'direct', label: 'Личные' },
+  { id: 'groups', label: 'Группы' },
+  { id: 'channels', label: 'Каналы' },
+  { id: 'secret', label: 'Секретные' },
+  { id: 'archived', label: 'Архив' },
+];
+
+export function previewText(chat: ChatSummary, myId: string): React.ReactNode {
+  const m = chat.lastMessage;
+  if (!m) return chat.type === 'secret' ? 'Секретный чат создан' : 'Нет сообщений';
+  const who = m.senderId === myId ? 'Вы' : chat.type === 'group' ? m.senderName?.split(' ')[0] : null;
+  const body =
+    m.kind === 'encrypted' ? '🔒 Зашифрованное сообщение' : m.kind === 'system' ? `${m.senderName ?? ''} ${m.text ?? ''}` : m.text || (m.kind === 'media' ? '📎 Вложение' : '');
+  return (
+    <>
+      {who && m.kind !== 'system' && <b>{who}: </b>}
+      {body}
+    </>
+  );
+}
+
+function ChatItem({ chat, active, myId }: { chat: ChatSummary; active: boolean; myId: string }) {
+  const menu = useMenu();
+  const navigate = useNavigate();
+  const typing = useRealtime((s) => s.typing[chat.id]);
+  const presence = useRealtime((s) => (chat.peer ? s.presence[chat.peer.id] : undefined));
+  const muted = !!chat.mutedUntil;
+
+  const prefs = useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.patch<ChatSummary>(`/chats/${chat.id}/prefs`, body),
+    onSuccess: (c) => {
+      patchChat(chat.id, () => c);
+      void queryClient.invalidateQueries({ queryKey: qk.chatsAll });
+    },
+    onError: (e) => toast({ text: errorMessage(e), kind: 'error' }),
+  });
+
+  const remove = async () => {
+    const isOwner = chat.role === 'owner' && (chat.type === 'group' || chat.type === 'channel');
+    const ok = await confirm({
+      title: chat.type === 'secret' ? 'Удалить секретный чат?' : isOwner ? `Удалить «${chat.title}» для всех?` : chat.type === 'group' || chat.type === 'channel' ? `Покинуть «${chat.title}»?` : 'Удалить чат?',
+      text: chat.type === 'secret' ? 'Переписка будет удалена у обоих участников.' : isOwner ? 'Все участники потеряют доступ к переписке.' : 'История будет очищена только у вас.',
+      danger: true,
+      confirmLabel: isOwner || chat.type !== 'group' ? 'Удалить' : 'Покинуть',
+    });
+    if (!ok) return;
+    try {
+      await api.del(`/chats/${chat.id}`);
+      forgetChat(chat.id);
+      if (active) navigate('/chats');
+    } catch (e) {
+      toast({ text: errorMessage(e), kind: 'error' });
+    }
+  };
+
+  const TypeIcon = chat.type === 'secret' ? Lock : chat.type === 'channel' ? Megaphone : chat.type === 'group' ? Users : null;
+  const typingNames = (typing ?? []).filter((t) => t.userId !== myId);
+
+  return (
+    <>
+      <Link
+        to={`/chats/${chat.id}`}
+        className={cn('chat-item', active && 'chat-item--active')}
+        onContextMenu={(e) => menu.openFromEvent(e)}
+        aria-current={active ? 'page' : undefined}
+      >
+        <Avatar src={chat.avatarUrl} name={chat.title} id={chat.peer?.id ?? chat.id} size={52} online={presence?.online} />
+        <span className="chat-item__body">
+          <span className="chat-item__top">
+            <span className="chat-item__title">
+              {TypeIcon && <TypeIcon size={14} style={{ color: chat.type === 'secret' ? 'var(--success)' : undefined, flex: '0 0 auto' }} />}
+              <span className="ellipsis">{chat.title}</span>
+              {chat.peer?.verified && <Verified size={14} />}
+              {muted && <BellOff size={13} className="faint" />}
+            </span>
+            {chat.lastMessage && <span className="chat-item__time">{chatTime(chat.lastMessage.createdAt)}</span>}
+          </span>
+          <span className="chat-item__bottom">
+            <span className="chat-item__preview">
+              {typingNames.length ? (
+                <span className="chat-item__typing">{chat.type === 'group' ? `${typingNames[0]!.name.split(' ')[0]} печатает…` : 'печатает…'}</span>
+              ) : (
+                previewText(chat, myId)
+              )}
+            </span>
+            <span className="chat-item__icons">
+              {chat.pinned && !chat.unreadCount && <Pin size={14} />}
+              {chat.unreadCount > 0 && <span className={cn('badge', muted && 'badge--muted')}>{chat.unreadCount > 999 ? '999+' : chat.unreadCount}</span>}
+            </span>
+          </span>
+        </span>
+      </Link>
+      <Menu
+        anchor={menu.anchor}
+        onClose={menu.close}
+        items={[
+          { label: chat.pinned ? 'Открепить' : 'Закрепить', icon: chat.pinned ? <PinOff size={18} /> : <Pin size={18} />, onClick: () => prefs.mutate({ pinned: !chat.pinned }) },
+          {
+            label: muted ? 'Включить уведомления' : 'Без звука на 8 часов',
+            icon: muted ? <Bell size={18} /> : <BellOff size={18} />,
+            onClick: () => prefs.mutate({ mutedUntil: muted ? null : new Date(Date.now() + 8 * 3600_000).toISOString() }),
+          },
+          {
+            label: chat.archived ? 'Вернуть из архива' : 'В архив',
+            icon: chat.archived ? <ArchiveRestore size={18} /> : <Archive size={18} />,
+            onClick: () => prefs.mutate({ archived: !chat.archived }),
+          },
+          'separator',
+          { label: chat.type === 'group' || chat.type === 'channel' ? 'Покинуть' : 'Удалить чат', icon: <Trash2 size={18} />, danger: true, onClick: () => void remove() },
+        ]}
+      />
+    </>
+  );
+}
+
+export function ChatList({ folder, activeId, onFolder }: { folder: string; activeId: string | null; onFolder: (f: string) => void }) {
+  const me = useMe();
+  const [q, setQ] = useState('');
+  const list = useCursorList<ChatSummary>(qk.chats(folder), `/chats?folder=${folder}`);
+  const chats = flatPages(list.data);
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    return s ? chats.filter((c) => c.title.toLowerCase().includes(s) || c.handle?.toLowerCase().includes(s)) : chats;
+  }, [chats, q]);
+
+  // Подписываемся на «в сети» собеседников из списка
+  const peerIds = useMemo(() => chats.map((c) => c.peer?.id).filter((v): v is string => !!v).sort().join(','), [chats]);
+  useEffect(() => (peerIds ? realtime.retainPresence(peerIds.split(',')) : undefined), [peerIds]);
+
+  return (
+    <div className="chats__list">
+      <div className="chats__head">
+        <div className="input-group">
+          <Search size={16} className="input-group__icon" />
+          <input className="input" placeholder="Поиск по чатам" value={q} onChange={(e) => setQ(e.target.value)} style={{ borderRadius: 999, minHeight: 40 }} />
+          {q && (
+            <button className="icon-btn icon-btn--sm input-group__action" onClick={() => setQ('')} aria-label="Очистить">
+              <X size={16} />
+            </button>
+          )}
+        </div>
+        <div className="chips" role="tablist" aria-label="Папки">
+          {FOLDERS.map((f) => (
+            <button key={f.id} role="tab" aria-selected={folder === f.id} className={cn('chip', folder === f.id && 'chip--active')} onClick={() => onFolder(f.id)}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="chats__scroll">
+        {list.isLoading ? (
+          <ListSkeleton rows={8} avatar={52} />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={<SquarePen size={28} />}
+            title={q ? 'Ничего не найдено' : folder === 'archived' ? 'Архив пуст' : 'Здесь пока пусто'}
+            text={q ? 'Попробуйте другой запрос или глобальный поиск (Ctrl+K)' : 'Начните новый разговор — кнопка внизу'}
+          />
+        ) : (
+          filtered.map((c) => <ChatItem key={c.id} chat={c} active={c.id === activeId} myId={me.id} />)
+        )}
+        <LoadMore hasMore={!!list.hasNextPage} loading={list.isFetchingNextPage} onLoad={() => void list.fetchNextPage()} />
+      </div>
+      <Link to="/chats/new/direct" className="chat-fab" aria-label="Новый чат" title="Новый чат">
+        <SquarePen size={24} />
+      </Link>
+    </div>
+  );
+}
