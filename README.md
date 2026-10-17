@@ -40,6 +40,16 @@
 
 ![Мобильная версия](docs/screenshots/mobile.jpg)
 
+## Опубликовать сайт в один клик
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/sashka1999in23594-sketch/Messenger)
+
+1. Нажмите кнопку выше и войдите в Render через GitHub (бесплатно, карта не нужна).
+2. Нажмите **Deploy Blueprint** — Render сам соберёт проект по [`render.yaml`](render.yaml), сгенерирует `APP_SECRET` и включит HTTPS.
+3. Через 3–5 минут сайт откроется по адресу вида `https://omni-xxxx.onrender.com`. Вход: **`sasha`** / **`omni-demo-2026`**.
+
+После этого каждый `git push` в `main` обновляет сайт автоматически. Особенности бесплатного тарифа: сервис «засыпает» после 15 минут без посетителей (первое открытие — ~30 секунд), а диск временный — после перезапуска база создаётся заново с демо-данными. Для постоянного хранения подключите в Render диск и задайте `DATA_DIR=/var/data`. Чтобы письма (подтверждение почты, коды 2FA) реально отправлялись, задайте в настройках сервиса `SMTP_URL` и `MAIL_FROM` (см. [.env.example](.env.example)).
+
 ## Быстрый старт
 
 Нужен **Node.js 22.13+** (встроенный `node:sqlite`, никаких нативных модулей и внешней БД).

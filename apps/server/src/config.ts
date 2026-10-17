@@ -8,7 +8,7 @@ const envSchema = z.object({
   HOST: z.string().default('127.0.0.1'),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   APP_SECRET: z.string().optional(),
-  PUBLIC_ORIGIN: z.string().default('http://localhost:5173'),
+  PUBLIC_ORIGIN: z.string().optional(),
   /** Дополнительные разрешённые Origin через запятую (например, мобильная сборка) */
   EXTRA_ORIGINS: z.string().default(''),
   DATA_DIR: z.string().default('./data'),
@@ -21,6 +21,10 @@ const envSchema = z.object({
   /** Каталог собранного веб-клиента — если задан, сервер отдаёт его сам */
   WEB_DIST: z.string().optional(),
   SESSION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+  /** Загрузить демо-данные при первом запуске (публичное демо, например на Render) */
+  DEMO_SEED: z.enum(['true', 'false', '1', '0', '']).default('false'),
+  /** Адрес сервиса, который Render подставляет сам — используется, если PUBLIC_ORIGIN не задан */
+  RENDER_EXTERNAL_URL: z.string().optional(),
 });
 
 export type Config = ReturnType<typeof loadConfig>;
@@ -55,7 +59,8 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
   }
   if (secret.length < 32) throw new Error('APP_SECRET должен быть не короче 32 символов');
 
-  const origins = [env.PUBLIC_ORIGIN, ...env.EXTRA_ORIGINS.split(',')]
+  const publicOrigin = (env.PUBLIC_ORIGIN || env.RENDER_EXTERNAL_URL || 'http://localhost:5173').replace(/\/$/, '');
+  const origins = [publicOrigin, ...env.EXTRA_ORIGINS.split(',')]
     .map((o) => o.trim().replace(/\/$/, ''))
     .filter(Boolean);
   const isProd = env.NODE_ENV === 'production';
@@ -67,7 +72,7 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
     host: env.HOST,
     port: env.PORT,
     secret,
-    publicOrigin: env.PUBLIC_ORIGIN.replace(/\/$/, ''),
+    publicOrigin,
     allowedOrigins: new Set(origins),
     dataDir,
     dbFile: env.NODE_ENV === 'test' ? ':memory:' : path.join(dataDir, 'omni.db'),
@@ -84,5 +89,6 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
     sessionTtlMs: env.SESSION_DAYS * 24 * 3600 * 1000,
     /** Cookies с флагом Secure — в production всегда (нужен HTTPS) */
     secureCookies: isProd,
+    demoSeed: env.DEMO_SEED === 'true' || env.DEMO_SEED === '1',
   };
 }

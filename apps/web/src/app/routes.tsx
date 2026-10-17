@@ -101,6 +101,9 @@ export function AppRoutes() {
     <Routes>
       <Route element={<Shell />}>
         <Route index element={<Navigate to="/chats" replace />} />
+        {/* После входа адреса страницы входа больше не нужны */}
+        <Route path="login" element={<Navigate to="/" replace />} />
+        <Route path="register" element={<Navigate to="/" replace />} />
 
         {/* Мессенджер */}
         <Route path="chats" element={<ChatsLayout />}>
