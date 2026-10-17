@@ -1,7 +1,8 @@
-import { memo, useEffect, useRef, type ReactNode } from 'react';
-import { AlertCircle, Check, CheckCheck, Clock, Copy, Ellipsis, Flag, Forward, Lock, Pencil, Pin, Reply, RotateCcw, Trash2 } from 'lucide-react';
+import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
+import { AlertCircle, BellOff, Check, CheckCheck, Clock, Copy, Ellipsis, Eye, Flag, Forward, Lock, Pencil, Pin, Plus, Reply, RotateCcw, Trash2 } from 'lucide-react';
 import { REACTIONS, type ChatSummary } from '@omni/shared';
-import { Avatar, Menu, MediaGrid, RichText, useMenu, type MenuEntry } from '../../shared/ui';
+import { Avatar, EmojiPicker, Menu, MediaGrid, RichText, useMenu, type MenuEntry } from '../../shared/ui';
+import { CallMessage, PollMessage, RoundMessage, VoiceMessage } from './bubbles';
 import { clockTime, cn, dayLabel, isJumboEmoji } from '../../shared/lib/format';
 import { useInfiniteScroll } from '../../shared/hooks';
 import type { LocalMessage } from './cache';
@@ -17,6 +18,8 @@ export interface MessageActions {
   report: (m: LocalMessage) => void;
   retry: (m: LocalMessage) => void;
   copy: (text: string) => void;
+  readers: (m: LocalMessage) => void;
+  callBack?: (video: boolean) => void;
 }
 
 const EDIT_WINDOW = 48 * 3600 * 1000;
@@ -51,18 +54,21 @@ interface BubbleProps {
 
 const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, secret, actions }: BubbleProps) {
   const menu = useMenu();
+  const [picker, setPicker] = useState<{ x: number; y: number } | null>(null);
   const longPress = useRef<ReturnType<typeof setTimeout> | null>(null);
   const out = msg.sender?.id === myId;
   const showSender = !out && !grouped && (chat.type === 'group' || chat.type === 'channel');
   const showAvatar = !out && chat.type === 'group';
-  const hasMedia = msg.media.length > 0;
+  const special = msg.kind === 'voice' || msg.kind === 'round' || msg.kind === 'poll' || msg.kind === 'call';
+  const hasMedia = msg.media.length > 0 && !special;
   const secretPlain = useDecrypted(chat.id, msg.id, msg.clientId, msg.encrypted, secret).text;
   const plain = msg.kind === 'encrypted' ? secretPlain : msg.text;
   const isAdmin = chat.role === 'owner' || chat.role === 'admin';
   const jumbo = !hasMedia && !msg.replyTo && !msg.forwardedFrom && isJumboEmoji(plain);
   const mediaOnly = hasMedia && !plain && !msg.replyTo && !msg.forwardedFrom;
   const canEdit = out && !msg.local && Date.now() - Date.parse(msg.createdAt) < EDIT_WINDOW && (msg.kind === 'text' || (msg.kind === 'encrypted' && secretPlain !== null));
-  const canPin = !msg.local && (chat.type === 'direct' || chat.type === 'saved' || chat.type === 'secret' || isAdmin);
+  const canPin = !msg.local && msg.kind !== 'call' && (chat.type === 'direct' || chat.type === 'saved' || chat.type === 'secret' || isAdmin);
+  const canForward = chat.type !== 'secret' && !msg.local && msg.kind !== 'poll' && msg.kind !== 'call';
 
   const items: MenuEntry[] = msg.local?.status === 'failed'
     ? [
@@ -73,7 +79,8 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
         { label: 'Ответить', icon: <Reply size={18} />, onClick: () => actions.reply(msg), hidden: !!msg.local },
         { label: 'Копировать текст', icon: <Copy size={18} />, onClick: () => actions.copy(plain ?? ''), hidden: !plain },
         { label: 'Изменить', icon: <Pencil size={18} />, onClick: () => actions.edit(msg, plain ?? ''), hidden: !canEdit },
-        { label: 'Переслать', icon: <Forward size={18} />, onClick: () => actions.forward(msg), hidden: chat.type === 'secret' || !!msg.local },
+        { label: 'Переслать', icon: <Forward size={18} />, onClick: () => actions.forward(msg), hidden: !canForward },
+        { label: 'Прочитали', icon: <Eye size={18} />, onClick: () => actions.readers(msg), hidden: !out || chat.type !== 'group' || !!msg.local },
         { label: chat.pinnedMessage?.id === msg.id ? 'Открепить' : 'Закрепить', icon: <Pin size={18} />, onClick: () => actions.pin(msg), hidden: !canPin },
         { label: 'Пожаловаться', icon: <Flag size={18} />, onClick: () => actions.report(msg), hidden: out || chat.type === 'saved' },
         'separator',
@@ -98,8 +105,18 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
         </span>
       )}
       <div
-        className={cn('bubble', hasMedia && 'bubble--media', mediaOnly && !showSender && 'bubble--media-only', jumbo && 'bubble--jumbo', msg.local?.status === 'failed' && 'bubble--failed')}
+        className={cn(
+          'bubble',
+          hasMedia && 'bubble--media',
+          mediaOnly && !showSender && 'bubble--media-only',
+          jumbo && 'bubble--jumbo',
+          msg.kind === 'round' && 'bubble--round',
+          msg.kind === 'poll' && 'bubble--poll',
+          msg.kind === 'voice' && 'bubble--voice',
+          msg.local?.status === 'failed' && 'bubble--failed',
+        )}
         data-mid={msg.id}
+        data-seq={msg.seq}
       >
         {showSender && msg.sender && (
           <div className="bubble__sender" style={{ color: `hsl(${(msg.sender.id.charCodeAt(12) * 37) % 360} 65% 55%)` }}>
@@ -114,12 +131,17 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
           </div>
         )}
         {hasMedia && <MediaGrid media={msg.media} />}
+        {msg.kind === 'voice' && msg.media[0] && <VoiceMessage media={msg.media[0]} out={out} />}
+        {msg.kind === 'round' && msg.media[0] && <RoundMessage media={msg.media[0]} />}
+        {msg.kind === 'poll' && msg.poll && <PollMessage message={msg} canClose={out || isAdmin} />}
+        {msg.kind === 'call' && msg.call && <CallMessage call={msg.call} myId={myId} onCallBack={actions.callBack} />}
         {msg.kind === 'encrypted' ? (
           <SecretBody msg={msg} chat={chat} secret={secret} />
         ) : (
-          msg.text && <RichText text={msg.text} className="bubble__text" />
+          !special && msg.text && <RichText text={msg.text} className="bubble__text" />
         )}
         <span className="bubble__meta">
+          {msg.silent && out && <BellOff size={11} aria-label="без звука" />}
           {msg.editedAt && <span>изм.</span>}
           {msg.expiresAt && <Clock size={11} />}
           <span>{clockTime(msg.createdAt)}</span>
@@ -145,7 +167,7 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
         header={
           !msg.local && msg.kind !== 'system' ? (
             <div className="menu__reactions">
-              {REACTIONS.map((e) => (
+              {REACTIONS.slice(0, 7).map((e) => (
                 <button
                   key={e}
                   onClick={() => {
@@ -157,10 +179,35 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
                   {e}
                 </button>
               ))}
+              <button
+                className="menu__reactions-more"
+                aria-label="Другие реакции"
+                onClick={(ev) => {
+                  const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+                  menu.close();
+                  setPicker({ x: rect.left, y: rect.bottom });
+                }}
+              >
+                <Plus size={18} />
+              </button>
             </div>
           ) : null
         }
       />
+      {picker && (
+        <div className="reaction-picker-layer" onPointerDown={(e) => e.target === e.currentTarget && setPicker(null)}>
+          <div className="reaction-picker" style={{ left: Math.max(8, Math.min(picker.x - 160, window.innerWidth - 348)), top: Math.max(8, Math.min(picker.y + 6, window.innerHeight - 370)) }}>
+            <EmojiPicker
+              autoFocus
+              onClose={() => setPicker(null)}
+              onPick={(e) => {
+                setPicker(null);
+                actions.react(msg, e);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 });

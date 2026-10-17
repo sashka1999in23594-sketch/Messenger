@@ -95,6 +95,10 @@ export interface UploadOptions {
   height?: number;
   duration?: number;
   posterId?: string;
+  /** Голосовое: контейнер WebM/MP4 только со звуком */
+  as?: 'audio';
+  /** Волна голосового (base64url, байты 0–255) */
+  waveform?: string;
   onProgress?: (fraction: number) => void;
   signal?: AbortSignal;
 }
@@ -109,6 +113,8 @@ export function uploadFile(file: Blob, filename: string, opts: UploadOptions = {
       if (opts.height) params.set('height', String(Math.round(opts.height)));
       if (opts.duration) params.set('duration', String(opts.duration));
       if (opts.posterId) params.set('posterId', opts.posterId);
+      if (opts.as) params.set('as', opts.as);
+      if (opts.waveform) params.set('waveform', opts.waveform);
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `${API_PREFIX}/media?${params.toString()}`);
       xhr.withCredentials = true;

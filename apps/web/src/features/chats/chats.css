@@ -933,3 +933,519 @@
 .bubble .media-grid {
   min-width: 230px;
 }
+
+/* ─── Голосовые ─── */
+.bubble--voice {
+  min-width: 250px;
+}
+.voice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 0;
+}
+.voice__play {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--grad);
+  color: #fff;
+  box-shadow: var(--glow);
+  transition: transform var(--dur) var(--ease-spring);
+}
+.voice__play:active {
+  transform: scale(0.9);
+}
+.voice--out .voice__play {
+  background: #fff;
+  color: var(--accent);
+  box-shadow: none;
+}
+.voice__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.voice__wave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 30px;
+  cursor: pointer;
+}
+.voice__wave span {
+  flex: 1;
+  min-width: 2px;
+  max-width: 4px;
+  border-radius: 2px;
+  background: color-mix(in oklab, var(--text) 28%, transparent);
+  transition: background var(--dur-fast) linear;
+}
+.voice__wave span.voice__bar--done {
+  background: var(--accent-fg);
+}
+.voice--out .voice__wave span {
+  background: rgba(255, 255, 255, 0.45);
+}
+.voice--out .voice__wave span.voice__bar--done {
+  background: #fff;
+}
+.voice__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+.voice__speed {
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 750;
+  background: color-mix(in oklab, currentColor 15%, transparent);
+}
+
+/* ─── Кружки ─── */
+.bubble--round {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.bubble--round .bubble__meta {
+  float: none;
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  margin: 0;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff !important;
+  backdrop-filter: blur(6px);
+}
+.round {
+  position: relative;
+  width: clamp(190px, 46vw, 240px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--surface-3);
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--accent) 35%, transparent),
+    var(--shadow-md);
+  transition: transform var(--dur) var(--ease-spring);
+}
+.round--sound {
+  transform: scale(1.12);
+}
+.round video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+.round__ring {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+.round__ring circle {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.25s linear;
+}
+.round__badge {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 650;
+  backdrop-filter: blur(6px);
+}
+
+/* ─── Опросы ─── */
+.bubble--poll {
+  width: min(380px, 82%);
+}
+.poll {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px 0;
+}
+.poll__question {
+  font-weight: 720;
+  font-size: var(--fs-md);
+  line-height: 1.35;
+}
+.poll__type {
+  font-size: var(--fs-xs);
+  opacity: 0.7;
+  margin-top: -4px;
+}
+.poll__options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.poll__option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  text-align: left;
+  background: color-mix(in oklab, currentColor 8%, transparent);
+  overflow: hidden;
+  isolation: isolate;
+  transition: background var(--dur-fast) var(--ease);
+}
+.poll__option:not(:disabled):hover {
+  background: color-mix(in oklab, currentColor 14%, transparent);
+}
+.poll__option--selected {
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+.poll__check {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 2px solid color-mix(in oklab, currentColor 45%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.poll__check--square {
+  border-radius: 6px;
+}
+.poll__option--selected .poll__check {
+  background: currentColor;
+}
+.poll__option--selected .poll__check svg {
+  color: var(--panel-solid);
+}
+.poll__text {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 560;
+}
+.poll__pct {
+  width: 44px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.poll__bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: -1;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--accent) 22%, transparent);
+  transition: width var(--dur-slow) var(--ease);
+}
+.msg--out .poll__bar {
+  background: rgba(255, 255, 255, 0.22);
+}
+.poll__option--correct .poll__bar {
+  background: color-mix(in oklab, var(--success) 35%, transparent);
+}
+.poll__option--wrong .poll__bar {
+  background: color-mix(in oklab, var(--danger) 35%, transparent);
+}
+.poll__foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: var(--fs-xs);
+  opacity: 0.85;
+}
+.poll__voters {
+  display: inline-flex;
+}
+.poll__voters .avatar + .avatar {
+  margin-left: -6px;
+}
+.poll__action {
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ─── Звонки ─── */
+.call-msg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+  padding: 2px 0;
+}
+.call-msg__icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in oklab, currentColor 14%, transparent);
+  flex: 0 0 auto;
+}
+.call-msg--missed .call-msg__icon {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.call-msg__sub {
+  opacity: 0.75;
+}
+.call-msg__back {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in oklab, currentColor 12%, transparent);
+  flex: 0 0 auto;
+}
+.call-msg__back:hover {
+  background: color-mix(in oklab, currentColor 20%, transparent);
+}
+
+/* Реакции: полный выбор эмодзи */
+.menu__reactions-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2);
+  background: var(--surface-2) !important;
+}
+.reaction-picker-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+}
+.reaction-picker {
+  position: fixed;
+  width: 340px;
+}
+
+/* ─── Запись голосового ─── */
+.composer__send--mic {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(var(--blur));
+}
+.composer__send--mic:hover {
+  background: var(--grad);
+  color: #fff;
+}
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #ff3b5c;
+  box-shadow: 0 0 10px #ff3b5c;
+  animation: rec-blink 1.2s ease-in-out infinite;
+}
+@keyframes rec-blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+.voice-rec {
+  align-items: center !important;
+  min-height: 50px;
+  padding-right: 14px !important;
+  gap: 10px !important;
+}
+.voice-rec__time {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 42px;
+}
+.voice-rec__wave {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  overflow: hidden;
+}
+.voice-rec__wave span {
+  width: 3px;
+  flex: 0 0 3px;
+  border-radius: 2px;
+  background: var(--grad);
+  transition: height 80ms linear;
+}
+
+/* ─── Запись кружка ─── */
+.round-rec {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  background: var(--overlay);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  animation: fade-in var(--dur) var(--ease);
+}
+.round-rec__circle {
+  position: relative;
+  width: min(78vw, 340px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #000;
+  box-shadow: var(--shadow-lg), var(--glow-strong);
+  animation: scale-in var(--dur-slow) var(--ease-spring);
+}
+.round-rec__circle video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+.round-rec__circle svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+.round-rec__circle circle {
+  fill: none;
+  stroke: var(--accent-2);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 80ms linear;
+}
+.round-rec__error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  text-align: center;
+  color: #fff;
+  font-weight: 600;
+}
+.round-rec__time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  background: var(--bg-elevated);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.round-rec__actions {
+  display: flex;
+  gap: 28px;
+}
+.round-rec__btn {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elevated);
+  color: var(--danger);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-md);
+}
+.round-rec__btn--send {
+  background: var(--grad);
+  color: #fff;
+  border: 0;
+  box-shadow: var(--glow-strong);
+}
+
+/* ─── Подсказка упоминаний ─── */
+.mention-list {
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(var(--blur-strong));
+  animation: rise-in var(--dur) var(--ease);
+}
+.mention-list__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  text-align: left;
+  min-width: 0;
+}
+.mention-list__item[aria-selected='true'],
+.mention-list__item:hover {
+  background: var(--grad-soft);
+}
+
+/* ─── Отложенные и опросы ─── */
+.scheduled-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.poll-edit__row .input {
+  flex: 1;
+}
+.header-badge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  height: 16px;
+  min-width: 16px;
+  font-size: 10px;
+  padding: 0 4px;
+}

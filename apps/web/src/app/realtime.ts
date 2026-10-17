@@ -1,6 +1,7 @@
 /** Обработка событий реального времени: обновление кэша, индикаторы, тосты. */
 import type { ServerEvent } from '@omni/shared';
 import { excerpt } from '@omni/shared';
+import { messageLabel } from '../shared/lib/format';
 import { qk, queryClient } from '../shared/api/query';
 import { realtime } from '../shared/realtime/socket';
 import { useRealtime } from '../shared/stores/realtime';
@@ -24,10 +25,11 @@ function handle(event: ServerEvent): void {
       onIncomingMessage(event.message, me.id);
       useRealtime.getState().clearTyping(event.chatId, event.message.sender?.id ?? '');
       const fromOther = event.message.sender && event.message.sender.id !== me.id;
-      if (fromOther && activeChat.id !== event.chatId && event.message.kind !== 'system') {
+      // «Без звука»: сообщение приходит, но не всплывает
+      if (fromOther && activeChat.id !== event.chatId && event.message.kind !== 'system' && !event.message.silent) {
         const chat = queryClient.getQueryData<{ mutedUntil: string | null; title: string }>(qk.chat(event.chatId));
         if (!chat?.mutedUntil && me.notifications.messages) {
-          const preview = event.message.kind === 'encrypted' ? '🔒 Зашифрованное сообщение' : me.notifications.showPreviews ? excerpt(event.message.text, 80) || 'Медиа' : 'Новое сообщение';
+          const preview = me.notifications.showPreviews ? excerpt(messageLabel(event.message.kind, event.message.text), 80) || 'Медиа' : 'Новое сообщение';
           toast({
             text: `${event.message.sender!.displayName}: ${preview}`,
             action: { label: 'Открыть', onClick: () => navigateFn(`/chats/${event.chatId}`) },
@@ -53,7 +55,7 @@ function handle(event: ServerEvent): void {
       if (activeChat.id === event.chatId) navigateFn('/chats');
       break;
     case 'typing':
-      useRealtime.getState().addTyping(event.chatId, event.userId, event.displayName);
+      useRealtime.getState().addTyping(event.chatId, event.userId, event.displayName, event.activity);
       break;
     case 'read':
       patchChat(event.chatId, (c) => ({ ...c, peerReadSeq: Math.max(c.peerReadSeq, event.seq) }));

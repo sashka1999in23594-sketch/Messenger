@@ -119,3 +119,31 @@ export function isJumboEmoji(text: string | null | undefined): boolean {
   const count = [...new Intl.Segmenter('ru', { granularity: 'grapheme' }).segment(text.trim())].filter((s) => s.segment.trim()).length;
   return count >= 1 && count <= 3;
 }
+
+/** Короткое описание сообщения для списков и уведомлений. */
+export function messageLabel(kind: string, text: string | null | undefined): string {
+  switch (kind) {
+    case 'voice':
+      return '🎤 Голосовое сообщение';
+    case 'round':
+      return '📹 Видеосообщение';
+    case 'poll':
+      return `📊 ${text ?? 'Опрос'}`;
+    case 'call':
+      return `📞 ${text ?? 'Звонок'}`;
+    case 'encrypted':
+      return '🔒 Зашифрованное сообщение';
+    case 'media':
+      return text || '📎 Вложение';
+    default:
+      return text ?? '';
+  }
+}
+
+/** Что делает собеседник: «печатает…», «записывает голосовое…» */
+export function activityLabel(activity: string, name?: string): string {
+  const who = name ? `${name} ` : '';
+  if (activity === 'voice') return `${who}записывает голосовое…`;
+  if (activity === 'round') return `${who}записывает видео…`;
+  return `${who}печатает…`;
+}

@@ -1387,3 +1387,93 @@ a.list-item:hover {
     font-size: 22px;
   }
 }
+
+/* ─── Выбор эмодзи ─── */
+.emoji-picker {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 360px;
+  border-radius: var(--radius-xl);
+  background: var(--bg-elevated);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-highlight), var(--shadow-lg);
+  backdrop-filter: blur(var(--blur-strong)) saturate(1.6);
+  -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(1.6);
+  overflow: hidden;
+  animation: rise-in var(--dur) var(--ease);
+}
+.emoji-picker__top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 10px 6px;
+}
+.emoji-picker__top .input {
+  min-height: 38px;
+  border-radius: var(--radius-full);
+}
+.emoji-picker__tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 8px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--border);
+}
+.emoji-picker__tab {
+  flex: 1 0 auto;
+  min-width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  font-size: 19px;
+  opacity: 0.6;
+  transition:
+    opacity var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease);
+}
+.emoji-picker__tab:hover,
+.emoji-picker__tab--on {
+  opacity: 1;
+  background: var(--surface-hover);
+}
+.emoji-picker__scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 8px 10px;
+  overscroll-behavior: contain;
+}
+.emoji-picker__section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 400px;
+}
+.emoji-picker__label {
+  position: sticky;
+  top: -4px;
+  z-index: 1;
+  padding: 8px 4px 4px;
+  font-size: var(--fs-2xs);
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  background: color-mix(in oklab, var(--bg-elevated-solid) 92%, transparent);
+}
+.emoji-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+}
+.emoji-picker__cell {
+  height: 38px;
+  border-radius: 10px;
+  font-size: 25px;
+  line-height: 1;
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+.emoji-picker__cell:hover {
+  background: var(--surface-hover);
+  transform: scale(1.18);
+}
+.badge--mention {
+  font-weight: 800;
+}

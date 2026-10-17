@@ -1,8 +1,11 @@
 import { create } from 'zustand';
+import type { ChatActivity } from '@omni/shared';
 
 interface TypingEntry {
   userId: string;
   name: string;
+  /** Печатает, записывает голосовое или кружок */
+  activity: ChatActivity;
   until: number;
 }
 
@@ -11,7 +14,7 @@ interface RealtimeState {
   typing: Record<string, TypingEntry[]>;
   presence: Record<string, { online: boolean; lastSeenAt: string | null }>;
   setStatus: (s: RealtimeState['status']) => void;
-  addTyping: (chatId: string, userId: string, name: string) => void;
+  addTyping: (chatId: string, userId: string, name: string, activity?: ChatActivity) => void;
   clearTyping: (chatId: string, userId: string) => void;
   setPresence: (userId: string, online: boolean, lastSeenAt: string | null) => void;
 }
@@ -21,11 +24,11 @@ export const useRealtime = create<RealtimeState>((set) => ({
   typing: {},
   presence: {},
   setStatus: (status) => set({ status }),
-  addTyping: (chatId, userId, name) =>
+  addTyping: (chatId, userId, name, activity = 'typing') =>
     set((s) => ({
       typing: {
         ...s.typing,
-        [chatId]: [...(s.typing[chatId] ?? []).filter((t) => t.userId !== userId), { userId, name, until: Date.now() + 5000 }],
+        [chatId]: [...(s.typing[chatId] ?? []).filter((t) => t.userId !== userId), { userId, name, activity, until: Date.now() + 5000 }],
       },
     })),
   clearTyping: (chatId, userId) =>

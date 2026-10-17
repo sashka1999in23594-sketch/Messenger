@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { useInfiniteQuery, useMutation, useQuery, type InfiniteData } from '@tanstack/react-query';
-import { ArrowDown, ArrowLeft, Ban, Bell, BellOff, Eraser, Flag, Info, Lock, LogOut, Megaphone, Pin, Search, ShieldAlert, Trash2, X } from 'lucide-react';
-import type { ChatSummary, EncryptedPayload, Message } from '@omni/shared';
+import { ArrowDown, ArrowLeft, Ban, Bell, BellOff, CalendarClock, Eraser, Flag, Info, Lock, LogOut, Megaphone, Pin, Search, ShieldAlert, Trash2, X } from 'lucide-react';
+import type { ChatSummary, EncryptedPayload, Message, PollInput, ScheduledMessage } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { qk, queryClient } from '../../shared/api/query';
 import { encryptMessage } from '../../shared/crypto/e2e';
@@ -10,17 +10,26 @@ import { realtime } from '../../shared/realtime/socket';
 import { useRealtime } from '../../shared/stores/realtime';
 import { useMe } from '../../shared/stores/session';
 import { toast, useCrumb } from '../../shared/stores/ui';
-import { cn, lastSeen, members, randomId } from '../../shared/lib/format';
+import { activityLabel, cn, fullDate, lastSeen, members, randomId } from '../../shared/lib/format';
 import { Avatar, Button, confirm, ErrorState, IconButton, Loading, Menu, Modal, ReportDialog, useMenu, Verified } from '../../shared/ui';
 import { useImmersive } from '../../app/layout/Shell';
 import { activeChat, forgetChat, onIncomingMessage, patchChat, patchMessage, removeMessage, upsertMessage, type LocalMessage, type MessagesPage } from './cache';
 import { Composer, type ComposerSubmit } from './Composer';
 import { ForwardDialog, InChatSearch } from './dialogs';
+import { ReadersDialog, ScheduledListDialog, scheduledKey } from './extras';
 import { MessageList, type MessageActions } from './Messages';
 import { rememberPlaintext, useSecretChat } from './secret';
 import { useChatUi } from './store';
 
-type PendingBody = { clientId: string; text?: string; mediaIds: string[]; replyToId?: string; encrypted?: EncryptedPayload };
+type PendingBody = {
+  clientId: string;
+  text?: string;
+  mediaIds: string[];
+  replyToId?: string;
+  encrypted?: EncryptedPayload;
+  kind?: 'voice' | 'round';
+  silent?: boolean;
+};
 const pending = new Map<string, PendingBody>();
 
 export function ChatView() {
@@ -37,6 +46,10 @@ export function ChatView() {
   const [reporting, setReporting] = useState<{ type: 'message' | 'chat' | 'user'; id: string } | null>(null);
   const [deleting, setDeleting] = useState<LocalMessage | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [readersOf, setReadersOf] = useState<LocalMessage | null>(null);
+  const [scheduledOpen, setScheduledOpen] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const jumpSeq = Number(params.get('m')) || null;
   const headerMenu = useMenu();
 
   const chatQ = useQuery({ queryKey: qk.chat(chatId), queryFn: () => api.get<ChatSummary>(`/chats/${chatId}`), enabled: !!chatId });
@@ -51,6 +64,32 @@ export function ChatView() {
   });
   const messages = useMemo(() => (msgsQ.data ? [...msgsQ.data.pages].reverse().flatMap((p) => p.items) : []), [msgsQ.data]);
   const secret = useSecretChat(chat, me.id);
+  const scheduledQ = useQuery({
+    queryKey: scheduledKey(chatId),
+    queryFn: () => api.get<{ items: ScheduledMessage[] }>(`/chats/${chatId}/scheduled`),
+    enabled: !!chat && !!chat.role && chat.type !== 'secret',
+  });
+  const scheduledCount = scheduledQ.data?.items.length ?? 0;
+
+  // Переход к сообщению по ссылке ?m=<seq>: догружаем историю, прокручиваем и подсвечиваем
+  useEffect(() => {
+    if (!jumpSeq || !msgsQ.data) return;
+    const loaded = messages.some((m) => m.seq <= jumpSeq);
+    if (!loaded && msgsQ.hasNextPage && !msgsQ.isFetchingNextPage) {
+      void msgsQ.fetchNextPage();
+      return;
+    }
+    const el = scrollRef.current?.querySelector<HTMLElement>(`[data-seq="${jumpSeq}"]`);
+    if (el) {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el.classList.add('bubble--highlight');
+      setTimeout(() => el.classList.remove('bubble--highlight'), 1800);
+    }
+    if (loaded || !msgsQ.hasNextPage) {
+      params.delete('m');
+      setParams(params, { replace: true });
+    }
+  }, [jumpSeq, messages, msgsQ, params, setParams]);
   useCrumb(chat?.title);
   const typing = useRealtime((s) => s.typing[chatId]);
   const presence = useRealtime((s) => (chat?.peer ? s.presence[chat.peer.id] : undefined));
@@ -115,12 +154,12 @@ export function ChatView() {
         seq: (messages.at(-1)?.seq ?? 0) + 0.001,
         clientId,
         sender: { id: me.id, username: me.username, displayName: me.displayName, avatarUrl: me.avatarUrl, verified: me.verified },
-        kind: encrypted ? 'encrypted' : data.mediaIds.length ? 'media' : 'text',
+        kind: encrypted ? 'encrypted' : (data.kind ?? (data.mediaIds.length ? 'media' : 'text')),
         text: encrypted ? null : data.text || null,
         media: data.media,
         poll: null,
         call: null,
-        silent: false,
+        silent: !!data.silent,
         replyTo: data.replyTo
           ? {
               id: data.replyTo.id,
@@ -143,7 +182,15 @@ export function ChatView() {
       upsertMessage(chat.id, local);
       setReplyTo(null);
       scrollToBottom();
-      await deliver({ clientId, text: encrypted ? undefined : data.text || undefined, mediaIds: data.mediaIds, replyToId: data.replyTo?.id, encrypted });
+      await deliver({
+        clientId,
+        text: encrypted ? undefined : data.text || undefined,
+        mediaIds: data.mediaIds,
+        replyToId: data.replyTo?.id,
+        encrypted,
+        kind: data.kind,
+        silent: data.silent || undefined,
+      });
     },
     [chat, secret, messages, me, deliver, scrollToBottom],
   );
@@ -192,6 +239,7 @@ export function ChatView() {
       copy: (text) => {
         void navigator.clipboard.writeText(text).then(() => toast('Текст скопирован'));
       },
+      readers: (m) => setReadersOf(m),
     }),
     [chatId, chat?.pinnedMessage?.id, deliver],
   );
@@ -215,9 +263,7 @@ export function ChatView() {
 
   const typingOthers = (typing ?? []).filter((t) => t.userId !== me.id);
   const subtitle = typingOthers.length
-    ? chat.type === 'group'
-      ? `${typingOthers.map((t) => t.name.split(' ')[0]).join(', ')} печатает…`
-      : 'печатает…'
+    ? activityLabel(typingOthers[0]!.activity, chat.type === 'group' ? typingOthers.map((t) => t.name.split(' ')[0]).join(', ') : undefined)
     : chat.type === 'direct' || chat.type === 'secret'
       ? chat.peer
         ? presence
@@ -260,6 +306,12 @@ export function ChatView() {
             <span className={cn('chat-header__sub ellipsis', typingOthers.length > 0 || presence?.online ? 'chat-header__sub--accent' : '')}>{subtitle}</span>
           </span>
         </button>
+        {scheduledCount > 0 && (
+          <IconButton label="Отложенные сообщения" onClick={() => setScheduledOpen(true)}>
+            <CalendarClock size={20} />
+            <span className="badge header-badge">{scheduledCount}</span>
+          </IconButton>
+        )}
         {chat.type !== 'secret' && (
           <IconButton label="Поиск в чате" onClick={() => setSearchOpen(true)}>
             <Search size={20} />
@@ -345,6 +397,17 @@ export function ChatView() {
             if (last && last.kind === 'text') setEditing({ msg: last, text: last.text ?? '' });
           }}
           secret={chat.type === 'secret'}
+          onPoll={async (poll: PollInput) => {
+            const msg = await api.post<Message>(`/chats/${chatId}/messages`, { clientId: `p${randomId(12)}`, poll });
+            upsertMessage(chatId, msg);
+            scrollToBottom();
+          }}
+          onSchedule={async (d, at) => {
+            await api.post(`/chats/${chatId}/scheduled`, { text: d.text || undefined, mediaIds: d.mediaIds, replyToId: d.replyTo?.id, silent: !!d.silent, sendAt: at.toISOString() });
+            void queryClient.invalidateQueries({ queryKey: scheduledKey(chatId) });
+            toast({ text: `Сообщение будет отправлено ${fullDate(at.toISOString())}`, kind: 'success' });
+            setReplyTo(null);
+          }}
         />
       ) : (
         <div className="composer">
@@ -411,6 +474,8 @@ export function ChatView() {
       {forwarding && <ForwardDialog chatId={chatId} message={forwarding} onClose={() => setForwarding(null)} />}
       {reporting && <ReportDialog open entityType={reporting.type} entityId={reporting.id} onClose={() => setReporting(null)} />}
       {searchOpen && <InChatSearch chatId={chatId} onClose={() => setSearchOpen(false)} />}
+      {readersOf && <ReadersDialog chatId={chatId} messageId={readersOf.id} onClose={() => setReadersOf(null)} />}
+      {scheduledOpen && <ScheduledListDialog chatId={chatId} onClose={() => setScheduledOpen(false)} />}
       {deleting && (
         <Modal
           open

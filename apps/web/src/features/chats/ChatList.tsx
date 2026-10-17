@@ -9,7 +9,7 @@ import { realtime } from '../../shared/realtime/socket';
 import { useRealtime } from '../../shared/stores/realtime';
 import { useMe } from '../../shared/stores/session';
 import { toast, useUi } from '../../shared/stores/ui';
-import { chatTime, cn } from '../../shared/lib/format';
+import { activityLabel, chatTime, cn, messageLabel } from '../../shared/lib/format';
 import { Avatar, confirm, EmptyState, IconButton, ListSkeleton, LoadMore, Menu, useMenu, Verified } from '../../shared/ui';
 import { patchChat, forgetChat } from './cache';
 
@@ -27,8 +27,7 @@ export function previewText(chat: ChatSummary, myId: string): React.ReactNode {
   const m = chat.lastMessage;
   if (!m) return chat.type === 'secret' ? 'Секретный чат создан' : 'Нет сообщений';
   const who = m.senderId === myId ? 'Вы' : chat.type === 'group' ? m.senderName?.split(' ')[0] : null;
-  const body =
-    m.kind === 'encrypted' ? '🔒 Зашифрованное сообщение' : m.kind === 'system' ? `${m.senderName ?? ''} ${m.text ?? ''}` : m.text || (m.kind === 'media' ? '📎 Вложение' : '');
+  const body = m.kind === 'system' ? `${m.senderName ?? ''} ${m.text ?? ''}` : messageLabel(m.kind, m.text);
   return (
     <>
       {who && m.kind !== 'system' && <b>{who}: </b>}
@@ -96,13 +95,14 @@ function ChatItem({ chat, active, myId }: { chat: ChatSummary; active: boolean; 
           <span className="chat-item__bottom">
             <span className="chat-item__preview">
               {typingNames.length ? (
-                <span className="chat-item__typing">{chat.type === 'group' ? `${typingNames[0]!.name.split(' ')[0]} печатает…` : 'печатает…'}</span>
+                <span className="chat-item__typing">{activityLabel(typingNames[0]!.activity, chat.type === 'group' ? typingNames[0]!.name.split(' ')[0] : undefined)}</span>
               ) : (
                 previewText(chat, myId)
               )}
             </span>
             <span className="chat-item__icons">
               {chat.pinned && !chat.unreadCount && <Pin size={14} />}
+              {chat.unreadMentions > 0 && <span className="badge badge--mention" title="Вас упомянули">@</span>}
               {chat.unreadCount > 0 && <span className={cn('badge', muted && 'badge--muted')}>{chat.unreadCount > 999 ? '999+' : chat.unreadCount}</span>}
             </span>
           </span>

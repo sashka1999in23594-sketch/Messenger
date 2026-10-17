@@ -31,11 +31,14 @@ interface PrefsState {
   favorites: string[];
   /** Недавно открытые разделы */
   recent: string[];
+  /** Недавние эмодзи */
+  recentEmoji: string[];
   /** Развёрнутые группы дерева */
   expanded: Record<string, boolean>;
   /** Хэш код-пароля (PBKDF2) и таймаут блокировки в минутах */
   passcode: { hash: string; salt: string; timeoutMin: number } | null;
-  set: (patch: Partial<Omit<PrefsState, 'set' | 'toggleFavorite' | 'pushRecent' | 'toggleExpanded'>>) => void;
+  set: (patch: Partial<Omit<PrefsState, 'set' | 'toggleFavorite' | 'pushRecent' | 'toggleExpanded' | 'pushEmoji'>>) => void;
+  pushEmoji: (emoji: string) => void;
   toggleFavorite: (id: string) => void;
   pushRecent: (id: string) => void;
   toggleExpanded: (id: string, value?: boolean) => void;
@@ -58,12 +61,14 @@ export const usePrefs = create<PrefsState>()(
       navCollapsed: false,
       favorites: [],
       recent: [],
+      recentEmoji: [],
       expanded: {},
       passcode: null,
       set: (patch) => set(patch),
       toggleFavorite: (id) =>
         set((s) => ({ favorites: s.favorites.includes(id) ? s.favorites.filter((f) => f !== id) : [...s.favorites, id].slice(-12) })),
       pushRecent: (id) => set((s) => ({ recent: [id, ...s.recent.filter((r) => r !== id)].slice(0, 8) })),
+      pushEmoji: (emoji) => set((s) => ({ recentEmoji: [emoji, ...(s.recentEmoji ?? []).filter((e) => e !== emoji)].slice(0, 32) })),
       toggleExpanded: (id, value) => set((s) => ({ expanded: { ...s.expanded, [id]: value ?? !s.expanded[id] } })),
     }),
     {

@@ -9,3 +9,4 @@ export * from './Misc';
 export * from './Modal';
 export * from './RichText';
 export * from './Theme';
+export * from './EmojiPicker';
