@@ -2,7 +2,11 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import {
   addMembersSchema,
+  chatFolderSchema,
   chatPrefsSchema,
+  createInviteSchema,
+  reorderFoldersSchema,
+  scheduleMessageSchema,
   createChannelSchema,
   createDirectChatSchema,
   createGroupSchema,
@@ -11,6 +15,7 @@ import {
   forwardMessageSchema,
   memberRoleSchema,
   pagination,
+  pollVoteSchema,
   reactionSchema,
   readSchema,
   sendMessageSchema,
@@ -20,8 +25,10 @@ import { parse } from '../../lib/errors.js';
 import { requireAuth } from '../../http/request.js';
 import type { ChatFolder } from './chats.service.js';
 
+const BUILTIN_FOLDERS = ['all', 'direct', 'groups', 'channels', 'secret', 'archived', 'unread'] as const;
 const listQuery = pagination.extend({
-  folder: z.enum(['all', 'direct', 'groups', 'channels', 'secret', 'archived', 'unread']).default('all'),
+  /** Встроенная папка или id своей папки */
+  folder: z.union([z.enum(BUILTIN_FOLDERS), z.string().regex(/^[0-9A-Za-z]{26}$/)]).default('all'),
 });
 const messagesQuery = z.object({
   before: z.coerce.number().int().min(0).optional(),
@@ -38,17 +45,56 @@ const deleteQuery = z.object({
 type P = { Params: { id: string } };
 type PM = { Params: { id: string; messageId: string } };
 type PU = { Params: { id: string; userId: string } };
+type PT = { Params: { id: string; token: string } };
+type PS = { Params: { id: string; scheduledId: string } };
 
 /** Отправка сообщений — отдельный лимит (антиспам), щедрый для живой переписки. */
 const sendLimit = { rateLimit: { max: 60, timeWindow: '1 minute' } };
 
 export async function chatsRoutes(app: FastifyInstance): Promise<void> {
-  const chats = app.ctx.services.chats;
+  const { chats, folders, invites, scheduled } = app.ctx.services;
 
   app.get('/chats', async (req) => {
     const q = parse(listQuery, req.query);
-    return chats.list(requireAuth(req).userId, q.folder as ChatFolder, q.cursor, q.limit);
+    const userId = requireAuth(req).userId;
+    const filter = (BUILTIN_FOLDERS as readonly string[]).includes(q.folder) ? (q.folder as ChatFolder) : folders.where(folders.row(userId, q.folder));
+    return chats.list(userId, filter, q.cursor, q.limit);
   });
+
+  // ─── Свои папки ───────────────────────────────────────────────────────────
+  app.get('/chat-folders', async (req) => ({ items: folders.list(requireAuth(req).userId) }));
+  app.post('/chat-folders', async (req, reply) => reply.status(201).send(folders.create(requireAuth(req).userId, parse(chatFolderSchema, req.body))));
+  app.post('/chat-folders/reorder', async (req) => ({ items: folders.reorder(requireAuth(req).userId, parse(reorderFoldersSchema, req.body).ids) }));
+  app.put<P>('/chat-folders/:id', async (req) => folders.update(requireAuth(req).userId, req.params.id, parse(chatFolderSchema, req.body)));
+  app.delete<P>('/chat-folders/:id', async (req) => {
+    folders.remove(requireAuth(req).userId, req.params.id);
+    return { ok: true };
+  });
+
+  // ─── Ссылки-приглашения ───────────────────────────────────────────────────
+  app.get<P>('/chats/:id/invites', async (req) => ({ items: invites.list(requireAuth(req).userId, req.params.id) }));
+  app.post<P>('/chats/:id/invites', async (req, reply) =>
+    reply.status(201).send(invites.create(requireAuth(req).userId, req.params.id, parse(createInviteSchema, req.body))),
+  );
+  app.delete<PT>('/chats/:id/invites/:token', async (req) => {
+    invites.revoke(requireAuth(req).userId, req.params.id, req.params.token);
+    return { ok: true };
+  });
+  /** Перебор ссылок ограничен: токены случайные, а лимит не даёт их подбирать */
+  const inviteLimit = { rateLimit: { max: 30, timeWindow: '1 minute' } };
+  app.get<{ Params: { token: string } }>('/invites/:token', { config: inviteLimit }, async (req) => invites.preview(requireAuth(req).userId, req.params.token));
+  app.post<{ Params: { token: string } }>('/invites/:token/join', { config: inviteLimit }, async (req) => invites.join(requireAuth(req).userId, req.params.token));
+
+  // ─── Отложенные сообщения ─────────────────────────────────────────────────
+  app.get<P>('/chats/:id/scheduled', async (req) => ({ items: scheduled.list(requireAuth(req).userId, req.params.id) }));
+  app.post<P>('/chats/:id/scheduled', { config: sendLimit }, async (req, reply) =>
+    reply.status(201).send(scheduled.schedule(requireAuth(req).userId, req.params.id, parse(scheduleMessageSchema, req.body))),
+  );
+  app.delete<PS>('/chats/:id/scheduled/:scheduledId', async (req) => {
+    scheduled.remove(requireAuth(req).userId, req.params.id, req.params.scheduledId);
+    return { ok: true };
+  });
+  app.post<PS>('/chats/:id/scheduled/:scheduledId/send', async (req) => scheduled.sendNow(requireAuth(req).userId, req.params.id, req.params.scheduledId));
 
   app.get('/chats/discover', async (req) => {
     const q = parse(discoverQuery, req.query);
@@ -126,6 +172,19 @@ export async function chatsRoutes(app: FastifyInstance): Promise<void> {
   app.post<PM>('/chats/:id/messages/:messageId/reactions', async (req) =>
     chats.react(requireAuth(req).userId, req.params.id, req.params.messageId, parse(reactionSchema, req.body).emoji),
   );
+  app.post<PM>('/chats/:id/messages/:messageId/vote', async (req) =>
+    chats.votePoll(requireAuth(req).userId, req.params.id, req.params.messageId, parse(pollVoteSchema, req.body).optionIds),
+  );
+  app.post<PM>('/chats/:id/messages/:messageId/close-poll', async (req) => chats.closePoll(requireAuth(req).userId, req.params.id, req.params.messageId));
+  app.get<PM>('/chats/:id/messages/:messageId/readers', async (req) => ({
+    items: chats.readers(requireAuth(req).userId, req.params.id, req.params.messageId),
+  }));
+
+  /** Поиск по всем перепискам пользователя (кроме секретных чатов). */
+  app.get('/messages/search', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (req) => ({
+    items: chats.searchAll(requireAuth(req).userId, parse(searchQuery, req.query).q),
+  }));
+
   app.post<PM>('/chats/:id/messages/:messageId/forward', { config: sendLimit }, async (req) => ({
     items: chats.forward(requireAuth(req).userId, req.params.id, req.params.messageId, parse(forwardMessageSchema, req.body).toChatIds),
   }));

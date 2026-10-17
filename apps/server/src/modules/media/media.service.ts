@@ -33,6 +33,17 @@ export interface MediaRow {
   sha256: string;
   created_at: number;
   deleted_at: number | null;
+  waveform: string | null;
+}
+
+/** Волна голосового: base64url из байтов 0–255 (до 100 значений). */
+function decodeWaveform(v: string | null): number[] | null {
+  if (!v) return null;
+  try {
+    return [...Buffer.from(v, 'base64url')].slice(0, 100);
+  } catch {
+    return null;
+  }
 }
 
 /** Ссылки живут 24–30 часов и стабильны в пределах 6-часового окна (кэшируются браузером). */
@@ -87,6 +98,7 @@ export class MediaService {
       durationSec: row.duration_sec,
       posterUrl: this.url(row.poster_media_id),
       name: row.original_name,
+      waveform: decodeWaveform(row.waveform),
     };
   }
 
@@ -121,7 +133,7 @@ export class MediaService {
   async store(
     ownerId: string,
     stream: Readable,
-    opts: { originalName?: string; width?: number; height?: number; durationSec?: number; posterId?: string },
+    opts: { originalName?: string; width?: number; height?: number; durationSec?: number; posterId?: string; asAudio?: boolean; waveform?: string },
   ): Promise<MediaItem> {
     const id = newId();
     const tmpDir = path.join(this.config.uploadsDir, 'tmp');
@@ -170,7 +182,11 @@ export class MediaService {
       await rm(tmpPath, { force: true });
       throw new AppError(415, ErrorCode.UnsupportedMedia);
     }
-    const detected: Sniffed = sniffed;
+    let detected: Sniffed = sniffed;
+    // Голосовые из браузера пишутся в контейнер WebM/MP4 без видео — по подсказке клиента считаем их аудио
+    if (opts.asAudio && detected.mime === 'video/webm') detected = { mime: 'audio/webm', kind: 'audio', ext: 'webm' };
+    if (opts.asAudio && detected.mime === 'video/mp4') detected = { mime: 'audio/mp4', kind: 'audio', ext: 'm4a' };
+    const waveform = detected.kind === 'audio' && opts.waveform && /^[A-Za-z0-9_-]{1,140}$/.test(opts.waveform) ? opts.waveform : null;
 
     const dims = detected.kind === 'image' ? imageSize(head, detected.mime) : null;
     const now = new Date();
@@ -192,8 +208,8 @@ export class MediaService {
     const name = opts.originalName?.replace(/[\\/\u0000-\u001f]/g, '_').slice(0, 200) || null;
 
     this.db.run(
-      `INSERT INTO media (id, owner_id, kind, mime, size, width, height, duration_sec, poster_media_id, storage_key, original_name, sha256, created_at)
-       VALUES (:id, :owner, :kind, :mime, :size, :w, :h, :dur, :poster, :key, :name, :sha, :now)`,
+      `INSERT INTO media (id, owner_id, kind, mime, size, width, height, duration_sec, poster_media_id, storage_key, original_name, sha256, waveform, created_at)
+       VALUES (:id, :owner, :kind, :mime, :size, :w, :h, :dur, :poster, :key, :name, :sha, :wave, :now)`,
       {
         id,
         owner: ownerId,
@@ -205,8 +221,9 @@ export class MediaService {
         dur: opts.durationSec && opts.durationSec > 0 && opts.durationSec < 86400 ? opts.durationSec : null,
         poster: posterId,
         key: storageKey,
-        name: detected.kind === 'file' || detected.kind === 'audio' ? name : null,
+        name: detected.kind === 'file' || (detected.kind === 'audio' && !opts.asAudio) ? name : null,
         sha: hash.digest('hex'),
+        wave: waveform,
         now: now.getTime(),
       },
     );

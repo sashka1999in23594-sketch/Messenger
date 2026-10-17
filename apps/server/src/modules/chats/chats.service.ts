@@ -11,14 +11,16 @@ import type {
   ChatRole,
   ChatSummary,
   Message,
+  MessageSearchHit,
   Paginated,
   SecretChatInfo,
   SendMessageInput,
+  UserSummary,
 } from '@omni/shared';
-import { LIMITS } from '@omni/shared';
+import { ErrorCode, extractMentions, LIMITS } from '@omni/shared';
 import type { Db } from '../../db/index.js';
 import { bool, iso } from '../../db/index.js';
-import { badRequest, blocked, conflict, forbidden, notFound, privacyRestricted } from '../../lib/errors.js';
+import { AppError, badRequest, blocked, conflict, forbidden, notFound, privacyRestricted } from '../../lib/errors.js';
 import { newId } from '../../lib/ids.js';
 import type { KeysService } from '../keys/keys.service.js';
 import type { MediaService } from '../media/media.service.js';
@@ -27,7 +29,31 @@ import type { Policy } from '../policy/policy.service.js';
 import type { RealtimeHub } from '../realtime/hub.js';
 import { privacyOf, type UsersRepo } from '../users/users.repo.js';
 import { offsetCursor } from '../users/users.service.js';
-import type { ChatRow, MemberRow, MessageRow, MessagesRepo } from './chats.repo.js';
+import { MessagesRepo, type ChatRow, type MemberRow, type MessageRow } from './chats.repo.js';
+import type { PollsRepo } from './polls.repo.js';
+
+/** Входные данные отправки: «без звука» по умолчанию выключено. */
+export type SendInput = Omit<SendMessageInput, 'silent'> & { silent?: boolean };
+
+/** Пустые поля нового сообщения — чтобы не перечислять их в каждом месте вставки. */
+const BLANK: Pick<
+  MessageRow,
+  'subtype' | 'poll_id' | 'call_id' | 'silent' | 'reply_to_id' | 'forward_from_chat_id' | 'forward_sender_name' | 'ciphertext' | 'iv' | 'sender_device_id' | 'edited_at' | 'deleted_at' | 'expires_at'
+> = {
+  subtype: null,
+  poll_id: null,
+  call_id: null,
+  silent: 0,
+  reply_to_id: null,
+  forward_from_chat_id: null,
+  forward_sender_name: null,
+  ciphertext: null,
+  iv: null,
+  sender_device_id: null,
+  edited_at: null,
+  deleted_at: null,
+  expires_at: null,
+};
 
 const EDIT_WINDOW_MS = 48 * 3600 * 1000;
 const MAX_REACTIONS_PER_USER = 3;
@@ -56,6 +82,7 @@ export class ChatsService {
     private readonly hub: RealtimeHub,
     private readonly notifications: NotificationService,
     private readonly keys: KeysService,
+    private readonly polls: PollsRepo,
   ) {}
 
   // ─── Доступ ───────────────────────────────────────────────────────────────
@@ -91,17 +118,24 @@ export class ChatsService {
 
   // ─── Список и карточки чатов ──────────────────────────────────────────────
 
-  list(userId: string, folder: ChatFolder, cursor: string | undefined, limit: number): Paginated<ChatSummary> {
+  /** Список чатов: встроенная папка или условие своей папки (см. FoldersService.where). */
+  list(
+    userId: string,
+    folder: ChatFolder | { sql: string; params: Record<string, unknown> },
+    cursor: string | undefined,
+    limit: number,
+  ): Paginated<ChatSummary> {
     const offset = offsetCursor.decode(cursor);
+    const where = typeof folder === 'string' ? { sql: FOLDER_SQL[folder], params: {} } : folder;
     const rows = this.db.all<ChatRow & { m_json: string }>(
       `SELECT c.*, json_object('chat_id', m.chat_id, 'user_id', m.user_id, 'role', m.role, 'joined_at', m.joined_at,
               'last_read_seq', m.last_read_seq, 'cleared_seq', m.cleared_seq, 'pinned', m.pinned, 'archived', m.archived,
               'muted_until', m.muted_until, 'hidden', m.hidden) AS m_json
        FROM chat_members m JOIN chats c ON c.id = m.chat_id
-       WHERE m.user_id = :u AND m.hidden = 0 AND c.deleted_at IS NULL AND ${FOLDER_SQL[folder]}
+       WHERE m.user_id = :u AND m.hidden = 0 AND c.deleted_at IS NULL AND ${where.sql}
        ORDER BY m.pinned DESC, coalesce(c.last_message_at, c.created_at) DESC
        LIMIT :limit OFFSET :offset`,
-      { u: userId, limit: limit + 1, offset },
+      { u: userId, limit: limit + 1, offset, ...where.params },
     );
     const items = rows.slice(0, limit).map((r) => this.summarize(r, JSON.parse(r.m_json) as MemberRow, userId));
     return { items, nextCursor: offsetCursor.next(offset, rows.length, limit) };
@@ -158,6 +192,13 @@ export class ChatsService {
         ) ?? 0)
       : 0;
     const pinned = chat.pinned_message_id ? this.messagesRepo.byId(chat.pinned_message_id) : undefined;
+    const unreadMentions = member
+      ? (this.db.value<number>('SELECT COUNT(*) FROM message_mentions WHERE user_id = :u AND chat_id = :c AND seq > :s', {
+          u: userId,
+          c: chat.id,
+          s: fromSeq,
+        }) ?? 0)
+      : 0;
 
     let secret: SecretChatInfo | null = null;
     if (chat.type === 'secret' && chat.secret_devices) {
@@ -168,6 +209,9 @@ export class ChatsService {
     return {
       id: chat.id,
       type: chat.type,
+      unreadMentions,
+      slowModeSec: chat.slow_mode_sec,
+      ttlSeconds: chat.ttl_seconds,
       title,
       description: chat.description,
       avatarUrl,
@@ -361,16 +405,29 @@ export class ChatsService {
   update(
     userId: string,
     chatId: string,
-    input: Partial<{ title: string; description: string; avatarMediaId: string | null; ttlSeconds: number }>,
+    input: Partial<{ title: string; description: string; avatarMediaId: string | null; ttlSeconds: number; slowModeSec: number }>,
   ): ChatSummary {
     const { chat, member } = this.access(chatId, userId);
-    if (chat.type === 'secret') {
-      if (input.ttlSeconds === undefined) throw badRequest('В секретном чате можно изменить только таймер');
+    const shared = chat.type === 'group' || chat.type === 'channel';
+    if (input.ttlSeconds !== undefined && input.ttlSeconds !== chat.ttl_seconds) {
+      // Автоудаление: в общих чатах меняют администраторы, в личных — любой из двоих
+      if (shared && !this.isAdmin(member)) throw forbidden('Только администраторы могут менять автоудаление');
       this.db.run('UPDATE chats SET ttl_seconds = :t, updated_at = :now WHERE id = :id', { t: input.ttlSeconds, now: Date.now(), id: chatId });
-      this.systemMessage(chatId, userId, input.ttlSeconds ? `установил(а) таймер самоуничтожения: ${formatTtl(input.ttlSeconds)}` : 'выключил(а) таймер самоуничтожения');
+      const what = chat.type === 'secret' ? 'таймер самоуничтожения' : 'автоудаление сообщений';
+      this.systemMessage(chatId, userId, input.ttlSeconds ? `установил(а) ${what}: ${formatTtl(input.ttlSeconds)}` : `выключил(а) ${what}`);
+    }
+    if (input.slowModeSec !== undefined && input.slowModeSec !== chat.slow_mode_sec) {
+      if (chat.type !== 'group') throw badRequest('Медленный режим доступен только в группах');
+      if (!this.isAdmin(member)) throw forbidden('Только администраторы могут включать медленный режим');
+      this.db.run('UPDATE chats SET slow_mode_sec = :s, updated_at = :now WHERE id = :id', { s: input.slowModeSec, now: Date.now(), id: chatId });
+      this.systemMessage(chatId, userId, input.slowModeSec ? `включил(а) медленный режим: ${formatTtl(input.slowModeSec)}` : 'выключил(а) медленный режим');
+    }
+    const meta = input.title !== undefined || input.description !== undefined || input.avatarMediaId !== undefined;
+    if (!meta) {
+      this.broadcastChanged(chatId);
       return this.get(userId, chatId);
     }
-    if (chat.type !== 'group' && chat.type !== 'channel') throw badRequest('Этот чат нельзя переименовать');
+    if (!shared) throw badRequest('Этот чат нельзя переименовать');
     if (!this.isAdmin(member)) throw forbidden('Только администраторы могут менять чат');
     if (input.avatarMediaId) this.media.assertOwned(userId, [input.avatarMediaId], ['image']);
     this.db.run(
@@ -490,6 +547,32 @@ export class ChatsService {
     return this.get(userId, chatId);
   }
 
+  /** Вступление по ссылке-приглашению (в том числе в закрытые группы и каналы). */
+  joinByInvite(userId: string, chatId: string): ChatSummary {
+    const chat = this.chat(chatId);
+    if (chat.type !== 'channel' && chat.type !== 'group') throw badRequest('Приглашение недействительно');
+    if (!this.member(chatId, userId)) {
+      if (chat.member_count >= LIMITS.groupMembersMax) throw badRequest('Достигнут лимит участников');
+      this.db.tx(() => this.addMember(chatId, userId, chat.type === 'channel' ? 'subscriber' : 'member'));
+      if (chat.type === 'group') this.systemMessage(chatId, userId, 'присоединился(-ась) по ссылке-приглашению');
+      this.hub.sendToUser(userId, { t: 'chat.changed', chatId });
+    }
+    return this.get(userId, chatId);
+  }
+
+  /** Может ли пользователь писать в чат (для отложенных сообщений и приглашений). */
+  assertCanPost(userId: string, chatId: string): { chat: ChatRow; member: MemberRow } {
+    const { chat, member } = this.access(chatId, userId);
+    if (!this.canPost(chat, member)) throw forbidden('В этом канале публикуют только администраторы');
+    if (chat.type === 'secret') throw badRequest('В секретном чате это недоступно');
+    return { chat, member };
+  }
+
+  /** Роль пользователя в чате (null — не участник). */
+  roleIn(userId: string, chatId: string): ChatRole | null {
+    return this.member(chatId, userId)?.role ?? null;
+  }
+
   members(userId: string, chatId: string, cursor?: string, limit = 50): Paginated<ChatMember> {
     const { chat, member } = this.access(chatId, userId);
     if (chat.type === 'channel' && !this.isAdmin(member)) return { items: [], nextCursor: null };
@@ -592,7 +675,7 @@ export class ChatsService {
     return { items: this.messagesRepo.toDto(rows.slice(0, opts.limit).reverse(), userId), hasMore };
   }
 
-  send(userId: string, chatId: string, input: SendMessageInput): Message {
+  send(userId: string, chatId: string, input: SendInput): Message {
     const { chat, member } = this.access(chatId, userId);
     if (!this.canPost(chat, member)) throw forbidden('В этом канале публикуют только администраторы');
 
@@ -605,9 +688,17 @@ export class ChatsService {
       if (peerId && this.policy.blockedEitherWay(userId, peerId)) throw blocked();
     }
 
-    let kind: Message['kind'] = 'text';
+    // Медленный режим: пауза между сообщениями обычного участника группы
+    const now = Date.now();
+    if (chat.slow_mode_sec > 0 && !this.isAdmin(member) && member.last_sent_at) {
+      const wait = Math.ceil((member.last_sent_at + chat.slow_mode_sec * 1000 - now) / 1000);
+      if (wait > 0) throw new AppError(429, ErrorCode.RateLimited, `Медленный режим: следующее сообщение через ${formatTtl(wait)}`, undefined, wait);
+    }
+
+    let kind: MessageRow['kind'] = 'text';
+    let subtype: MessageRow['subtype'] = null;
     if (chat.type === 'secret') {
-      if (!input.encrypted || input.text || input.mediaIds.length) {
+      if (!input.encrypted || input.text || input.mediaIds.length || input.poll || input.kind) {
         throw badRequest('В секретном чате принимаются только зашифрованные на устройстве сообщения');
       }
       const devices = JSON.parse(chat.secret_devices ?? '{}') as Record<string, string>;
@@ -616,8 +707,23 @@ export class ChatsService {
     } else {
       if (input.encrypted) throw badRequest('Шифрованные сообщения допустимы только в секретных чатах');
       if (input.mediaIds.length) {
-        this.media.assertOwned(userId, input.mediaIds);
+        const rows = this.media.assertOwned(userId, input.mediaIds);
         kind = 'media';
+        if (input.kind) {
+          // Голосовое — одна аудиодорожка, кружок — одно короткое видео
+          const want = input.kind === 'voice' ? 'audio' : 'video';
+          const max = input.kind === 'voice' ? LIMITS.voiceMaxSec : LIMITS.roundMaxSec;
+          if (rows.length !== 1 || rows[0]!.kind !== want) throw badRequest(input.kind === 'voice' ? 'Голосовое сообщение — это одна аудиозапись' : 'Кружок — это одно видео');
+          if ((rows[0]!.duration_sec ?? 0) > max + 1) throw badRequest(`Слишком длинная запись: максимум ${formatTtl(max)}`);
+          subtype = input.kind;
+        }
+      } else if (input.kind) {
+        throw badRequest('Нет записи для отправки');
+      }
+      if (input.poll) {
+        if (chat.type !== 'group' && chat.type !== 'channel') throw badRequest('Опросы можно создавать в группах и каналах');
+        if (input.mediaIds.length) throw badRequest('К опросу нельзя прикрепить файлы');
+        subtype = 'poll';
       }
     }
     if (input.replyToId) {
@@ -625,49 +731,83 @@ export class ChatsService {
       if (!reply || reply.chat_id !== chatId) throw badRequest('Сообщение для ответа не найдено');
     }
 
-    const now = Date.now();
+    // Упоминания @имя — только участники группы (в канале и личке не нужны)
+    const mentioned =
+      chat.type === 'group' && input.text
+        ? this.db
+            .all<{ id: string }>(
+              `SELECT u.id FROM users u JOIN chat_members m ON m.user_id = u.id AND m.chat_id = :c
+               WHERE u.deleted_at IS NULL AND u.id != :me AND u.username IN (${extractMentions(input.text)
+                 .slice(0, 20)
+                 .map((_, i) => `:n${i}`)
+                 .join(',') || "''"})`,
+              { c: chatId, me: userId, ...Object.fromEntries(extractMentions(input.text).slice(0, 20).map((n, i) => [`n${i}`, n.toLowerCase()])) },
+            )
+            .map((r) => r.id)
+        : [];
+
     const id = newId(now);
     const row = this.db.tx(() => {
       const { last_seq: seq } = this.db.get<{ last_seq: number }>(
         'UPDATE chats SET last_seq = last_seq + 1, last_message_id = :id, last_message_at = :now, updated_at = :now WHERE id = :c RETURNING last_seq',
         { id, now, c: chatId },
       )!;
+      const pollId = input.poll ? this.polls.create(chatId, userId, input.poll) : null;
       const msg: MessageRow = {
+        ...BLANK,
         id,
         chat_id: chatId,
         seq,
         sender_id: userId,
         client_id: input.clientId,
         kind,
-        text: input.text || null,
+        subtype,
+        poll_id: pollId,
+        silent: input.silent ? 1 : 0,
+        text: input.poll ? input.poll.question : input.text || null,
         reply_to_id: input.replyToId ?? null,
-        forward_from_chat_id: null,
-        forward_sender_name: null,
         ciphertext: input.encrypted?.ciphertext ?? null,
         iv: input.encrypted?.iv ?? null,
         sender_device_id: input.encrypted?.senderDeviceId ?? null,
-        edited_at: null,
-        deleted_at: null,
         expires_at: chat.ttl_seconds > 0 ? now + chat.ttl_seconds * 1000 : null,
         created_at: now,
       };
       this.insertMessage(msg, input.mediaIds);
-      this.db.run('UPDATE chat_members SET last_read_seq = :seq WHERE chat_id = :c AND user_id = :u', { seq, c: chatId, u: userId });
+      for (const uid of mentioned) {
+        this.db.run('INSERT OR IGNORE INTO message_mentions (message_id, user_id, chat_id, seq) VALUES (:m, :u, :c, :s)', { m: id, u: uid, c: chatId, s: seq });
+      }
+      this.db.run('UPDATE chat_members SET last_read_seq = :seq, last_sent_at = :now WHERE chat_id = :c AND user_id = :u', { seq, now, c: chatId, u: userId });
       // Новое сообщение «возвращает» скрытый чат в список у всех участников
       this.db.run('UPDATE chat_members SET hidden = 0 WHERE chat_id = :c AND hidden = 1', { c: chatId });
       return msg;
     });
-    return this.publishNew(row, userId);
+    const dto = this.publishNew(row, userId);
+    for (const uid of mentioned) {
+      this.notifications.notify({
+        userId: uid,
+        type: 'mention',
+        actorId: userId,
+        entityType: 'message',
+        entityId: row.id,
+        link: `/chats/${chatId}?m=${row.seq}`,
+        preview: `в «${chat.title}»: ${input.text ?? ''}`,
+      });
+    }
+    return dto;
   }
 
   private insertMessage(m: MessageRow, mediaIds: string[]): void {
     this.db.run(
-      `INSERT INTO messages (id, chat_id, seq, sender_id, client_id, kind, text, reply_to_id, forward_from_chat_id, forward_sender_name,
-         ciphertext, iv, sender_device_id, expires_at, created_at)
-       VALUES (:id, :chat_id, :seq, :sender_id, :client_id, :kind, :text, :reply_to_id, :forward_from_chat_id, :forward_sender_name,
-         :ciphertext, :iv, :sender_device_id, :expires_at, :created_at)`,
+      `INSERT INTO messages (id, chat_id, seq, sender_id, client_id, kind, subtype, poll_id, call_id, silent, text, reply_to_id,
+         forward_from_chat_id, forward_sender_name, ciphertext, iv, sender_device_id, expires_at, created_at)
+       VALUES (:id, :chat_id, :seq, :sender_id, :client_id, :kind, :subtype, :poll_id, :call_id, :silent, :text, :reply_to_id,
+         :forward_from_chat_id, :forward_sender_name, :ciphertext, :iv, :sender_device_id, :expires_at, :created_at)`,
       {
         id: m.id,
+        subtype: m.subtype,
+        poll_id: m.poll_id,
+        call_id: m.call_id,
+        silent: m.silent,
         chat_id: m.chat_id,
         seq: m.seq,
         sender_id: m.sender_id,
@@ -701,7 +841,7 @@ export class ChatsService {
     return forActor;
   }
 
-  systemMessage(chatId: string, actorId: string, text: string): void {
+  systemMessage(chatId: string, actorId: string, text: string, extra: Partial<Pick<MessageRow, 'subtype' | 'call_id'>> = {}): void {
     const now = Date.now();
     const id = newId(now);
     const row = this.db.tx(() => {
@@ -710,6 +850,7 @@ export class ChatsService {
         { id, now, c: chatId },
       )!;
       const msg: MessageRow = {
+        ...BLANK,
         id,
         chat_id: chatId,
         seq,
@@ -717,16 +858,8 @@ export class ChatsService {
         client_id: null,
         kind: 'system',
         text,
-        reply_to_id: null,
-        forward_from_chat_id: null,
-        forward_sender_name: null,
-        ciphertext: null,
-        iv: null,
-        sender_device_id: null,
-        edited_at: null,
-        deleted_at: null,
-        expires_at: null,
         created_at: now,
+        ...extra,
       };
       this.insertMessage(msg, []);
       this.db.run('UPDATE chat_members SET last_read_seq = max(last_read_seq, :seq) WHERE chat_id = :c AND user_id = :u', {
@@ -800,6 +933,7 @@ export class ChatsService {
       );
       this.db.run('DELETE FROM message_media WHERE message_id = :id', { id: messageId });
       this.db.run('DELETE FROM message_reactions WHERE message_id = :id', { id: messageId });
+      this.db.run('DELETE FROM message_mentions WHERE message_id = :id', { id: messageId });
       this.db.run('UPDATE chats SET pinned_message_id = NULL WHERE id = :c AND pinned_message_id = :id', { c: chatId, id: messageId });
     });
     this.hub.sendToUsers(this.memberIds(chatId), { t: 'message.deleted', chatId, messageId });
@@ -839,7 +973,9 @@ export class ChatsService {
 
   forward(userId: string, chatId: string, messageId: string, toChatIds: string[]): Message[] {
     const { chat, msg } = this.ownMessage(userId, chatId, messageId);
-    if (chat.type === 'secret' || msg.kind === 'encrypted' || msg.kind === 'system') throw forbidden('Это сообщение нельзя переслать');
+    if (chat.type === 'secret' || msg.kind === 'encrypted' || msg.kind === 'system' || msg.subtype === 'poll' || msg.subtype === 'call') {
+      throw forbidden('Это сообщение нельзя переслать');
+    }
     const media = this.db
       .all<{ media_id: string }>('SELECT media_id FROM message_media WHERE message_id = :m ORDER BY position', { m: messageId })
       .map((r) => r.media_id);
@@ -866,8 +1002,9 @@ export class ChatsService {
           reply_to_id: null,
           forward_from_chat_id: bool(chat.is_public) ? chat.id : null,
           forward_sender_name: senderName,
+          silent: 0,
           edited_at: null,
-          expires_at: null,
+          expires_at: target.ttl_seconds > 0 ? now + target.ttl_seconds * 1000 : null,
           created_at: now,
         };
         this.insertMessage(m, media);
@@ -935,19 +1072,87 @@ export class ChatsService {
     };
   }
 
-  typing(userId: string, chatId: string): void {
+  typing(userId: string, chatId: string, activity: 'typing' | 'voice' | 'round' = 'typing'): void {
     const member = this.member(chatId, userId);
     if (!member || member.role === 'subscriber') return;
     const u = this.users.summary(userId);
     if (!u) return;
-    this.hub.sendToUsers(this.memberIds(chatId), { t: 'typing', chatId, userId, displayName: u.displayName }, userId);
+    this.hub.sendToUsers(this.memberIds(chatId), { t: 'typing', chatId, userId, displayName: u.displayName, activity }, userId);
+  }
+
+  // ─── Опросы ───────────────────────────────────────────────────────────────
+
+  votePoll(userId: string, chatId: string, messageId: string, optionIds: string[]): Message {
+    const { msg } = this.ownMessage(userId, chatId, messageId);
+    if (msg.subtype !== 'poll' || !msg.poll_id) throw badRequest('Это не опрос');
+    this.polls.vote(msg.poll_id, userId, optionIds);
+    return this.publishUpdated(chatId, messageId, userId);
+  }
+
+  closePoll(userId: string, chatId: string, messageId: string): Message {
+    const { member, msg } = this.ownMessage(userId, chatId, messageId);
+    if (msg.subtype !== 'poll' || !msg.poll_id) throw badRequest('Это не опрос');
+    if (msg.sender_id !== userId && !this.isAdmin(member)) throw forbidden('Завершить опрос может автор или администратор');
+    this.polls.close(msg.poll_id);
+    return this.publishUpdated(chatId, messageId, userId);
+  }
+
+  // ─── Кто прочитал (группы) ────────────────────────────────────────────────
+
+  readers(userId: string, chatId: string, messageId: string): UserSummary[] {
+    const { chat, msg } = this.ownMessage(userId, chatId, messageId);
+    if (chat.type !== 'group' || chat.member_count > 100) return [];
+    const ids = this.db
+      .all<{ user_id: string }>(
+        `SELECT user_id FROM chat_members WHERE chat_id = :c AND last_read_seq >= :s AND user_id != :sender ORDER BY joined_at`,
+        { c: chatId, s: msg.seq, sender: msg.sender_id ?? '' },
+      )
+      .map((r) => r.user_id)
+      // Кто выключил отчёты о прочтении — не показывается
+      .filter((id) => {
+        const u = this.users.byId(id);
+        return !!u && privacyOf(u).readReceipts;
+      });
+    const users = this.users.summaries(ids);
+    return ids.map((id) => users.get(id)).filter((u): u is UserSummary => !!u);
+  }
+
+  // ─── Поиск по всем перепискам ─────────────────────────────────────────────
+
+  searchAll(userId: string, q: string, limit = 40): MessageSearchHit[] {
+    const terms = q
+      .replace(/["*^():{}[\]\\]/g, ' ')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 8);
+    if (!terms.length) return [];
+    const match = terms.map((t) => `"${t}"*`).join(' ');
+    const rows = this.db.all<MessageRow>(
+      `SELECT m.* FROM messages_fts f
+         JOIN messages m ON m.rowid = f.rowid
+         JOIN chat_members cm ON cm.chat_id = m.chat_id AND cm.user_id = :u
+         JOIN chats c ON c.id = m.chat_id
+       WHERE messages_fts MATCH :q AND m.deleted_at IS NULL AND m.kind IN ('text', 'media')
+         AND c.deleted_at IS NULL AND c.type != 'secret' AND m.seq > cm.cleared_seq
+         AND NOT EXISTS (SELECT 1 FROM message_hidden h WHERE h.message_id = m.id AND h.user_id = :u)
+       ORDER BY m.created_at DESC LIMIT :limit`,
+      { u: userId, q: match, limit },
+    );
+    const dtos = this.messagesRepo.toDto(rows, userId);
+    const chats = new Map<string, MessageSearchHit['chat']>();
+    for (const r of rows) {
+      if (chats.has(r.chat_id)) continue;
+      const c = this.get(userId, r.chat_id);
+      chats.set(r.chat_id, { id: c.id, type: c.type, title: c.title, avatarUrl: c.avatarUrl });
+    }
+    return dtos.map((m) => ({ message: m, chat: chats.get(m.chatId)! }));
   }
 
   private broadcastChanged(chatId: string): void {
     this.hub.sendToUsers(this.memberIds(chatId), { t: 'chat.changed', chatId });
   }
 
-  /** Удаляет сообщения с истёкшим таймером (секретные чаты). */
+  /** Удаляет сообщения с истёкшим таймером (секретные чаты и автоудаление). */
   sweepExpired(): number {
     const rows = this.db.all<{ id: string; chat_id: string }>(
       'SELECT id, chat_id FROM messages WHERE expires_at IS NOT NULL AND expires_at < :now AND deleted_at IS NULL LIMIT 500',

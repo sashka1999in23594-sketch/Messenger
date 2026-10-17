@@ -12,6 +12,12 @@ import { MailService } from './modules/mail/mail.service.js';
 import { SecurityLog } from './modules/auth/security-log.js';
 import { SessionService } from './modules/auth/sessions.js';
 import { MessagesRepo } from './modules/chats/chats.repo.js';
+import { PollsRepo } from './modules/chats/polls.repo.js';
+import { CallsRepo } from './modules/calls/calls.repo.js';
+import { CallsService } from './modules/calls/calls.service.js';
+import { FoldersService } from './modules/chats/folders.service.js';
+import { InvitesService } from './modules/chats/invites.service.js';
+import { ScheduledService } from './modules/chats/scheduled.service.js';
 import { ChatsService } from './modules/chats/chats.service.js';
 import { CommunitiesService } from './modules/communities/communities.service.js';
 import { KeysService } from './modules/keys/keys.service.js';
@@ -39,8 +45,14 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub) {
   const mail = new MailService(config);
   const emailCodes = new EmailCodes(db, config.secret);
   const auth = new AuthService(db, config.secret, usersRepo, users, sessions, securityLog, notifications, hub, mail, emailCodes, config.publicOrigin);
-  const messagesRepo = new MessagesRepo(db, usersRepo, media);
-  const chats = new ChatsService(db, usersRepo, messagesRepo, policy, media, hub, notifications, keys);
+  const polls = new PollsRepo(db, usersRepo);
+  const callsRepo = new CallsRepo(db, usersRepo);
+  const messagesRepo = new MessagesRepo(db, usersRepo, media, polls, callsRepo);
+  const chats = new ChatsService(db, usersRepo, messagesRepo, policy, media, hub, notifications, keys, polls);
+  const folders = new FoldersService(db);
+  const invites = new InvitesService(db, chats, usersRepo, media, config.publicOrigin);
+  const scheduled = new ScheduledService(db, chats, media);
+  const calls = new CallsService(db, callsRepo, chats, usersRepo, policy, hub);
   const posts = new PostsService(db, usersRepo, policy, media, notifications);
   const comments = new CommentsService(db, usersRepo, policy, posts, notifications);
   const stories = new StoriesService(db, usersRepo, policy, media);
@@ -74,6 +86,11 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub) {
     keys,
     auth,
     chats,
+    callsRepo,
+    calls,
+    folders,
+    invites,
+    scheduled,
     posts,
     comments,
     stories,

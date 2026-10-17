@@ -1,9 +1,11 @@
-import type { ChatRole, ChatType, Message, MessagePreview } from '@omni/shared';
+import type { ChatRole, ChatType, Message, MessageKind, MessagePreview } from '@omni/shared';
 import { excerpt } from '@omni/shared';
 import type { Db } from '../../db/index.js';
 import { Db as DbClass, iso, isoOrNull } from '../../db/index.js';
+import type { CallsRepo } from '../calls/calls.repo.js';
 import type { MediaService } from '../media/media.service.js';
 import type { UsersRepo } from '../users/users.repo.js';
+import type { PollsRepo } from './polls.repo.js';
 
 export interface ChatRow {
   id: string;
@@ -20,6 +22,7 @@ export interface ChatRow {
   last_message_at: number | null;
   pinned_message_id: string | null;
   ttl_seconds: number;
+  slow_mode_sec: number;
   secret_devices: string | null;
   member_count: number;
   created_at: number;
@@ -38,6 +41,7 @@ export interface MemberRow {
   archived: number;
   muted_until: number | null;
   hidden: number;
+  last_sent_at: number | null;
 }
 
 export interface MessageRow {
@@ -46,7 +50,12 @@ export interface MessageRow {
   seq: number;
   sender_id: string | null;
   client_id: string | null;
-  kind: Message['kind'];
+  /** Колонка БД: text | media | system | encrypted; подвид — в subtype */
+  kind: 'text' | 'media' | 'system' | 'encrypted';
+  subtype: 'voice' | 'round' | 'poll' | 'call' | null;
+  poll_id: string | null;
+  call_id: string | null;
+  silent: number;
   text: string | null;
   reply_to_id: string | null;
   forward_from_chat_id: string | null;
@@ -66,7 +75,14 @@ export class MessagesRepo {
     private readonly db: Db,
     private readonly users: UsersRepo,
     private readonly media: MediaService,
+    private readonly polls: PollsRepo,
+    private readonly calls: CallsRepo,
   ) {}
+
+  /** Вид сообщения для клиента: подвид важнее базового вида. */
+  static kindOf(row: Pick<MessageRow, 'kind' | 'subtype'>): MessageKind {
+    return row.subtype ?? row.kind;
+  }
 
   byId(id: string): MessageRow | undefined {
     return this.db.get<MessageRow>('SELECT * FROM messages WHERE id = :id', { id });
@@ -78,7 +94,7 @@ export class MessagesRepo {
       id: row.id,
       senderId: row.sender_id,
       senderName: senderName ?? (row.sender_id ? (this.users.summary(row.sender_id)?.displayName ?? null) : null),
-      kind: row.kind,
+      kind: MessagesRepo.kindOf(row),
       text: row.kind === 'encrypted' ? null : excerpt(row.text, 140) || null,
       createdAt: iso(row.created_at),
     };
@@ -117,6 +133,9 @@ export class MessagesRepo {
       reactionsBy.set(r.message_id, [...(reactionsBy.get(r.message_id) ?? []), { emoji: r.emoji, count: r.c, mine: r.mine === 1 }]);
     }
 
+    const polls = this.polls.dtos(rows.map((r) => r.poll_id).filter((v): v is string => !!v), viewerId);
+    const calls = this.calls.dtos(rows.map((r) => r.call_id).filter((v): v is string => !!v));
+
     return rows.map((r) => {
       const reply = r.reply_to_id ? replies.get(r.reply_to_id) : undefined;
       return {
@@ -125,9 +144,12 @@ export class MessagesRepo {
         seq: r.seq,
         clientId: r.sender_id === viewerId ? r.client_id : null,
         sender: r.sender_id ? (senders.get(r.sender_id) ?? null) : null,
-        kind: r.kind,
+        kind: MessagesRepo.kindOf(r),
         text: r.text,
         media: (mediaBy.get(r.id) ?? []).map((id) => mediaItems.get(id)).filter((m) => !!m),
+        poll: r.poll_id ? (polls.get(r.poll_id) ?? null) : null,
+        call: r.call_id ? (calls.get(r.call_id) ?? null) : null,
+        silent: r.silent === 1,
         replyTo: reply ? this.preview(reply, reply.sender_id ? replySenders.get(reply.sender_id)?.displayName : null) : null,
         forwardedFrom: r.forward_sender_name ? { chatId: r.forward_from_chat_id, senderName: r.forward_sender_name } : null,
         reactions: reactionsBy.get(r.id) ?? [],

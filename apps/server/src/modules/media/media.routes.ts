@@ -9,6 +9,9 @@ const uploadQuery = z.object({
   height: z.coerce.number().int().min(1).max(20000).optional(),
   duration: z.coerce.number().min(0).max(86400).optional(),
   posterId: z.string().max(64).optional(),
+  /** Голосовое сообщение: контейнер WebM/MP4 только со звуком */
+  as: z.enum(['audio']).optional(),
+  waveform: z.string().max(140).optional(),
 });
 const serveQuery = z.object({ e: z.string().max(20).optional(), s: z.string().max(64).optional() });
 
@@ -27,6 +30,8 @@ export async function mediaRoutes(app: FastifyInstance): Promise<void> {
       height: q.height,
       durationSec: q.duration,
       posterId: q.posterId,
+      asAudio: q.as === 'audio',
+      waveform: q.waveform,
     });
     return reply.status(201).send(item);
   });

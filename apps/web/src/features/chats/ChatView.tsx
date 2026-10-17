@@ -118,6 +118,9 @@ export function ChatView() {
         kind: encrypted ? 'encrypted' : data.mediaIds.length ? 'media' : 'text',
         text: encrypted ? null : data.text || null,
         media: data.media,
+        poll: null,
+        call: null,
+        silent: false,
         replyTo: data.replyTo
           ? {
               id: data.replyTo.id,

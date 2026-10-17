@@ -32,6 +32,11 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   /** Или через SMTP: smtps://логин:пароль@smtp.example.com:465 */
   SMTP_URL: z.string().optional(),
+  /** Звонки: STUN-серверы (через запятую) и TURN для сложных сетей (мобильный интернет, корпоративный NAT) */
+  STUN_URLS: z.string().default('stun:stun.l.google.com:19302,stun:stun.cloudflare.com:3478'),
+  TURN_URLS: z.string().default(''),
+  TURN_USERNAME: z.string().default(''),
+  TURN_CREDENTIAL: z.string().default(''),
 });
 
 export type Config = ReturnType<typeof loadConfig>;
@@ -113,5 +118,11 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
     secureCookies: isProd,
     demoSeed: env.DEMO_SEED === 'true' || env.DEMO_SEED === '1',
     mail,
+    iceServers: [
+      { urls: env.STUN_URLS.split(',').map((u) => u.trim()).filter(Boolean) },
+      ...(env.TURN_URLS
+        ? [{ urls: env.TURN_URLS.split(',').map((u) => u.trim()).filter(Boolean), username: env.TURN_USERNAME, credential: env.TURN_CREDENTIAL }]
+        : []),
+    ] as { urls: string[]; username?: string; credential?: string }[],
   };
 }

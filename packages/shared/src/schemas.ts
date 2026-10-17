@@ -9,6 +9,7 @@ import {
   REACTIONS,
   REPORT_REASONS,
   SECRET_TTL_OPTIONS,
+  SLOW_MODE_OPTIONS,
   SLUG_RE,
   USERNAME_RE,
 } from './constants.js';
@@ -266,7 +267,9 @@ export const updateChatSchema = z
     title: requiredText(LIMITS.chatTitleMax),
     description: text(LIMITS.chatDescriptionMax),
     avatarMediaId: id.nullable(),
+    /** Автоудаление: в секретных чатах — таймер, в остальных — удаление новых сообщений */
     ttlSeconds: z.number().int().refine((v) => (SECRET_TTL_OPTIONS as readonly number[]).includes(v)),
+    slowModeSec: z.number().int().refine((v) => (SLOW_MODE_OPTIONS as readonly number[]).includes(v)),
   })
   .partial();
 
@@ -288,6 +291,21 @@ export const encryptedPayloadSchema = z.object({
   senderDeviceId: deviceKeySchema.shape.deviceId,
 });
 
+export const pollInputSchema = z
+  .object({
+    question: requiredText(LIMITS.pollQuestionMax),
+    options: z.array(requiredText(LIMITS.pollOptionMax)).min(2, 'Нужно хотя бы 2 варианта').max(LIMITS.pollOptionsMax),
+    multiple: z.boolean().default(false),
+    anonymous: z.boolean().default(true),
+    /** Индекс верного варианта — опрос становится викториной */
+    correctOption: z.number().int().min(0).max(LIMITS.pollOptionsMax - 1).optional(),
+  })
+  .refine((p) => p.correctOption === undefined || (p.correctOption < p.options.length && !p.multiple), {
+    message: 'В викторине один верный вариант',
+    path: ['correctOption'],
+  });
+export type PollInput = z.infer<typeof pollInputSchema>;
+
 export const sendMessageSchema = z
   .object({
     /** Идентификатор от клиента: повторная отправка не создаст дубль */
@@ -296,8 +314,13 @@ export const sendMessageSchema = z
     mediaIds: z.array(id).max(LIMITS.mediaPerMessage).default([]),
     replyToId: id.optional(),
     encrypted: encryptedPayloadSchema.optional(),
+    /** Голосовое сообщение или видео-кружок: ровно одно вложение нужного типа */
+    kind: z.enum(['voice', 'round']).optional(),
+    poll: pollInputSchema.optional(),
+    /** Без звука у получателей */
+    silent: z.boolean().default(false),
   })
-  .refine((v) => (v.text && v.text.length > 0) || v.mediaIds.length > 0 || v.encrypted, {
+  .refine((v) => (v.text && v.text.length > 0) || v.mediaIds.length > 0 || v.encrypted || v.poll, {
     message: 'Пустое сообщение',
     path: ['text'],
   });
@@ -308,8 +331,47 @@ export const editMessageSchema = z.object({
   encrypted: encryptedPayloadSchema.optional(),
 });
 
+export const scheduleMessageSchema = z.object({
+  text: text(LIMITS.messageMax).optional(),
+  mediaIds: z.array(id).max(LIMITS.mediaPerMessage).default([]),
+  replyToId: id.optional(),
+  silent: z.boolean().default(false),
+  sendAt: z.iso.datetime(),
+});
+
+export const pollVoteSchema = z.object({ optionIds: z.array(id).max(LIMITS.pollOptionsMax) });
+
+export const chatFolderSchema = z.object({
+  name: requiredText(LIMITS.folderNameMax),
+  emoji: z.string().trim().max(16).default('📁'),
+  includeTypes: z.array(z.enum(['direct', 'groups', 'channels', 'secret', 'saved'])).max(5).default([]),
+  includeChatIds: z.array(id).max(200).default([]),
+  excludeMuted: z.boolean().default(false),
+  excludeRead: z.boolean().default(false),
+  excludeArchived: z.boolean().default(true),
+});
+
+export const reorderFoldersSchema = z.object({ ids: z.array(id).max(LIMITS.foldersMax) });
+
+export const createInviteSchema = z.object({
+  title: text(64).default(''),
+  /** Срок действия в часах (0 — бессрочно) */
+  expiresInHours: z.number().int().min(0).max(24 * 365).default(0),
+  /** Сколько раз можно использовать (0 — без ограничений) */
+  usageLimit: z.number().int().min(0).max(100_000).default(0),
+});
+
+export const startCallSchema = z.object({ chatId: id, video: z.boolean().default(false) });
+
 export const forwardMessageSchema = z.object({ toChatIds: z.array(id).min(1).max(20) });
-export const reactionSchema = z.object({ emoji: z.enum(REACTIONS) });
+/** Реакция — любой одиночный эмодзи (быстрые реакции + полный выбор) */
+export const reactionSchema = z.object({
+  emoji: z
+    .string()
+    .min(1)
+    .max(32)
+    .refine((v) => /^\p{Extended_Pictographic}/u.test(v) || (REACTIONS as readonly string[]).includes(v), 'Неподдерживаемая реакция'),
+});
 export const readSchema = z.object({ seq: z.number().int().min(0) });
 export const deleteMessageSchema = z.object({ forEveryone: z.boolean().default(false) });
 

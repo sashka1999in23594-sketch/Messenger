@@ -15,6 +15,7 @@ import { registerSecurity } from './http/security.js';
 import './http/types.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { chatsRoutes } from './modules/chats/chats.routes.js';
+import { callsRoutes } from './modules/calls/calls.routes.js';
 import { keysRoutes } from './modules/keys/keys.routes.js';
 import { mediaRoutes } from './modules/media/media.routes.js';
 import { miscRoutes } from './modules/misc.routes.js';
@@ -71,6 +72,7 @@ export async function buildApp(config: Config, opts: { db?: Db } = {}): Promise<
       await api.register(usersRoutes);
       await api.register(keysRoutes);
       await api.register(chatsRoutes);
+      await api.register(callsRoutes);
       await api.register(postsRoutes);
       await api.register(mediaRoutes);
       await api.register(miscRoutes);

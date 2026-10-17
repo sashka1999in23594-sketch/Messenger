@@ -204,6 +204,8 @@ export interface MediaItem {
   durationSec: number | null;
   posterUrl: string | null;
   name: string | null;
+  /** Форма звуковой волны голосового сообщения: 0–255, до 100 значений */
+  waveform: number[] | null;
 }
 
 // ─── Чаты ───────────────────────────────────────────────────────────────────
@@ -220,6 +222,12 @@ export interface MessagePreview {
 export interface ChatSummary {
   id: ID;
   type: ChatType;
+  /** Непрочитанные упоминания вас (@) */
+  unreadMentions: number;
+  /** Медленный режим: пауза между сообщениями участника, секунды */
+  slowModeSec: number;
+  /** Автоудаление новых сообщений, секунды (0 — выключено) */
+  ttlSeconds: number;
   title: string;
   description: string;
   avatarUrl: string | null;
@@ -272,9 +280,15 @@ export interface Message {
   seq: number;
   clientId: string | null;
   sender: UserSummary | null;
-  kind: 'text' | 'media' | 'system' | 'encrypted';
+  kind: MessageKind;
   text: string | null;
   media: MediaItem[];
+  /** Опрос (kind = 'poll') */
+  poll: Poll | null;
+  /** Звонок (kind = 'call') */
+  call: CallInfo | null;
+  /** Отправлено без звука — получатели не получают звук и всплывающее уведомление */
+  silent: boolean;
   replyTo: MessagePreview | null;
   forwardedFrom: { chatId: ID | null; senderName: string } | null;
   reactions: ReactionSummary[];
@@ -283,6 +297,102 @@ export interface Message {
   deletedAt: ISODate | null;
   expiresAt: ISODate | null;
   createdAt: ISODate;
+}
+
+/**
+ * Вид сообщения: обычный текст, медиа, голосовое, видео-кружок, опрос,
+ * звонок, системное, зашифрованное (секретный чат).
+ */
+export type MessageKind = 'text' | 'media' | 'voice' | 'round' | 'poll' | 'call' | 'system' | 'encrypted';
+
+export interface PollOption {
+  id: ID;
+  text: string;
+  votes: number;
+  /** Вы выбрали этот вариант */
+  mine: boolean;
+}
+
+export interface Poll {
+  id: ID;
+  question: string;
+  options: PollOption[];
+  totalVoters: number;
+  multiple: boolean;
+  anonymous: boolean;
+  /** Викторина: верный вариант виден после ответа или закрытия */
+  quiz: boolean;
+  correctOptionId: ID | null;
+  closed: boolean;
+  /** Вы уже проголосовали */
+  voted: boolean;
+  /** Несколько последних проголосовавших (только в открытых опросах) */
+  recentVoters: UserSummary[];
+}
+
+export type CallStatus = 'ringing' | 'active' | 'ended' | 'missed' | 'declined' | 'busy' | 'cancelled' | 'failed';
+
+export interface CallInfo {
+  id: ID;
+  chatId: ID;
+  caller: UserSummary;
+  callee: UserSummary;
+  video: boolean;
+  status: CallStatus;
+  /** Длительность разговора, секунды */
+  durationSec: number;
+  createdAt: ISODate;
+  answeredAt: ISODate | null;
+  endedAt: ISODate | null;
+}
+
+export interface ChatFolderInfo {
+  id: ID;
+  name: string;
+  emoji: string;
+  /** Какие типы чатов включать */
+  includeTypes: ('direct' | 'groups' | 'channels' | 'secret' | 'saved')[];
+  /** Отдельно выбранные чаты */
+  includeChatIds: ID[];
+  excludeMuted: boolean;
+  excludeRead: boolean;
+  excludeArchived: boolean;
+  unreadCount: number;
+}
+
+export interface ChatInvite {
+  token: string;
+  url: string;
+  title: string;
+  creator: UserSummary | null;
+  expiresAt: ISODate | null;
+  usageLimit: number | null;
+  uses: number;
+  revoked: boolean;
+  createdAt: ISODate;
+}
+
+export interface InvitePreview {
+  token: string;
+  chat: { id: ID; type: ChatType; title: string; description: string; avatarUrl: string | null; memberCount: number };
+  /** Вы уже участник */
+  isMember: boolean;
+}
+
+export interface ScheduledMessage {
+  id: ID;
+  chatId: ID;
+  text: string | null;
+  media: MediaItem[];
+  kind: MessageKind;
+  silent: boolean;
+  sendAt: ISODate;
+  createdAt: ISODate;
+}
+
+export interface MessageSearchHit {
+  message: Message;
+  chat: { id: ID; type: ChatType; title: string; avatarUrl: string | null };
 }
 
 export interface ChatMember {
@@ -412,7 +522,7 @@ export interface AppNotification {
   id: ID;
   type: NotificationType;
   actor: UserSummary | null;
-  entityType: 'post' | 'comment' | 'user' | 'community' | 'session' | null;
+  entityType: 'post' | 'comment' | 'user' | 'community' | 'session' | 'message' | 'call' | null;
   entityId: ID | null;
   /** Ссылка внутри приложения, куда ведёт уведомление */
   link: string | null;

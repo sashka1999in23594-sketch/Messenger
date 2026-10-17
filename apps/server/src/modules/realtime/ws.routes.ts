@@ -5,7 +5,8 @@
 import type { FastifyInstance } from 'fastify';
 import type { ClientEvent } from '@omni/shared';
 
-const MAX_MESSAGE_BYTES = 4096;
+/** Сигналы звонков (SDP) бывают по несколько килобайт */
+const MAX_MESSAGE_BYTES = 32 * 1024;
 const TYPING_THROTTLE_MS = 2000;
 
 export async function wsRoutes(app: FastifyInstance): Promise<void> {
@@ -52,7 +53,13 @@ export async function wsRoutes(app: FastifyInstance): Promise<void> {
             const now = Date.now();
             if (now - (lastTyping.get(event.chatId) ?? 0) < TYPING_THROTTLE_MS) return;
             lastTyping.set(event.chatId, now);
-            services.chats.typing(userId, event.chatId);
+            const activity = event.activity === 'voice' || event.activity === 'round' ? event.activity : 'typing';
+            services.chats.typing(userId, event.chatId, activity);
+            break;
+          }
+          case 'call.signal': {
+            if (typeof event.callId !== 'string' || event.callId.length > 64 || typeof event.signal !== 'object' || !event.signal) return;
+            services.calls.signal(userId, sessionId, event.callId, event.signal);
             break;
           }
           case 'presence.subscribe': {

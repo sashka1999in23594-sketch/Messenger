@@ -16,11 +16,14 @@ interface Conn {
 }
 
 export type PresenceListener = (userId: string, online: boolean) => void;
+/** Закрылось последнее соединение сеанса (вкладка/приложение ушли в офлайн). */
+export type SessionGoneListener = (userId: string, sessionId: string) => void;
 
 export class RealtimeHub {
   private readonly byUser = new Map<string, Set<Conn>>();
   private readonly presenceWatchers = new Map<string, Set<Conn>>();
   private readonly presenceListeners: PresenceListener[] = [];
+  private readonly sessionGoneListeners: SessionGoneListener[] = [];
   private heartbeat: NodeJS.Timeout | null = null;
 
   start(intervalMs: number): void {
@@ -48,6 +51,10 @@ export class RealtimeHub {
     this.presenceListeners.push(listener);
   }
 
+  onSessionGone(listener: SessionGoneListener): void {
+    this.sessionGoneListeners.push(listener);
+  }
+
   add(socket: WebSocket, userId: string, sessionId: string): Conn {
     const conn: Conn = { socket, userId, sessionId, alive: true, presenceSubs: new Set() };
     let set = this.byUser.get(userId);
@@ -68,6 +75,9 @@ export class RealtimeHub {
   private remove(conn: Conn): void {
     const set = this.byUser.get(conn.userId);
     set?.delete(conn);
+    if (![...(set ?? [])].some((c) => c.sessionId === conn.sessionId)) {
+      for (const l of this.sessionGoneListeners) l(conn.userId, conn.sessionId);
+    }
     for (const target of conn.presenceSubs) this.presenceWatchers.get(target)?.delete(conn);
     if (set && set.size === 0) {
       this.byUser.delete(conn.userId);
@@ -120,6 +130,16 @@ export class RealtimeHub {
       if (id === exceptUserId) continue;
       for (const c of this.byUser.get(id) ?? []) if (c.socket.readyState === c.socket.OPEN) c.socket.send(payload);
     }
+  }
+
+  /** Событие только в соединения одного сеанса (например, сигнализация звонка — на принявшее устройство). */
+  sendToSession(userId: string, sessionId: string, event: ServerEvent): void {
+    const payload = JSON.stringify(event);
+    for (const c of this.byUser.get(userId) ?? []) if (c.sessionId === sessionId && c.socket.readyState === c.socket.OPEN) c.socket.send(payload);
+  }
+
+  sessionOnline(userId: string, sessionId: string): boolean {
+    return [...(this.byUser.get(userId) ?? [])].some((c) => c.sessionId === sessionId);
   }
 
   /** Закрывает соединения отозванного сеанса. */

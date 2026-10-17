@@ -456,4 +456,132 @@ CREATE INDEX email_codes_user ON email_codes(user_id, purpose, created_at);
 ALTER TABLE login_challenges ADD COLUMN email_sent INTEGER NOT NULL DEFAULT 0;
 `,
   },
+  {
+    version: '003_messenger',
+    sql: /* sql */ `
+-- ── Мессенджер: голосовые, кружки, опросы, звонки, упоминания ──────────────
+-- Вид сообщения (voice | round | poll | call) — отдельной колонкой: CHECK у kind не меняем
+ALTER TABLE messages ADD COLUMN subtype TEXT;
+ALTER TABLE messages ADD COLUMN poll_id TEXT;
+ALTER TABLE messages ADD COLUMN call_id TEXT;
+ALTER TABLE messages ADD COLUMN silent INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE media ADD COLUMN waveform TEXT;
+ALTER TABLE chats ADD COLUMN slow_mode_sec INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE chat_members ADD COLUMN last_sent_at INTEGER;
+
+CREATE TABLE message_mentions (
+  message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  chat_id    TEXT NOT NULL,
+  seq        INTEGER NOT NULL,
+  PRIMARY KEY (message_id, user_id)
+);
+CREATE INDEX message_mentions_user ON message_mentions(user_id, chat_id, seq);
+
+CREATE TABLE polls (
+  id                TEXT PRIMARY KEY,
+  chat_id           TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  creator_id        TEXT REFERENCES users(id) ON DELETE SET NULL,
+  question          TEXT NOT NULL,
+  multiple          INTEGER NOT NULL DEFAULT 0,
+  anonymous         INTEGER NOT NULL DEFAULT 1,
+  correct_option_id TEXT,
+  closed_at         INTEGER,
+  created_at        INTEGER NOT NULL
+);
+CREATE TABLE poll_options (
+  id        TEXT PRIMARY KEY,
+  poll_id   TEXT NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
+  position  INTEGER NOT NULL,
+  text      TEXT NOT NULL
+);
+CREATE INDEX poll_options_poll ON poll_options(poll_id, position);
+CREATE TABLE poll_votes (
+  poll_id    TEXT NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
+  option_id  TEXT NOT NULL REFERENCES poll_options(id) ON DELETE CASCADE,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (poll_id, option_id, user_id)
+);
+CREATE INDEX poll_votes_user ON poll_votes(poll_id, user_id);
+
+-- ── Свои папки чатов ─────────────────────────────────────────────────────────
+CREATE TABLE chat_folders (
+  id               TEXT PRIMARY KEY,
+  user_id          TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name             TEXT NOT NULL,
+  emoji            TEXT NOT NULL DEFAULT '📁',
+  position         INTEGER NOT NULL DEFAULT 0,
+  include_types    TEXT NOT NULL DEFAULT '[]',
+  include_chat_ids TEXT NOT NULL DEFAULT '[]',
+  exclude_muted    INTEGER NOT NULL DEFAULT 0,
+  exclude_read     INTEGER NOT NULL DEFAULT 0,
+  exclude_archived INTEGER NOT NULL DEFAULT 1,
+  created_at       INTEGER NOT NULL
+);
+CREATE INDEX chat_folders_user ON chat_folders(user_id, position);
+
+-- ── Ссылки-приглашения ───────────────────────────────────────────────────────
+CREATE TABLE chat_invites (
+  token       TEXT PRIMARY KEY,
+  chat_id     TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  creator_id  TEXT REFERENCES users(id) ON DELETE SET NULL,
+  title       TEXT NOT NULL DEFAULT '',
+  expires_at  INTEGER,
+  usage_limit INTEGER,
+  uses        INTEGER NOT NULL DEFAULT 0,
+  revoked_at  INTEGER,
+  created_at  INTEGER NOT NULL
+);
+CREATE INDEX chat_invites_chat ON chat_invites(chat_id, created_at);
+
+-- ── Отложенные сообщения ─────────────────────────────────────────────────────
+CREATE TABLE scheduled_messages (
+  id          TEXT PRIMARY KEY,
+  chat_id     TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  sender_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  text        TEXT,
+  media_ids   TEXT NOT NULL DEFAULT '[]',
+  reply_to_id TEXT,
+  silent      INTEGER NOT NULL DEFAULT 0,
+  send_at     INTEGER NOT NULL,
+  created_at  INTEGER NOT NULL
+);
+CREATE INDEX scheduled_due ON scheduled_messages(send_at);
+CREATE INDEX scheduled_chat ON scheduled_messages(chat_id, sender_id, send_at);
+
+-- ── Звонки ───────────────────────────────────────────────────────────────────
+CREATE TABLE calls (
+  id              TEXT PRIMARY KEY,
+  chat_id         TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  caller_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  callee_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  video           INTEGER NOT NULL DEFAULT 0,
+  status          TEXT NOT NULL,
+  caller_session  TEXT,
+  callee_session  TEXT,
+  created_at      INTEGER NOT NULL,
+  answered_at     INTEGER,
+  ended_at        INTEGER
+);
+CREATE INDEX calls_caller ON calls(caller_id, created_at DESC);
+CREATE INDEX calls_callee ON calls(callee_id, created_at DESC);
+
+-- ── Поиск по сообщениям (кроме секретных чатов — их текста у сервера нет) ───
+CREATE VIRTUAL TABLE messages_fts USING fts5(
+  text, content='messages', content_rowid='rowid', tokenize='unicode61 remove_diacritics 2'
+);
+CREATE TRIGGER messages_fts_ai AFTER INSERT ON messages BEGIN
+  INSERT INTO messages_fts(rowid, text) VALUES (new.rowid, coalesce(new.text, ''));
+END;
+CREATE TRIGGER messages_fts_ad AFTER DELETE ON messages BEGIN
+  INSERT INTO messages_fts(messages_fts, rowid, text) VALUES ('delete', old.rowid, coalesce(old.text, ''));
+END;
+CREATE TRIGGER messages_fts_au AFTER UPDATE OF text ON messages BEGIN
+  INSERT INTO messages_fts(messages_fts, rowid, text) VALUES ('delete', old.rowid, coalesce(old.text, ''));
+  INSERT INTO messages_fts(rowid, text) VALUES (new.rowid, coalesce(new.text, ''));
+END;
+INSERT INTO messages_fts(messages_fts) VALUES ('rebuild');
+`,
+  },
 ];

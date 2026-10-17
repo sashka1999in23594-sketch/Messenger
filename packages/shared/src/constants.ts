@@ -35,6 +35,15 @@ export const LIMITS = {
   searchQueryMax: 100,
   deviceNameMax: 64,
   emailMax: 254,
+  pollQuestionMax: 300,
+  pollOptionMax: 100,
+  pollOptionsMax: 10,
+  folderNameMax: 32,
+  foldersMax: 20,
+  /** Максимальная длительность голосового и кружка, секунды */
+  voiceMaxSec: 600,
+  roundMaxSec: 60,
+  scheduledMax: 100,
   /** Длина кода из письма */
   emailCodeLength: 6,
   /** Максимальный размер зашифрованного сообщения (base64) */
@@ -52,6 +61,9 @@ export type Reaction = (typeof REACTIONS)[number];
 
 /** Варианты таймера самоуничтожения для секретных чатов (секунды, 0 — выключен). */
 export const SECRET_TTL_OPTIONS = [0, 5, 30, 60, 300, 3600, 86400, 604800] as const;
+
+/** Медленный режим в группах: пауза между сообщениями участника (секунды, 0 — выключен). */
+export const SLOW_MODE_OPTIONS = [0, 10, 30, 60, 300, 900, 3600] as const;
 
 export const STORY_TTL_HOURS = 24;
 
