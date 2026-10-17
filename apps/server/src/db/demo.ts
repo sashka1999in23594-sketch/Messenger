@@ -12,7 +12,7 @@ import { createServices } from '../context.js';
 import { RealtimeHub } from '../modules/realtime/hub.js';
 import type { Db } from './index.js';
 
-export const DEMO_PASSWORD = 'omni-demo-2026';
+export const DEMO_PASSWORD = 'spaceup-demo-2026';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -49,7 +49,7 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
   type U = { id: string; username: string };
   const users: Record<string, U> = {};
   const people = [
-    ['sasha', 'Саша', 'Строю Omni — мессенджер, где есть всё. Люблю чистый код и безопасность 🔐', 10],
+    ['sasha', 'Саша', 'Строю SpaceUp — мессенджер, где есть всё. Люблю чистый код и безопасность 🔐', 10],
     ['alice', 'Алиса Котова', 'Фотограф. Свет, цвет и немного магии ✨ #фото', 1],
     ['boris', 'Борис Петров', 'Backend-разработчик. TypeScript, базы данных, кофе ☕', 2],
     ['maria', 'Мария Смирнова', 'Путешествую и снимаю короткие видео о городах 🌍', 3],
@@ -59,14 +59,15 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
     ['lena', 'Лена Морозова', 'Книги, кино, прогулки', 7],
     ['nikita', 'Никита Соколов', 'Научпоп: космос, физика, фракталы 🔭', 8],
     ['olga', 'Ольга Лебедева', 'Готовлю просто и вкусно. Рецепты каждый день 🍝', 9],
-    ['omni', 'Omni', 'Официальный аккаунт Omni: новости, обновления, советы по безопасности.', 0],
+    ['spaceup', 'SpaceUp', 'Официальный аккаунт SpaceUp: новости, обновления, советы по безопасности.', 0],
   ] as const;
 
   try {
       // ── Пользователи ──────────────────────────────────────────────────────────
-      for (const [username, displayName, bio, avatar] of people) {
+      for (const [i, [username, displayName, bio, avatar]] of people.entries()) {
         // Адреса из зарезервированного домена example.com: не подтверждены, писем на них не отправляем
-        const session = await s.auth.register({ username, displayName, email: `${username}@example.com`, password: DEMO_PASSWORD }, meta, { sendVerification: false });
+        const phone = `+7900000${String(i + 1).padStart(4, '0')}`;
+        const session = await s.auth.register({ username, displayName, email: `${username}@example.com`, phone, password: DEMO_PASSWORD }, meta, { sendVerification: false });
         s.sessions.revoke(session.userId, session.sessionId);
         users[username] = { id: session.userId, username };
         const avatarMedia = await upload(session.userId, avatar ? `avatar-${avatar}.jpg` : 'photo-12.jpg');
@@ -74,7 +75,7 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
         s.users.updateProfile(session.userId, { bio, avatarMediaId: avatarMedia.id, bannerMediaId: banner.id, location: 'Москва' });
         tick(30);
       }
-      db.run("UPDATE users SET verified = 1 WHERE username IN ('omni', 'alice', 'nikita')");
+      db.run("UPDATE users SET verified = 1 WHERE username IN ('spaceup', 'alice', 'nikita')");
       db.run("UPDATE users SET role = 'admin' WHERE username = 'sasha'");
       s.users.updatePrivacy(users.lena!.id, { isPrivate: true });
 
@@ -83,7 +84,7 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
       for (const a of names) {
         for (const b of names) {
           if (a === b) continue;
-          if (b === 'omni' || Math.random() < 0.55 || a === 'sasha') s.users.follow(users[a]!.id, users[b]!.id);
+          if (b === 'spaceup' || Math.random() < 0.55 || a === 'sasha') s.users.follow(users[a]!.id, users[b]!.id);
         }
       }
       s.users.answerFollowRequest(users.lena!.id, users.sasha!.id, true);
@@ -101,20 +102,20 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
 
       // ── Заметки (как в X) ─────────────────────────────────────────────────────
       const notes: [string, string][] = [
-        ['omni', 'Добро пожаловать в #omni! Чаты, лента, видео, клипы, фото и истории — в одном приложении. Начните с раздела «Мессенджер» слева 👈'],
-        ['omni', 'Совет по #безопасность: включите двухфакторную защиту в Настройки → Безопасность → 2FA. Это занимает минуту.'],
+        ['spaceup', 'Добро пожаловать в #spaceup! Чаты, лента, видео, клипы, фото и истории — в одном приложении. Начните с раздела «Мессенджер» слева 👈'],
+        ['spaceup', 'Совет по #безопасность: включите двухфакторную защиту в Настройки → Безопасность → 2FA. Это занимает минуту.'],
         ['boris', 'Перевёл сервис на ULID вместо автоинкремента: сортировка по времени + не угадать соседние id. #код #безопасность'],
         ['elena', 'Хороший интерфейс — тот, который не нужно объяснять. Но хорошая навигация — та, в которой невозможно потеряться 🧭 #дизайн'],
         ['nikita', 'Фрактал Мандельброта бесконечно сложен, но задаётся одной формулой: z → z² + c. Залипательное видео у меня на канале 🔭 #наука'],
         ['maria', 'Утро в новом городе — лучшее время, чтобы гулять. Пока все спят, улицы принадлежат тебе ☀️ #путешествия'],
         ['dmitry', 'Свёл новый трек за ночь. Иногда лучшие идеи приходят в 4 утра 🎧 #музыка'],
         ['kirill', 'Сегодня стрим в 20:00 — собираем ПК за 100к и проверяем в играх 🎮'],
-        ['sasha', 'Первый день Omni. Цель — сделать платформу, где безопасность не мешает удобству, а удобство не ломает безопасность. #omni'],
+        ['sasha', 'Первый день SpaceUp. Цель — сделать платформу, где безопасность не мешает удобству, а удобство не ломает безопасность. #spaceup'],
         ['olga', 'Паста за 15 минут: чеснок, оливковое масло, чили, пармезан. Всё. Иногда меньше — значит больше 🍝 #еда'],
         ['boris', 'Напоминание: никогда не храните пароли в открытом виде. scrypt/argon2 + соль + постоянное время сравнения. #код #безопасность'],
         ['alice', 'Золотой час — не миф. Снимайте за час до заката, и свет сделает половину работы за вас 📸 #фото'],
         ['lena', 'Перечитываю «Мастера и Маргариту». Каждый раз — другая книга.'],
-        ['elena', `Собрала гайд по тёмной теме: контраст ≥ 4.5:1, без чистого чёрного, акцент чуть светлее. @sasha, глянь для Omni? #дизайн`],
+        ['elena', `Собрала гайд по тёмной теме: контраст ≥ 4.5:1, без чистого чёрного, акцент чуть светлее. @sasha, глянь для SpaceUp? #дизайн`],
         ['nikita', 'Жизнь Конвея — клеточный автомат с 4 правилами, который умеет вычислять что угодно. Тьюринг-полный! #наука'],
       ];
       const notePosts: string[] = [];
@@ -246,7 +247,7 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
 
       clock = realNow() - 2 * 24 * 3600 * 1000;
       const dmAlice = s.chats.getOrCreateDirect(users.sasha!.id, users.alice!.id);
-      say('sasha', dmAlice.id, 'Привет! Как тебе новый Omni?');
+      say('sasha', dmAlice.id, 'Привет! Как тебе новый SpaceUp?');
       const a1 = say('alice', dmAlice.id, 'Привет! Очень нравится, особенно что фото и чаты в одном месте 📸');
       say('alice', dmAlice.id, 'А секретные чаты правда шифруются на устройстве?');
       say('sasha', dmAlice.id, 'Да! Ключи создаются в браузере, сервер видит только шифротекст. Попробуй: профиль → «Секретный чат» 🔐', a1.id);
@@ -262,7 +263,7 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
       say('boris', dmBoris.id, 'Все 20 проходят ✅ Включая CSRF и блокировку перебора');
 
       const team = s.chats.createGroup(users.sasha!.id, {
-        title: 'Команда Omni',
+        title: 'Команда SpaceUp',
         description: 'Рабочий чат команды',
         memberIds: [users.boris!.id, users.elena!.id, users.kirill!.id, users.nikita!.id],
       });
@@ -280,11 +281,11 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
       say('maria', travel.id, 'Куда едем летом? Предлагаю Алтай');
       say('lena', travel.id, 'Я за! Только без палаток 😅');
 
-      const news = s.chats.createChannel(users.omni!.id, { title: 'Omni Новости', description: 'Официальный канал: обновления и советы по безопасности', handle: 'omni_news', isPublic: true });
-      for (const u of names) if (u !== 'omni') s.chats.join(users[u]!.id, news.id);
-      say('omni', news.id, '🎉 Omni открыт! Мессенджер, лента, видео, клипы, фото и истории — в одном приложении.');
-      say('omni', news.id, '🔐 Новое: секретные чаты со сквозным шифрованием (ECDH P-256 + AES-GCM). Ключи не покидают ваше устройство.');
-      say('omni', news.id, '🛡 Советуем включить 2FA и проверить список активных сеансов в настройках безопасности.');
+      const news = s.chats.createChannel(users.spaceup!.id, { title: 'SpaceUp Новости', description: 'Официальный канал: обновления и советы по безопасности', handle: 'spaceup_news', isPublic: true });
+      for (const u of names) if (u !== 'spaceup') s.chats.join(users[u]!.id, news.id);
+      say('spaceup', news.id, '🎉 SpaceUp открыт! Мессенджер, лента, видео, клипы, фото и истории — в одном приложении.');
+      say('spaceup', news.id, '🔐 Новое: секретные чаты со сквозным шифрованием (ECDH P-256 + AES-GCM). Ключи не покидают ваше устройство.');
+      say('spaceup', news.id, '🛡 Советуем включить 2FA и проверить список активных сеансов в настройках безопасности.');
 
       const code = s.chats.createChannel(users.boris!.id, { title: 'Код и кофе ☕', description: 'Заметки бэкенд-разработчика', handle: 'code_coffee', isPublic: true });
       s.chats.join(users.sasha!.id, code.id);
@@ -323,14 +324,14 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
       const oldStory = s.stories.create(users.sasha!.id, { mediaId: old1.id, text: 'Как всё начиналось', audience: 'all', allowReplies: true });
       clock = realNow() - 2 * 3600 * 1000;
       const new1 = await upload(users.sasha!.id, 'photo-11.jpg');
-      const freshStory = s.stories.create(users.sasha!.id, { mediaId: new1.id, text: 'Omni 1.0 скоро 🚀', audience: 'all', allowReplies: true });
-      s.stories.createHighlight(users.sasha!.id, { title: 'Omni', storyIds: [oldStory.id, freshStory.id], coverStoryId: freshStory.id });
+      const freshStory = s.stories.create(users.sasha!.id, { mediaId: new1.id, text: 'SpaceUp 1.0 скоро 🚀', audience: 'all', allowReplies: true });
+      s.stories.createHighlight(users.sasha!.id, { title: 'SpaceUp', storyIds: [oldStory.id, freshStory.id], coverStoryId: freshStory.id });
       s.stories.view(users.alice!.id, freshStory.id);
       s.stories.view(users.boris!.id, freshStory.id);
       s.stories.react(users.alice!.id, freshStory.id, '🔥');
 
       // Профиль: статус, ссылки, закреплённая публикация, «колокольчик»
-      s.users.setStatus(users.sasha!.id, { emoji: '🚀', text: 'Запускаю Omni', durationHours: 0 });
+      s.users.setStatus(users.sasha!.id, { emoji: '🚀', text: 'Запускаю SpaceUp', durationHours: 0 });
       s.users.setStatus(users.alice!.id, { emoji: '📸', text: 'На съёмке до вечера', durationHours: 0 });
       s.users.setLinks(users.sasha!.id, [
         { title: 'GitHub', url: 'https://github.com/' },
@@ -342,11 +343,11 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
       // Списки, коллекции, черновики
       const devs = s.lists.create(users.sasha!.id, { name: 'Разработка', description: 'Код, безопасность и дизайн', emoji: '🧑‍💻', isPrivate: false });
       s.lists.addMembers(users.sasha!.id, devs.id, [users.boris!.id, users.elena!.id, users.nikita!.id]);
-      const ideas = s.collections.create(users.sasha!.id, { name: 'Идеи для Omni', emoji: '💡' });
+      const ideas = s.collections.create(users.sasha!.id, { name: 'Идеи для SpaceUp', emoji: '💡' });
       for (const pid of [notePosts[6]!, notePosts[4]!, photoPosts[0]!]) s.collections.setItem(users.sasha!.id, ideas.id, pid, true);
       s.drafts.create(users.sasha!.id, {
         kind: 'note',
-        text: 'Черновик: рассказать про звонки и папки в Omni…',
+        text: 'Черновик: рассказать про звонки и папки в SpaceUp…',
         mediaIds: [],
         visibility: 'public',
         commentsDisabled: false,

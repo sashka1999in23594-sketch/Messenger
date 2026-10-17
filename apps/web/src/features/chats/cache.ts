@@ -58,7 +58,8 @@ type ChatLists = InfiniteData<Paginated<ChatSummary>>;
 export function patchChat(chatId: string, patch: (c: ChatSummary) => ChatSummary, moveToTop = false): void {
   let found = false;
   queryClient.setQueriesData<ChatLists>({ queryKey: qk.chatsAll }, (old) => {
-    if (!old) return old;
+    // Под тем же ключом бывают и простые (не постраничные) списки — их не трогаем
+    if (!old?.pages) return old;
     const pages = old.pages.map((p) => ({ ...p, items: [...p.items] }));
     for (const page of pages) {
       const idx = page.items.findIndex((c) => c.id === chatId);
@@ -106,7 +107,7 @@ export function onIncomingMessage(msg: Message, myId: string): void {
 
 export function forgetChat(chatId: string): void {
   queryClient.setQueriesData<ChatLists>({ queryKey: qk.chatsAll }, (old) =>
-    old ? { ...old, pages: old.pages.map((p) => ({ ...p, items: p.items.filter((c) => c.id !== chatId) })) } : old,
+    old?.pages ? { ...old, pages: old.pages.map((p) => ({ ...p, items: p.items.filter((c) => c.id !== chatId) })) } : old,
   );
   queryClient.removeQueries({ queryKey: qk.chat(chatId) });
   queryClient.removeQueries({ queryKey: qk.messages(chatId) });

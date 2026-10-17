@@ -52,7 +52,8 @@ export function patchPostEverywhere(id: string, patch: (p: Post) => Post): void 
   }
 }
 
-export function removePostEverywhere(id: string): void {
+/** Убрать публикацию из кэша; keyFilter — только из этих списков (например, «Закладки») */
+export function removePostEverywhere(id: string, keyFilter?: (key: readonly unknown[]) => boolean): void {
   const strip = (value: unknown): unknown => {
     if (Array.isArray(value)) {
       const filtered = value.filter((v) => !(isPost(v) && v.id === id) && !(v && typeof v === 'object' && 'post' in v && isPost((v as { post: unknown }).post) && (v as { post: Post }).post.id === id));
@@ -71,11 +72,18 @@ export function removePostEverywhere(id: string): void {
   };
   for (const q of queryClient.getQueryCache().getAll()) {
     const data = q.state.data;
-    if (!data) continue;
+    if (!data || (keyFilter && !keyFilter(q.queryKey))) continue;
     const next = strip(data);
     if (next !== data) queryClient.setQueryData(q.queryKey, next);
   }
 }
+
+/** Списки, из которых публикация должна пропасть сразу после снятия отметки */
+const LISTS: Record<'liked' | 'bookmarked' | 'watchLater', (key: readonly unknown[]) => boolean> = {
+  liked: (k) => (k[0] === 'saved-posts' && k[1] === 'liked') || (k[0] === 'library' && k[1] === 'liked'),
+  bookmarked: (k) => (k[0] === 'saved-posts' && k[1] === 'bookmarks') || (k[0] === 'collections' && k[1] === 'posts'),
+  watchLater: (k) => k[0] === 'library' && k[1] === 'watch-later',
+};
 
 function useToggle(post: Post, field: 'liked' | 'bookmarked' | 'watchLater', path: string, statKey?: 'likes') {
   const apply = (on: boolean) =>
@@ -87,6 +95,11 @@ function useToggle(post: Post, field: 'liked' | 'bookmarked' | 'watchLater', pat
   return useMutation({
     mutationFn: (on: boolean) => (on ? api.post(`/posts/${post.id}/${path}`) : api.del(`/posts/${post.id}/${path}`)),
     onMutate: (on: boolean) => apply(on),
+    onSuccess: (_d, on) => {
+      if (!on) removePostEverywhere(post.id, LISTS[field]);
+      // Коллекции считают сохранённое — обновим счётчики
+      if (field === 'bookmarked') void queryClient.invalidateQueries({ queryKey: ['collections'], refetchType: 'active' });
+    },
     onError: (e, on) => {
       apply(!on);
       toast({ text: errorMessage(e), kind: 'error' });

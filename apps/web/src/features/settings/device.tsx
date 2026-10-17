@@ -65,7 +65,7 @@ export function QuietSettings() {
           </label>
         </div>
       </Panel>
-      <Panel title="Системные уведомления" footer="Показываются, когда вкладка Omni в фоне. Push при полностью закрытом браузере — в плане развития (Web Push).">
+      <Panel title="Системные уведомления" footer="Показываются, когда вкладка SpaceUp в фоне. Push при полностью закрытом браузере — в плане развития (Web Push).">
         <SettingRow
           title="Уведомления на рабочем столе"
           description={perm === 'denied' ? 'Запрещено в настройках браузера — разрешите вручную' : 'Новые сообщения и события в углу экрана'}
@@ -156,7 +156,7 @@ export function BehaviorSettings() {
           icon={<Home size={18} />}
           tile="tile-violet"
           title="Стартовая страница"
-          description="Что открывается при входе в Omni"
+          description="Что открывается при входе в SpaceUp"
           control={
             <select className="select" style={{ width: 'auto' }} value={prefs.startPage ?? '/home'} onChange={(e) => prefs.set({ startPage: e.target.value as StartPage })} aria-label="Стартовая страница">
               {START.map((s) => (

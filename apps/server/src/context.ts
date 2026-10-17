@@ -65,7 +65,7 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub) {
   const mutedWords = new MutedWordsService(db);
   const stories = new StoriesService(db, usersRepo, policy, media, notifications);
   const communities = new CommunitiesService(db, usersRepo, media, notifications);
-  const search = new SearchService(db, usersRepo, posts, chats, communities);
+  const search = new SearchService(db, usersRepo, posts, chats, communities, policy);
   const reports = new ReportsService(db);
   const exporter = new AccountExporter(db, users);
 

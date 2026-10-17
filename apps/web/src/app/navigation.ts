@@ -351,8 +351,6 @@ export const sections: NavSection[] = [
     description: 'Поиск, тренды и новые люди',
     children: [
       { id: 'explore.search', label: 'Поиск', icon: Search, path: '/search' },
-      { id: 'explore.trends', label: 'Тренды', icon: TrendingUp, path: '/explore/trends' },
-      { id: 'explore.people', label: 'Люди', icon: UserPlus, path: '/explore/people' },
       { id: 'explore.channels', label: 'Каналы', icon: Megaphone, path: '/chats/discover' },
       { id: 'explore.communities', label: 'Сообщества', icon: Users, path: '/communities/discover' },
     ],
@@ -436,6 +434,7 @@ export const sections: NavSection[] = [
           { id: 'settings.account.profile', label: 'Профиль', icon: PenLine, path: '/settings/account/profile', keywords: ['аватар', 'имя', 'био'] },
           { id: 'settings.account.username', label: 'Имя пользователя', icon: AtSign, path: '/settings/account/username' },
           { id: 'settings.account.email', label: 'Почта', icon: Mail, path: '/settings/account/email', keywords: ['email', 'почта', 'письма', 'подтвердить'] },
+          { id: 'settings.account.phone', label: 'Телефон', icon: Phone, path: '/settings/account/phone', keywords: ['номер', 'телефон'] },
           { id: 'settings.account.export', label: 'Экспорт данных', icon: Download, path: '/settings/account/export' },
           { id: 'settings.account.delete', label: 'Удаление аккаунта', icon: Trash2, path: '/settings/account/delete' },
         ],
@@ -447,6 +446,7 @@ export const sections: NavSection[] = [
         children: [
           { id: 'settings.privacy.profile', label: 'Видимость профиля', icon: User, path: '/settings/privacy/profile', keywords: ['закрытый профиль'] },
           { id: 'settings.privacy.messages', label: 'Кто может писать', icon: MessageCircle, path: '/settings/privacy/messages' },
+          { id: 'settings.privacy.phone', label: 'Номер телефона', icon: Phone, path: '/settings/privacy/phone', keywords: ['телефон', 'поиск по номеру'] },
           { id: 'settings.privacy.lastseen', label: 'Время захода', icon: Clock, path: '/settings/privacy/last-seen', keywords: ['онлайн', 'был в сети'] },
           { id: 'settings.privacy.interactions', label: 'Комментарии и отметки', icon: MessageSquare, path: '/settings/privacy/interactions' },
           { id: 'settings.privacy.blocked', label: 'Чёрный список', icon: UserX, path: '/settings/privacy/blocked' },

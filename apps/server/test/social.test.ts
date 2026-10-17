@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createTestApp, PNG_1x1, registerUser } from './helpers.js';
+import { Client, createTestApp, PNG_1x1, registerUser } from './helpers.js';
 
 let app: FastifyInstance;
 beforeAll(async () => {
@@ -211,5 +211,35 @@ describe('лента', () => {
     await a.client.post(`/posts/${post.body.id}/like`);
     const likers = (await b.client.get(`/posts/${post.body.id}/likers`)).body.items as { id: string }[];
     expect(likers.map((u) => u.id)).toEqual([a.user.id]);
+  });
+});
+
+describe('телефон', () => {
+  it('номер обязателен при регистрации, уникален; вход и поиск по номеру с учётом приватности', async () => {
+    const c = new Client(app);
+    const base = { username: `ph_${Date.now().toString(36)}`, displayName: 'Тел', email: `ph${Date.now()}@example.com`, password: 'correct-horse-battery-staple' };
+    expect((await c.post('/auth/register', base)).status).toBe(400);
+    expect((await c.post('/auth/register', { ...base, phone: '12345' })).status).toBe(400);
+    const phone = `8 (912) ${String(Date.now() % 1000).padStart(3, '0')}-11-22`;
+    const ok = await c.post('/auth/register', { ...base, phone });
+    expect(ok.status).toBe(201);
+    const e164 = ok.body.me.phone as string;
+    expect(e164).toMatch(/^\+7912\d{7}$/);
+    const c2 = new Client(app);
+    const dup = await c2.post('/auth/register', { ...base, username: `${base.username}x`, email: `x${base.email}`, phone: e164 });
+    expect(dup.status).toBe(409);
+
+    // Вход по номеру
+    const c3 = new Client(app);
+    expect((await c3.post('/auth/login', { username: e164, password: base.password })).status).toBe(200);
+
+    // Поиск: по умолчанию находят все, номер в профиле скрыт
+    const other = await registerUser(app);
+    const found = await other.client.get(`/search?type=users&q=${encodeURIComponent(e164)}`);
+    expect(found.body.users.map((u: { id: string }) => u.id)).toEqual([ok.body.me.id]);
+    expect((await other.client.get(`/users/${ok.body.me.id}`)).body.phone).toBeNull();
+    // Запрет поиска по номеру
+    await c.patch('/me/privacy', { findByPhone: 'nobody' });
+    expect((await other.client.get(`/search?type=users&q=${encodeURIComponent(e164)}`)).body.users).toEqual([]);
   });
 });

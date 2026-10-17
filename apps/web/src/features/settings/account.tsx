@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import { AtSign, Camera, Download, ImagePlus, PenLine, Smile, Trash2 } from 'lucide-react';
-import { LIMITS, type Me } from '@omni/shared';
+import { AtSign, Camera, Download, ImagePlus, PenLine, Phone, Smile, Trash2 } from 'lucide-react';
+import { formatPhone, LIMITS, type Me } from '@omni/shared';
 import { api, ApiError, errorMessage, uploadFile } from '../../shared/api/client';
 import { prepareImage } from '../../shared/lib/media';
 import { useMe, useSession } from '../../shared/stores/session';
@@ -131,13 +131,47 @@ export function UsernameSettings() {
     },
   });
   return (
-    <SettingsPage title="Имя пользователя" subtitle="Ваш уникальный адрес в Omni" icon={<AtSign size={22} />}>
+    <SettingsPage title="Имя пользователя" subtitle="Ваш уникальный адрес в SpaceUp" icon={<AtSign size={22} />}>
       <Panel footer="Старые ссылки на профиль перестанут работать. Для подтверждения нужен пароль.">
         <div className="col gap-3" style={{ padding: 16 }}>
-          <Input label="Имя пользователя" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} error={fields.username} hint={`omni.app/u/${username}`} />
+          <Input label="Имя пользователя" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} error={fields.username} hint={`${location.host}/u/${username}`} />
           <PasswordInput label="Текущий пароль" value={password} onChange={(e) => setPassword(e.target.value)} error={fields.password} autoComplete="current-password" />
           <Button disabled={!password || username === me.username} loading={save.isPending} onClick={() => save.mutate()} style={{ alignSelf: 'flex-start' }}>
             Сменить
+          </Button>
+        </div>
+      </Panel>
+    </SettingsPage>
+  );
+}
+
+export function PhoneSettings() {
+  const me = useMe();
+  const setMe = useSession((s) => s.setMe);
+  const [phone, setPhone] = useState(me.phone ? formatPhone(me.phone) : '');
+  const [password, setPassword] = useState('');
+  const [fields, setFields] = useState<Record<string, string>>({});
+  const save = useMutation({
+    mutationFn: () => api.put<Me>('/me/phone', { phone, password }),
+    onSuccess: (m) => {
+      setMe(m);
+      setPassword('');
+      setFields({});
+      toast({ text: 'Номер сохранён', kind: 'success' });
+    },
+    onError: (e) => {
+      if (e instanceof ApiError && e.fields) setFields(e.fields);
+      toast({ text: errorMessage(e), kind: 'error' });
+    },
+  });
+  return (
+    <SettingsPage title="Номер телефона" subtitle="Для входа и чтобы знакомые нашли вас" icon={<Phone size={22} />}>
+      <Panel footer={<>Кто может найти вас по номеру и видеть его — в <Link to="/settings/privacy/phone">настройках приватности</Link>. Для смены номера нужен пароль.</>}>
+        <div className="col gap-3" style={{ padding: 16 }}>
+          <Input label="Телефон" type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+7 999 123-45-67" error={fields.phone} />
+          <PasswordInput label="Текущий пароль" value={password} onChange={(e) => setPassword(e.target.value)} error={fields.password} autoComplete="current-password" />
+          <Button disabled={!password || !phone.trim()} loading={save.isPending} onClick={() => save.mutate()} style={{ alignSelf: 'flex-start' }}>
+            Сохранить
           </Button>
         </div>
       </Panel>
@@ -151,7 +185,7 @@ export function ExportSettings() {
       <Panel footer="Содержимое секретных чатов не экспортируется: сервер его не знает. Файл содержит личные данные — храните его бережно.">
         <div className="col gap-3" style={{ padding: 16 }}>
           <p>Вы получите JSON-файл с профилем, публикациями, комментариями, подписками, сообщениями из обычных чатов и журналом безопасности.</p>
-          <a className="btn btn--primary" href="/api/v1/account/export" download="omni-export.json" style={{ alignSelf: 'flex-start' }}>
+          <a className="btn btn--primary" href="/api/v1/account/export" download="spaceup-export.json" style={{ alignSelf: 'flex-start' }}>
             <Download size={18} /> Скачать архив
           </a>
         </div>

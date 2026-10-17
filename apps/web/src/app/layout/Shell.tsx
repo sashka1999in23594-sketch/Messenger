@@ -30,7 +30,7 @@ export function Shell() {
     const node = exactNode(pathname);
     if (node) {
       pushRecent(node.node.id);
-      document.title = `${node.node.label} · Omni`;
+      document.title = `${node.node.label} · SpaceUp`;
     }
     setNavOpen(false);
   }, [pathname, pushRecent, setNavOpen]);

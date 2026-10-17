@@ -168,7 +168,7 @@ export function ExplorePhotos() {
   return (
     <div className="scroll">
       <div className="page page--wide">
-        <PageHeader title="Интересное" subtitle="Популярные фото со всего Omni" icon={<Camera size={22} />} />
+        <PageHeader title="Интересное" subtitle="Популярные фото со всего SpaceUp" icon={<Camera size={22} />} />
         <PhotoGrid posts={items} />
         <LoadMore hasMore={!!fallback.hasNextPage} loading={fallback.isFetchingNextPage} onLoad={() => void fallback.fetchNextPage()} />
       </div>

@@ -1,11 +1,12 @@
 /** Глобальный поиск: люди, публикации (FTS5), публичные каналы, сообщества, хэштеги — с учётом приватности. */
 import type { SearchResults } from '@omni/shared';
+import { looksLikePhone, normalizePhone } from '@omni/shared';
 import type { Db } from '../../db/index.js';
 import type { ChatsService } from '../chats/chats.service.js';
 import type { CommunitiesService } from '../communities/communities.service.js';
 import { Policy } from '../policy/policy.service.js';
 import type { PostRow, PostsService } from '../posts/posts.service.js';
-import type { UsersRepo, UserRow } from '../users/users.repo.js';
+import { privacyOf, type UsersRepo, type UserRow } from '../users/users.repo.js';
 
 const likeEscape = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 
@@ -28,6 +29,7 @@ export class SearchService {
     private readonly posts: PostsService,
     private readonly chats: ChatsService,
     private readonly communities: CommunitiesService,
+    private readonly policy: Policy,
   ) {}
 
   search(viewerId: string, rawQ: string, type: string, limit: number): SearchResults {
@@ -38,6 +40,16 @@ export class SearchService {
     const want = (t: string) => type === 'all' || type === t;
     const res: SearchResults = { users: [], posts: [], chats: [], communities: [], hashtags: [] };
     if (!term) return res;
+
+    // Поиск по номеру телефона — только точное совпадение и с учётом приватности
+    if (want('users') && looksLikePhone(q)) {
+      const phone = normalizePhone(q);
+      const u = phone ? this.users.byPhone(phone) : undefined;
+      if (u && (u.id === viewerId || this.policy.audienceAllows(privacyOf(u).findByPhone, u.id, viewerId)) && !this.policy.blockedEitherWay(viewerId, u.id)) {
+        res.users = [this.users.toSummary(u)];
+      }
+      return res;
+    }
 
     if (want('users') && !isTag) {
       const rows = this.db.all<UserRow>(

@@ -59,6 +59,8 @@ export interface UserProfile extends UserSummary {
   status: UserStatus | null;
   links: ProfileLink[];
   pinnedPostId: ID | null;
+  /** Номер телефона, если владелец разрешил его показывать */
+  phone: string | null;
   /** Ваши подписки, которые тоже подписаны на этого человека */
   mutualFollowers: { count: number; sample: UserSummary[] };
   /** Вы получаете уведомления о его новых публикациях («колокольчик») */
@@ -94,6 +96,10 @@ export interface PrivacySettings {
   readReceipts: boolean;
   showInSearch: boolean;
   allowTagging: boolean;
+  /** Кто может найти меня по номеру телефона */
+  findByPhone: Audience;
+  /** Кто видит мой номер в профиле */
+  showPhone: Audience;
 }
 
 export interface NotificationSettings {
@@ -124,6 +130,7 @@ export interface Me extends UserSummary {
   twoFactor: { totp: boolean; email: boolean };
   email: string | null;
   emailVerified: boolean;
+  phone: string | null;
   emailPrefs: EmailPrefs;
   /** Пройдено ли знакомство с приложением после регистрации */
   onboarded: boolean;

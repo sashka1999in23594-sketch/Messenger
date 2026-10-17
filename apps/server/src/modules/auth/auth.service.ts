@@ -71,11 +71,14 @@ export class AuthService {
     const id = newId(now);
     try {
       this.db.run(
-        `INSERT INTO users (id, username, display_name, email, password_hash, created_at, updated_at, last_seen_at)
-         VALUES (:id, :username, :name, :email, :hash, :now, :now, :now)`,
-        { id, username: input.username, name: input.displayName, email: input.email, hash, now },
+        `INSERT INTO users (id, username, display_name, email, phone, password_hash, created_at, updated_at, last_seen_at)
+         VALUES (:id, :username, :name, :email, :phone, :hash, :now, :now, :now)`,
+        { id, username: input.username, name: input.displayName, email: input.email, phone: input.phone, hash, now },
       );
     } catch (err) {
+      if (String(err).includes('users.phone') || String(err).includes('users_phone')) {
+        throw conflict('Этот номер уже привязан к другому аккаунту', { phone: 'Номер уже используется' });
+      }
       if (String(err).includes('UNIQUE')) throw conflict('Это имя уже занято', { username: 'Это имя уже занято' });
       throw err;
     }

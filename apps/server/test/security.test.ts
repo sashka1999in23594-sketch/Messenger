@@ -42,11 +42,11 @@ describe('auth & sessions', () => {
 
   it('rejects weak passwords and duplicate usernames', async () => {
     const c = new Client(app);
-    const weak = await c.post('/auth/register', { username: 'weakling', displayName: 'W', email: 'weak@example.com', password: 'password123' });
+    const weak = await c.post('/auth/register', { username: 'weakling', displayName: 'W', email: 'weak@example.com', phone: '+79990000001', password: 'password123' });
     expect(weak.status).toBe(400);
     expect(weak.body.error.fields.password).toBeTruthy();
     const { user } = await registerUser(app);
-    const dup = await c.post('/auth/register', { username: user.username.toUpperCase(), displayName: 'X', email: 'dup@example.com', password: 'correct-horse-battery-staple' });
+    const dup = await c.post('/auth/register', { username: user.username.toUpperCase(), displayName: 'X', email: 'dup@example.com', phone: '+79990000002', password: 'correct-horse-battery-staple' });
     expect(dup.status).toBe(409);
   });
 

@@ -1,5 +1,6 @@
 import type { EmailPrefs, NotificationSettings, PrivacySettings, ProfileLink, UserStatus, UserSummary } from '@omni/shared';
 import type { Db } from '../../db/index.js';
+import { looksLikePhone, normalizePhone } from '@omni/shared';
 import { bool, isoOrNull, json } from '../../db/index.js';
 import type { MediaService } from '../media/media.service.js';
 
@@ -38,6 +39,7 @@ export interface UserRow {
   status_until: number | null;
   links: string;
   pinned_post_id: string | null;
+  phone: string | null;
 }
 
 export const DEFAULT_PRIVACY: Omit<PrivacySettings, 'isPrivate' | 'showInSearch'> = {
@@ -46,6 +48,8 @@ export const DEFAULT_PRIVACY: Omit<PrivacySettings, 'isPrivate' | 'showInSearch'
   lastSeenVisibility: 'everyone',
   readReceipts: true,
   allowTagging: true,
+  findByPhone: 'everyone',
+  showPhone: 'nobody',
 };
 
 export const DEFAULT_NOTIFICATIONS: NotificationSettings = {
@@ -121,7 +125,16 @@ export class UsersRepo {
 
   /** По имени пользователя или подтверждённой почте. */
   byLogin(login: string): UserRow | undefined {
-    return login.includes('@') ? this.byVerifiedEmail(login) : this.byUsername(login);
+    if (login.includes('@')) return this.byVerifiedEmail(login);
+    if (looksLikePhone(login)) {
+      const phone = normalizePhone(login);
+      return phone ? this.byPhone(phone) : undefined;
+    }
+    return this.byUsername(login);
+  }
+
+  byPhone(phone: string): UserRow | undefined {
+    return this.db.get<UserRow>('SELECT * FROM users WHERE phone = :phone AND deleted_at IS NULL', { phone });
   }
 
   byUsername(username: string): UserRow | undefined {

@@ -382,7 +382,7 @@ export class ChatsService {
     if (!myKey) throw badRequest('Ключ этого устройства не зарегистрирован');
     const peerKey = this.keys.latestFor(peer.id);
     if (!peerKey) {
-      throw privacyRestricted('Собеседник ещё ни разу не открывал Omni на устройстве с поддержкой шифрования');
+      throw privacyRestricted('Собеседник ещё ни разу не открывал SpaceUp на устройстве с поддержкой шифрования');
     }
     const devices = { [userId]: myKey.deviceId, [peer.id]: peerKey.deviceId };
     const id = this.db.tx(() => {

@@ -13,6 +13,7 @@ import { realtime } from '../realtime/socket';
 import { useSession } from '../stores/session';
 import { toast } from '../stores/ui';
 import { isQuietNow, usePrefs } from '../stores/prefs';
+import { desktopNotify } from '../lib/sounds';
 
 export type CallPhase = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'active' | 'ended';
 
@@ -27,6 +28,8 @@ interface CallState {
   startedAt: number | null;
   minimized: boolean;
   endedText: string | null;
+  /** Соединение на секунду пропало — показываем «Восстанавливаем связь…» */
+  reconnecting: boolean;
 }
 
 const initial: CallState = {
@@ -40,6 +43,7 @@ const initial: CallState = {
   startedAt: null,
   minimized: false,
   endedText: null,
+  reconnecting: false,
 };
 
 export const useCall = create<CallState>(() => ({ ...initial }));
@@ -49,6 +53,13 @@ let pendingIce: RTCIceCandidateInit[] = [];
 let iceServers: RTCIceServer[] | null = null;
 let ring: { stop: () => void } | null = null;
 let endTimer: number | null = null;
+let dropTimer: number | null = null;
+
+/** Звонка нет или на экране только итог прошлого («Звонок завершён») */
+const isFree = () => {
+  const phase = useCall.getState().phase;
+  return phase === 'idle' || phase === 'ended';
+};
 
 const me = () => useSession.getState().me?.id ?? '';
 const send = (signal: CallSignal) => {
@@ -122,6 +133,8 @@ async function getMedia(video: boolean): Promise<MediaStream> {
 
 function cleanup(endedText: string | null) {
   ring?.stop();
+  if (dropTimer) window.clearTimeout(dropTimer);
+  dropTimer = null;
   pc?.getSenders().forEach((s) => s.track?.stop());
   pc?.close();
   pc = null;
@@ -148,9 +161,26 @@ async function createPeer(): Promise<RTCPeerConnection> {
     if (e.candidate) send({ type: 'ice', candidate: e.candidate.candidate, sdpMid: e.candidate.sdpMid, sdpMLineIndex: e.candidate.sdpMLineIndex });
   };
   peer.onconnectionstatechange = () => {
-    if (peer.connectionState === 'connected' && useCall.getState().phase !== 'active') {
-      ring?.stop();
-      useCall.setState({ phase: 'active', startedAt: Date.now() });
+    if (peer.connectionState === 'connected') {
+      if (dropTimer) window.clearTimeout(dropTimer);
+      dropTimer = null;
+      if (useCall.getState().phase !== 'active') {
+        ring?.stop();
+        useCall.setState({ phase: 'active', startedAt: Date.now(), reconnecting: false });
+      } else useCall.setState({ reconnecting: false });
+    }
+    // Кратковременный обрыв (смена сети): ждём восстановления 12 секунд, потом завершаем
+    if (peer.connectionState === 'disconnected' && useCall.getState().phase === 'active') {
+      useCall.setState({ reconnecting: true });
+      if (!dropTimer) {
+        dropTimer = window.setTimeout(() => {
+          dropTimer = null;
+          if (pc === peer && peer.connectionState !== 'connected') {
+            toast({ text: 'Связь прервалась', kind: 'error' });
+            void hangup();
+          }
+        }, 12_000);
+      }
     }
     if (peer.connectionState === 'failed') {
       toast({ text: 'Не удалось установить соединение. Возможно, нужен TURN-сервер для вашей сети', kind: 'error' });
@@ -171,7 +201,8 @@ async function flushIce() {
 // ─── Действия ────────────────────────────────────────────────────────────────
 
 export async function startCall(chatId: string, video: boolean): Promise<void> {
-  if (useCall.getState().phase !== 'idle') return toast('Сначала завершите текущий звонок');
+  if (!isFree()) return toast('Сначала завершите текущий звонок');
+  if (endTimer) window.clearTimeout(endTimer);
   let local: MediaStream;
   try {
     local = await getMedia(video);
@@ -232,6 +263,13 @@ export function toggleCamera(): void {
 
 export const setMinimized = (minimized: boolean) => useCall.setState({ minimized });
 
+/** Закрыть итог звонка («Звонок завершён») не дожидаясь таймера */
+export function dismissEnded(): void {
+  if (useCall.getState().phase !== 'ended') return;
+  if (endTimer) window.clearTimeout(endTimer);
+  useCall.setState({ ...initial });
+}
+
 export function fmtDuration(sec: number): string {
   const s = Math.max(0, Math.floor(sec));
   const h = Math.floor(s / 3600);
@@ -244,9 +282,12 @@ export function fmtDuration(sec: number): string {
 export async function handleCallEvent(event: ServerEvent): Promise<void> {
   const state = useCall.getState();
   if (event.t === 'call.incoming') {
-    if (state.phase !== 'idle') return; // сервер не даст позвонить занятому, это страховка
+    if (!isFree()) return; // сервер не даст позвонить занятому, это страховка
+    if (endTimer) window.clearTimeout(endTimer);
     useCall.setState({ ...initial, call: event.call, phase: 'incoming' });
     startRing('in');
+    // Вкладка в фоне — системное уведомление, чтобы звонок не пропустить
+    desktopNotify(`${event.call.caller.displayName}`, event.call.video ? 'Входящий видеозвонок' : 'Входящий звонок', () => useCall.setState({ minimized: false }));
     return;
   }
   if (event.t === 'call.updated') {
@@ -303,7 +344,7 @@ export async function handleCallEvent(event: ServerEvent): Promise<void> {
 export async function restoreIncomingCall(): Promise<void> {
   try {
     const { call } = await api.get<{ call: CallInfo | null }>('/calls/current');
-    if (call && call.status === 'ringing' && call.callee.id === me() && useCall.getState().phase === 'idle') {
+    if (call && call.status === 'ringing' && call.callee.id === me() && isFree()) {
       useCall.setState({ ...initial, call, phase: 'incoming' });
       startRing('in');
     }

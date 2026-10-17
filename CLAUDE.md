@@ -2,7 +2,7 @@
 
 Монорепозиторий npm workspaces: `packages/shared` (zod-схемы, типы API, протокол WS), `apps/server` (Fastify 5 + node:sqlite), `apps/web` (React 19 + Vite PWA).
 
-- Запуск: `npm install && npm run seed && npm run dev` → http://localhost:5173, вход `sasha` / `omni-demo-2026`.
+- Запуск: `npm install && npm run seed && npm run dev` → http://localhost:5173, вход `sasha` / `spaceup-demo-2026`.
 - Проверка перед коммитом: `npm run typecheck && npm test` (сборка — `npm run build`).
 - Как добавлять разделы и функции: `docs/CONTRIBUTING.md`. Архитектура: `docs/ARCHITECTURE.md`. Безопасность: `docs/SECURITY.md`.
 - Интерфейс и комментарии в коде — на русском.

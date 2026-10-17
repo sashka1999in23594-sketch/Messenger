@@ -25,7 +25,7 @@ export function ComingSoon({ node }: { node?: NavNode }) {
             <span className="tag tag--accent">В разработке</span>
             <h1 style={{ marginTop: 10 }}>{n.label}</h1>
             <p className="muted" style={{ marginTop: 6 }}>
-              Раздел уже встроен в навигацию и архитектуру Omni. Вот что в нём появится:
+              Раздел уже встроен в навигацию и архитектуру SpaceUp. Вот что в нём появится:
             </p>
           </div>
           <ul className="col" style={{ listStyle: 'none', padding: 0, margin: 0, gap: 10 }}>

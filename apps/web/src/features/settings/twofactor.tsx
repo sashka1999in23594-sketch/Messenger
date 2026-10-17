@@ -25,7 +25,7 @@ function RecoveryCodes({ codes }: { codes: string[] }) {
         <Button variant="secondary" icon={<Copy size={16} />} onClick={() => void navigator.clipboard.writeText(codes.join('\n')).then(() => toast('Коды скопированы'))}>
           Скопировать
         </Button>
-        <a className="btn btn--secondary" download="omni-recovery-codes.txt" href={`data:text/plain;charset=utf-8,${encodeURIComponent(`Резервные коды Omni\n\n${codes.join('\n')}\n`)}`}>
+        <a className="btn btn--secondary" download="spaceup-recovery-codes.txt" href={`data:text/plain;charset=utf-8,${encodeURIComponent(`Резервные коды SpaceUp\n\n${codes.join('\n')}\n`)}`}>
           <Download size={16} /> Скачать .txt
         </a>
       </div>

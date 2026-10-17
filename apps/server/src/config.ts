@@ -26,7 +26,7 @@ const envSchema = z.object({
   /** Адрес сервиса, который Render подставляет сам — используется, если PUBLIC_ORIGIN не задан */
   RENDER_EXTERNAL_URL: z.string().optional(),
   /** Отправитель писем: «Имя <адрес>» */
-  MAIL_FROM: z.string().default('Omni <no-reply@omni.local>'),
+  MAIL_FROM: z.string().default('SpaceUp <no-reply@spaceup.local>'),
   /** Почта через HTTPS-API (работает и там, где SMTP-порты закрыты, например на бесплатном Render) */
   BREVO_API_KEY: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
@@ -84,7 +84,7 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
   const isProd = env.NODE_ENV === 'production';
   const from = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(env.MAIL_FROM);
   const mail = {
-    fromName: from?.[1] || 'Omni',
+    fromName: from?.[1] || 'SpaceUp',
     fromEmail: (from?.[2] ?? env.MAIL_FROM).trim(),
     provider: (env.BREVO_API_KEY ? 'brevo' : env.RESEND_API_KEY ? 'resend' : env.SMTP_URL ? 'smtp' : isProd ? 'disabled' : 'dev') as MailProvider,
     brevoApiKey: env.BREVO_API_KEY ?? null,

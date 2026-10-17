@@ -29,7 +29,7 @@ export function SettingsHome() {
   return (
     <div className="scroll">
       <div className="page page--wide">
-        <PageHeader title="Настройки" subtitle="Всё, что можно настроить в Omni — более 70 параметров" icon={<Settings size={22} />} />
+        <PageHeader title="Настройки" subtitle="Всё, что можно настроить в SpaceUp — более 70 параметров" icon={<Settings size={22} />} />
         <SettingsSearch onActive={setSearching} />
         {!searching && (
           <div className="settings-quick">

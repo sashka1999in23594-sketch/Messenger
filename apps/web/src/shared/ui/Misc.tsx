@@ -108,7 +108,7 @@ export function ReportDialog({
   const send = useMutation({
     mutationFn: () => api.post('/reports', { entityType, entityId, reason, details }),
     onSuccess: () => {
-      toast({ text: 'Жалоба отправлена. Спасибо, что помогаете сделать Omni безопаснее', kind: 'success' });
+      toast({ text: 'Жалоба отправлена. Спасибо, что помогаете сделать SpaceUp безопаснее', kind: 'success' });
       onClose();
     },
     onError: (e) => toast({ text: errorMessage(e), kind: 'error' }),

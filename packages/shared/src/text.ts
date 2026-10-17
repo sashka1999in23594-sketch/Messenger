@@ -67,3 +67,26 @@ export function excerpt(text: string | null | undefined, max = 120): string {
   const flat = text.replace(/\s+/g, ' ').trim();
   return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
 }
+
+/**
+ * Номер телефона в формате E.164: «+79991234567». Пробелы, скобки и дефисы
+ * игнорируются; российский «8…» превращается в «+7…». null — не похоже на номер.
+ */
+export function normalizePhone(raw: string): string | null {
+  let s = raw.trim().replace(/[\s()\-.]/g, '');
+  if (/^8\d{10}$/.test(s)) s = `+7${s.slice(1)}`;
+  else if (/^7\d{10}$/.test(s)) s = `+${s}`;
+  else if (/^\d{10,15}$/.test(s)) s = `+${s}`;
+  return /^\+[1-9]\d{9,14}$/.test(s) ? s : null;
+}
+
+/** Похоже ли на номер телефона (для поиска) */
+export function looksLikePhone(raw: string): boolean {
+  return /^\+?[\d\s()\-.]{10,20}$/.test(raw.trim()) && (raw.match(/\d/g)?.length ?? 0) >= 10;
+}
+
+/** «+79991234567» → «+7 999 123-45-67» (для российских), иначе как есть */
+export function formatPhone(e164: string): string {
+  const m = /^\+7(\d{3})(\d{3})(\d{2})(\d{2})$/.exec(e164);
+  return m ? `+7 ${m[1]} ${m[2]}-${m[3]}-${m[4]}` : e164;
+}

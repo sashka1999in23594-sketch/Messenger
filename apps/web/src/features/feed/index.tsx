@@ -113,7 +113,7 @@ export function FeedPage({ mode }: { mode: keyof typeof MODES }) {
           <TrendsBox />
           <WhoToFollow />
           <div className="faint xs" style={{ padding: '0 8px' }}>
-            Omni · прототип · <Link to="/settings/about">О приложении</Link>
+            SpaceUp · прототип · <Link to="/settings/about">О приложении</Link>
           </div>
         </aside>
       </div>

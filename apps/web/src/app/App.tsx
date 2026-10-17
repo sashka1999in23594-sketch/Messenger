@@ -40,7 +40,7 @@ function Gate() {
   useEffect(() => {
     void bootstrapSession();
   }, []);
-  if (status === 'loading') return <Loading label="Omni загружается…" />;
+  if (status === 'loading') return <Loading label="SpaceUp загружается…" />;
   if (status === 'guest') return <AuthPage />;
   if (!onboarded) return <Onboarding />;
   return <AppRoutes />;

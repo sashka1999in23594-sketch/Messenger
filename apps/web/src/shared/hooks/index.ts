@@ -86,7 +86,7 @@ export function useCopy(): (text: string) => Promise<boolean> {
 
 export function useTitle(title: string | undefined) {
   useEffect(() => {
-    if (title) document.title = `${title} · Omni`;
+    if (title) document.title = `${title} · SpaceUp`;
   }, [title]);
 }
 

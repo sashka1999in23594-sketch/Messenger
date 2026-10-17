@@ -1,16 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#7c5cff"/>
-      <stop offset="1" stop-color="#00b8ff"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1240"/>
+      <stop offset="1" stop-color="#2a1670"/>
     </linearGradient>
-    <linearGradient id="s" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fff" stop-opacity="0.35"/>
-      <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+    <radialGradient id="pl" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#c4b5ff"/>
+      <stop offset="0.45" stop-color="#7c5cff"/>
+      <stop offset="1" stop-color="#1fb6e6"/>
+    </radialGradient>
+    <linearGradient id="rg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.2"/>
+      <stop offset="0.5" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#7ee8ff"/>
     </linearGradient>
   </defs>
-  <rect x="2" y="2" width="44" height="44" rx="15" fill="url(#g)"/>
-  <rect x="2" y="2" width="44" height="44" rx="15" fill="url(#s)"/>
-  <circle cx="23" cy="25" r="10" fill="none" stroke="#fff" stroke-width="4.6"/>
-  <circle cx="33.2" cy="14.8" r="3.8" fill="#fff"/>
+  <rect width="48" height="48" rx="14" fill="url(#bg)"/>
+  <circle cx="9" cy="11" r="0.8" fill="#fff" opacity="0.8"/>
+  <circle cx="38" cy="8" r="0.6" fill="#fff" opacity="0.6"/>
+  <circle cx="40" cy="38" r="0.7" fill="#fff" opacity="0.7"/>
+  <circle cx="7" cy="36" r="0.5" fill="#fff" opacity="0.5"/>
+  <g transform="rotate(-24 24 24)">
+    <path d="M 5 24 A 19 7.2 0 0 1 43 24" fill="none" stroke="url(#rg)" stroke-width="2.4" stroke-linecap="round" opacity="0.55"/>
+  </g>
+  <circle cx="24" cy="24" r="9.5" fill="url(#pl)"/>
+  <g transform="rotate(-24 24 24)">
+    <path d="M 43 24 A 19 7.2 0 0 1 5 24" fill="none" stroke="url(#rg)" stroke-width="2.4" stroke-linecap="round"/>
+    <circle cx="41.9" cy="26.5" r="2.7" fill="#fff"/>
+    <circle cx="41.9" cy="26.5" r="5" fill="#7ee8ff" opacity="0.25"/>
+  </g>
 </svg>

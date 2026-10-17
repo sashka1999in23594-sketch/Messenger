@@ -72,7 +72,7 @@ function handle(event: ServerEvent): void {
       void queryClient.invalidateQueries({ queryKey: ['notifications'] });
       if (event.notification.type !== 'security') {
         playSound('notify');
-        desktopNotify('Omni', `${event.notification.actor?.displayName ?? ''} ${event.notification.preview ?? ''}`.trim() || 'Новое уведомление', () =>
+        desktopNotify('SpaceUp', `${event.notification.actor?.displayName ?? ''} ${event.notification.preview ?? ''}`.trim() || 'Новое уведомление', () =>
           navigateFn(event.notification.link ?? '/notifications'),
         );
       }

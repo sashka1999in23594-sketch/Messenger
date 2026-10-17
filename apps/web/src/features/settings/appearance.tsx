@@ -107,7 +107,7 @@ export function AppearanceSettings({ section }: { section: 'theme' | 'accent' | 
             <span style={{ fontSize: 18 }}>А</span>
           </div>
           <div className="text-preview">
-            <span className="text-preview__in">Привет! Так выглядит текст в Omni 👋</span>
+            <span className="text-preview__in">Привет! Так выглядит текст в SpaceUp 👋</span>
             <span className="text-preview__out">Отлично читается ✨</span>
           </div>
         </div>

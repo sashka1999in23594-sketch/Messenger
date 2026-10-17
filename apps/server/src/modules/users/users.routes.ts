@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { emailPrefsSchema, notificationSettingsSchema, pagination, pinPostSchema, privacySettingsSchema, profileLinksSchema, statusSchema, updateProfileSchema } from '@omni/shared';
+import { changePhoneSchema, emailPrefsSchema, notificationSettingsSchema, pagination, pinPostSchema, privacySettingsSchema, profileLinksSchema, statusSchema, updateProfileSchema } from '@omni/shared';
 import { parse } from '../../lib/errors.js';
 import { requireAuth } from '../../http/request.js';
 
@@ -14,6 +14,10 @@ export async function usersRoutes(app: FastifyInstance): Promise<void> {
     return services.users.updateProfile(auth.userId, parse(updateProfileSchema, req.body));
   });
 
+  app.put('/me/phone', { config: { rateLimit: { max: 10, timeWindow: '1 hour' } } }, async (req) => {
+    const body = parse(changePhoneSchema, req.body);
+    return services.users.changePhone(requireAuth(req).userId, body.phone, body.password);
+  });
   app.put('/me/status', async (req) => services.users.setStatus(requireAuth(req).userId, parse(statusSchema, req.body)));
   app.delete('/me/status', async (req) => services.users.setStatus(requireAuth(req).userId, null));
   app.put('/me/links', async (req) => services.users.setLinks(requireAuth(req).userId, parse(profileLinksSchema, req.body).links));

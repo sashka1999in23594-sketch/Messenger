@@ -1,4 +1,4 @@
-export { DeleteAccountSettings, ExportSettings, ProfileSettings, UsernameSettings } from './account';
+export { DeleteAccountSettings, ExportSettings, PhoneSettings, ProfileSettings, UsernameSettings } from './account';
 export {
   AboutSettings,
   AccessibilitySettings,

@@ -41,7 +41,7 @@ export function Rail({ current }: { current: NavSection }) {
   const isDark = theme === 'dark' || (theme === 'system' && document.documentElement.dataset.theme === 'dark');
   return (
     <nav className="rail pane" aria-label="Разделы">
-      <Link to="/" className="rail__logo" aria-label="Omni — на главную">
+      <Link to="/" className="rail__logo" aria-label="SpaceUp — на главную">
         <Logo size={44} />
       </Link>
       {sections

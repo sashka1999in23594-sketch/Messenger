@@ -1,7 +1,7 @@
 /** Экран звонка поверх приложения: входящий, исходящий, разговор и свёрнутый вид. */
 import { useEffect, useRef, useState } from 'react';
 import { Maximize2, Mic, MicOff, Minimize2, Phone, PhoneOff, Video, VideoOff } from 'lucide-react';
-import { acceptCall, fmtDuration, hangup, setMinimized, toggleCamera, toggleMute, useCall } from '../../shared/calls/engine';
+import { acceptCall, dismissEnded, fmtDuration, hangup, setMinimized, toggleCamera, toggleMute, useCall } from '../../shared/calls/engine';
 import { useSession } from '../../shared/stores/session';
 import { cn } from '../../shared/lib/format';
 import { Avatar } from '../../shared/ui';
@@ -68,7 +68,9 @@ export function CallScreen() {
           ? 'Соединение…'
           : s.phase === 'ended'
             ? s.endedText
-            : duration;
+            : s.reconnecting
+              ? 'Восстанавливаем связь…'
+              : duration;
   const remoteVideo = s.phase === 'active' && s.remoteMedia.video && !!s.remoteStream?.getVideoTracks().length;
   const localVideo = !!s.localStream?.getVideoTracks().length && !s.cameraOff;
 
@@ -96,7 +98,13 @@ export function CallScreen() {
   }
 
   return (
-    <div className={cn('call-screen', remoteVideo && 'call-screen--video', s.phase === 'ended' && 'call-screen--ended')} role="dialog" aria-modal="true" aria-label={`Звонок: ${peer.displayName}`}>
+    <div
+      className={cn('call-screen', remoteVideo && 'call-screen--video', s.phase === 'ended' && 'call-screen--ended')}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Звонок: ${peer.displayName}`}
+      onClick={s.phase === 'ended' ? dismissEnded : undefined}
+    >
       <RemoteAudio stream={s.remoteStream} />
       <div className="call-screen__bg" style={peer.avatarUrl ? { backgroundImage: `url(${peer.avatarUrl})` } : undefined} />
       {remoteVideo && <StreamVideo stream={s.remoteStream} muted className="call-screen__remote" />}

@@ -695,4 +695,12 @@ CREATE TABLE post_subscriptions (
 CREATE INDEX post_subscriptions_author ON post_subscriptions(author_id);
 `,
   },
+  {
+    version: '005_phone',
+    sql: /* sql */ `
+-- ── Номер телефона: вход и поиск по номеру (E.164, уникальный) ─────────────
+ALTER TABLE users ADD COLUMN phone TEXT;
+CREATE UNIQUE INDEX users_phone ON users(phone) WHERE phone IS NOT NULL;
+`,
+  },
 ];

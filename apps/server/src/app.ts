@@ -4,7 +4,7 @@ import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import websocket from '@fastify/websocket';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { API_PREFIX, WS_HEARTBEAT_MS } from '@omni/shared';
 import type { Config } from './config.js';
@@ -85,9 +85,12 @@ export async function buildApp(config: Config, opts: { db?: Db } = {}): Promise<
 
   // В production сервер может сам отдавать собранный веб-клиент (один origin — проще и безопаснее)
   if (config.webDist && existsSync(config.webDist)) {
+    // index.html отдаём сами: подставляем адрес сайта в превью для ссылок (og:image должен быть абсолютным)
+    const indexHtml = readFileSync(path.join(config.webDist, 'index.html'), 'utf8').replaceAll('__ORIGIN__', config.publicOrigin);
     await app.register(fastifyStatic, {
       root: config.webDist,
       prefix: '/',
+      index: false,
       decorateReply: false,
       wildcard: false,
       setHeaders: (res, filePath) => {
@@ -98,7 +101,7 @@ export async function buildApp(config: Config, opts: { db?: Db } = {}): Promise<
     // SPA: все неизвестные не-API пути → index.html
     app.get('/*', (req, reply) => {
       if (req.url.startsWith('/api/')) return reply.callNotFound();
-      return reply.sendFile('index.html', config.webDist!);
+      return reply.type('text/html; charset=utf-8').header('Cache-Control', 'no-cache').send(indexHtml);
     });
   }
 

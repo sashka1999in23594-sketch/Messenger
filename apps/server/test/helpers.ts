@@ -84,10 +84,13 @@ export class Client {
 }
 
 let counter = 0;
+let phones = 0;
+/** Уникальный номер для тестов: +7 999 xxx-xx-xx */
+export const testPhone = () => `+7999${String(Date.now() % 1000).padStart(3, '0')}${String(phones++).padStart(4, '0')}`;
 export async function registerUser(app: FastifyInstance, name?: string) {
   const client = new Client(app);
   const username = name ?? `user_${Date.now().toString(36)}_${counter++}`;
-  const res = await client.post('/auth/register', { username, displayName: `Тест ${username}`, email: `${username}@example.com`, password: 'correct-horse-battery-staple' });
+  const res = await client.post('/auth/register', { username, displayName: `Тест ${username}`, email: `${username}@example.com`, phone: testPhone(), password: 'correct-horse-battery-staple' });
   if (res.status !== 201) throw new Error(`register failed: ${JSON.stringify(res.body)}`);
   return { client, user: res.body.me as { id: string; username: string }, password: 'correct-horse-battery-staple' };
 }

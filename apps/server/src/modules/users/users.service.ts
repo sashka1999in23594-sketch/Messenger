@@ -11,6 +11,7 @@ import type {
 import type { Db } from '../../db/index.js';
 import { bool, iso, isoOrNull } from '../../db/index.js';
 import { badRequest, blocked, conflict, notFound } from '../../lib/errors.js';
+import { verifyPassword } from '../../lib/crypto.js';
 import type { MediaService } from '../media/media.service.js';
 import type { NotificationService } from '../notifications/notifications.service.js';
 import { Policy } from '../policy/policy.service.js';
@@ -59,6 +60,7 @@ export class UsersService {
       twoFactor: { totp: bool(u.totp_enabled), email: bool(u.email_2fa) },
       email: u.email,
       emailVerified: !!u.email_verified_at,
+      phone: u.phone,
       emailPrefs: emailPrefsOf(u),
       onboarded: !!u.onboarded_at,
       privacy: privacyOf(u),
@@ -103,6 +105,7 @@ export class UsersService {
       status: isBlockedBy ? null : statusOf(u),
       links: isBlockedBy ? [] : linksOf(u),
       pinnedPostId: isBlockedBy ? null : u.pinned_post_id,
+      phone: u.phone && (viewerId === u.id || (!isBlockedBy && this.policy.audienceAllows(privacyOf(u).showPhone, u.id, viewerId))) ? u.phone : null,
       mutualFollowers: viewerId === u.id ? { count: 0, sample: [] } : this.mutualFollowers(viewerId, u.id),
       subscribed: !!this.db.get('SELECT 1 FROM post_subscriptions WHERE user_id = :v AND author_id = :u', { v: viewerId, u: u.id }),
       closeFriend: !!this.db.get('SELECT 1 FROM close_friends WHERE owner_id = :v AND friend_id = :u', { v: viewerId, u: u.id }),
@@ -145,6 +148,16 @@ export class UsersService {
       now: Date.now(),
       id: userId,
     });
+    return this.me(userId);
+  }
+
+  /** Сменить номер: нужен пароль — номер используется для входа */
+  async changePhone(userId: string, phone: string, password: string): Promise<Me> {
+    const u = this.requireUser(userId);
+    if (!(await verifyPassword(password, u.password_hash)).ok) throw badRequest('Неверный пароль', { password: 'Неверный пароль' });
+    const taken = this.repo.byPhone(phone);
+    if (taken && taken.id !== userId) throw conflict('Этот номер уже привязан к другому аккаунту', { phone: 'Номер уже используется' });
+    this.db.run('UPDATE users SET phone = :p, updated_at = :now WHERE id = :id', { p: phone, now: Date.now(), id: userId });
     return this.me(userId);
   }
 

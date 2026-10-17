@@ -237,7 +237,7 @@ export function HomePage() {
                 <Sparkles size={18} />
               </span>
               <span className="list-item__body">
-                <b>Что нового в Omni</b>
+                <b>Что нового в SpaceUp</b>
                 <span className="list-item__sub" style={{ display: 'block' }}>
                   Звонки, истории, папки, списки и ещё 60+ функций
                 </span>
@@ -313,7 +313,7 @@ export function WhatsNewPage() {
       <div className="page">
         <div className="home-hero" style={{ marginBottom: 20 }}>
           <span className="home-hero__text">
-            <span className="home-hero__date">Обновление Omni</span>
+            <span className="home-hero__date">Обновление SpaceUp</span>
             <h1 className="home-hero__title">Что нового ✨</h1>
             <span className="small">Всё, что появилось в последних версиях — нажмите, чтобы попробовать.</span>
           </span>

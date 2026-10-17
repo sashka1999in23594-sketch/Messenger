@@ -1,14 +1,14 @@
 {
-  "name": "Omni — всё общение в одном месте",
-  "short_name": "Omni",
-  "description": "Мессенджер, лента, видео, клипы, фото и истории.",
+  "name": "SpaceUp — все на одной орбите",
+  "short_name": "SpaceUp",
+  "description": "Чаты и звонки, каналы, компании и сообщества, кометы и истории.",
   "lang": "ru",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#07080f",
-  "theme_color": "#07080f",
+  "background_color": "#05061a",
+  "theme_color": "#05061a",
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
@@ -17,7 +17,7 @@
   ],
   "shortcuts": [
     { "name": "Чаты", "url": "/chats" },
-    { "name": "Лента", "url": "/feed" },
-    { "name": "Клипы", "url": "/shorts" }
+    { "name": "Каналы", "url": "/channels" },
+    { "name": "Кометы", "url": "/comets" }
   ]
 }

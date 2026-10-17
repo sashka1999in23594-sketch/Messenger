@@ -14,6 +14,7 @@ import {
   USERNAME_RE,
 } from './constants.js';
 import { checkPasswordPolicy } from './password.js';
+import { normalizePhone } from './text.js';
 
 // ─── Базовые примитивы ──────────────────────────────────────────────────────
 
@@ -66,6 +67,19 @@ export const email = z
   .max(LIMITS.emailMax, 'Слишком длинный адрес')
   .pipe(z.email('Проверьте адрес почты'));
 
+/** Номер телефона: нормализуется в E.164 (+79991234567). */
+export const phone = z
+  .string()
+  .max(32, 'Слишком длинный номер')
+  .transform((v, ctx) => {
+    const n = normalizePhone(v);
+    if (!n) {
+      ctx.addIssue({ code: 'custom', message: 'Укажите номер в международном формате, например +7 999 123-45-67' });
+      return z.NEVER;
+    }
+    return n;
+  });
+
 /** 6-значный код из письма (пробелы и дефисы игнорируются). */
 export const emailCode = z
   .string()
@@ -108,6 +122,7 @@ export const registerSchema = z
     username,
     displayName,
     email,
+    phone,
     password,
     deviceName: text(LIMITS.deviceNameMax).optional(),
   })
@@ -207,8 +222,12 @@ export const privacySettingsSchema = z
     readReceipts: z.boolean(),
     showInSearch: z.boolean(),
     allowTagging: z.boolean(),
+    findByPhone: audience,
+    showPhone: audience,
   })
   .partial();
+
+export const changePhoneSchema = z.object({ phone, password: z.string().min(1).max(LIMITS.passwordMax) });
 
 export const notificationSettingsSchema = z
   .object({

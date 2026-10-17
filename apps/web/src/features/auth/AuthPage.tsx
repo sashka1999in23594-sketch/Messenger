@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Camera, CheckCheck, Clapperboard, Heart, KeyRound, Lock, Mail, MailOpen, MessageCircle, Newspaper, RefreshCw, ShieldCheck, Smartphone, SquarePlay, Sparkles } from 'lucide-react';
+import { ArrowLeft, KeyRound, Mail, MailOpen, RefreshCw, ShieldCheck, Smartphone, Sparkles } from 'lucide-react';
 import { registerSchema, type DevMail, type LoginResult, type Me, type TwoFactorMethod } from '@omni/shared';
 import { api, ApiError, errorMessage } from '../../shared/api/client';
 import { useAuthConfig } from '../../shared/api/config';
@@ -17,76 +17,29 @@ type Step =
   | { kind: 'forgot' }
   | { kind: 'reset'; login: string };
 
-const FEATURES = [
-  { icon: MessageCircle, label: 'Мессенджер' },
-  { icon: Lock, label: 'Секретные чаты' },
-  { icon: Newspaper, label: 'Лента' },
-  { icon: SquarePlay, label: 'Видео' },
-  { icon: Clapperboard, label: 'Клипы' },
-  { icon: Camera, label: 'Истории' },
-];
-
-/** Витрина слева: бренд и «живые» карточки разделов. */
+/** Витрина слева: планета SpaceUp с орбитами и спутниками. */
 function Showcase() {
   return (
     <section className="auth__hero" aria-hidden>
-      <div className="auth__brand">
-        <Logo size={64} />
-        <span className="auth__name">Omni</span>
+      <div className="space-scene">
+        <div className="space-scene__orbit space-scene__orbit--1">
+          <span className="space-scene__sat" />
+        </div>
+        <div className="space-scene__orbit space-scene__orbit--2">
+          <span className="space-scene__sat space-scene__sat--b" />
+        </div>
+        <div className="space-scene__orbit space-scene__orbit--3">
+          <span className="space-scene__sat space-scene__sat--c" />
+        </div>
+        <div className="space-scene__planet" />
       </div>
-      <h2 className="auth__headline">
-        Всё общение — <span className="gradient-text">в одном месте</span>
-      </h2>
-      <p className="auth__tagline">Чаты и каналы, лента, видео, клипы, фото и истории. Быстро, красиво и с защитой по умолчанию.</p>
-
-      <div className="auth__stage">
-        <div className="auth__card auth__card--chat">
-          <div className="auth__card-head">
-            <span className="auth__dot" style={{ background: 'var(--accent)' }} />
-            Команда Omni
-            <span className="faint xs" style={{ marginLeft: 'auto' }}>
-              в сети
-            </span>
-          </div>
-          <div className="auth__bubble auth__bubble--in">Запускаем новый дизайн? ✨</div>
-          <div className="auth__bubble auth__bubble--out">
-            Уже! Сияние двигается <CheckCheck size={13} />
-          </div>
+      <div className="auth__hero-text">
+        <div className="auth__brand">
+          <Logo size={52} />
+          <span className="auth__name">SpaceUp</span>
         </div>
-        <div className="auth__card auth__card--post">
-          <div className="auth__card-head">
-            <span className="auth__avatar">А</span>
-            <span>
-              <b>Алиса</b> <span className="faint">· 2 мин</span>
-            </span>
-          </div>
-          <div className="auth__photo" />
-          <div className="row small" style={{ gap: 14, whiteSpace: 'nowrap' }}>
-            <span className="row gap-1" style={{ color: '#ff3d7f' }}>
-              <Heart size={15} fill="currentColor" /> 1,2 тыс.
-            </span>
-            <span className="muted">48 комментариев</span>
-          </div>
-        </div>
-        <div className="auth__card auth__card--secure">
-          <span className="auth__secure-icon">
-            <ShieldCheck size={22} />
-          </span>
-          <span>
-            <b>Сквозное шифрование</b>
-            <span className="xs muted" style={{ display: 'block' }}>
-              Ключи только на ваших устройствах
-            </span>
-          </span>
-        </div>
-      </div>
-
-      <div className="auth__features">
-        {FEATURES.map((f) => (
-          <span key={f.label} className="auth__feature">
-            <f.icon size={16} /> {f.label}
-          </span>
-        ))}
+        <h2 className="auth__headline">Все на одной орбите</h2>
+        <p className="auth__tagline">Чаты и звонки, каналы, компании и сообщества. Сквозное шифрование и защита аккаунта — по умолчанию.</p>
       </div>
     </section>
   );
@@ -149,6 +102,7 @@ export function AuthPage() {
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [fields, setFields] = useState<Record<string, string>>({});
@@ -195,7 +149,7 @@ export function AuthPage() {
 
   const submitRegister = (e: FormEvent) => {
     e.preventDefault();
-    const parsed = registerSchema.safeParse({ username, displayName, email, password });
+    const parsed = registerSchema.safeParse({ username, displayName, email, phone, password });
     if (!parsed.success) {
       const f: Record<string, string> = {};
       for (const i of parsed.error.issues) f[String(i.path[0])] ??= i.message;
@@ -251,7 +205,7 @@ export function AuthPage() {
         <div className="auth__card-wrap">
           <div className="auth__mobile-brand">
             <Logo size={52} />
-            <span className="auth__name auth__name--sm">Omni</span>
+            <span className="auth__name auth__name--sm">SpaceUp</span>
           </div>
           <div className="auth__form-card">
             {isEntry && (
@@ -270,13 +224,13 @@ export function AuthPage() {
                 <Header title="С возвращением!" text="Войдите, чтобы продолжить" />
                 {step.notice && <Notice kind="success">{step.notice}</Notice>}
                 <Input
-                  label="Имя пользователя или почта"
+                  label="Имя пользователя, почта или телефон"
                   value={login}
                   onChange={(e) => setLogin(e.target.value)}
                   autoComplete="username"
                   autoCapitalize="none"
                   spellCheck={false}
-                  placeholder="sasha или sasha@mail.ru"
+                  placeholder="Имя пользователя, почта или телефон"
                   error={fields.username}
                   autoFocus
                 />
@@ -294,15 +248,15 @@ export function AuthPage() {
                     className="auth__demo"
                     onClick={() => {
                       setLogin('sasha');
-                      setPassword('omni-demo-2026');
-                      submitLogin(undefined, { u: 'sasha', p: 'omni-demo-2026' });
+                      setPassword('spaceup-demo-2026');
+                      submitLogin(undefined, { u: 'sasha', p: 'spaceup-demo-2026' });
                     }}
                   >
                     <Sparkles size={18} />
                     <span>
                       <b>Войти в демо-аккаунт</b>
                       <span className="xs muted" style={{ display: 'block' }}>
-                        sasha / omni-demo-2026 — с готовыми чатами и публикациями
+                        sasha / spaceup-demo-2026 — с готовыми чатами и публикациями
                       </span>
                     </span>
                   </button>
@@ -321,7 +275,7 @@ export function AuthPage() {
                   autoComplete="username"
                   autoCapitalize="none"
                   spellCheck={false}
-                  placeholder="sasha"
+                  placeholder="your_name"
                   error={fields.username}
                   hint="Латинские буквы, цифры и _ — по нему вас найдут"
                 />
@@ -336,6 +290,17 @@ export function AuthPage() {
                   placeholder="you@example.com"
                   error={fields.email}
                   hint={mailEnabled ? 'Пришлём код подтверждения. Почта нужна для восстановления доступа' : 'Для восстановления доступа и уведомлений о безопасности'}
+                />
+                <Input
+                  label="Телефон"
+                  type="tel"
+                  inputMode="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  autoComplete="tel"
+                  placeholder="+7 999 123-45-67"
+                  error={fields.phone}
+                  hint="По номеру вас смогут найти знакомые — это можно отключить в настройках приватности"
                 />
                 <PasswordInput
                   label="Пароль"
@@ -412,7 +377,7 @@ export function AuthPage() {
                 <Header onBack={() => go({ kind: 'login' })} icon={<KeyRound size={26} />} title="Восстановление пароля" text="Пришлём код на почту, привязанную к аккаунту. Почта должна быть подтверждена." />
                 {!mailEnabled && config.data && <Notice kind="warning">На этом сервере отправка писем не настроена — восстановить пароль по почте сейчас нельзя.</Notice>}
                 <Input
-                  label="Имя пользователя или почта"
+                  label="Имя пользователя, почта или телефон"
                   value={login}
                   onChange={(e) => setLogin(e.target.value)}
                   autoComplete="username"

@@ -368,3 +368,117 @@
     padding: 20px 16px;
   }
 }
+
+/* ─── Сцена SpaceUp: планета с орбитами ─── */
+.auth__hero {
+  align-items: center;
+}
+.auth__hero-text {
+  position: relative;
+  z-index: 1;
+  max-width: 520px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+.auth__hero-text .auth__headline {
+  font-family: var(--font-display);
+}
+.space-scene {
+  position: relative;
+  width: min(440px, 80%);
+  aspect-ratio: 1;
+  margin-bottom: var(--space-4);
+}
+.space-scene__planet {
+  position: absolute;
+  inset: 32%;
+  border-radius: var(--radius-full);
+  background: radial-gradient(circle at 35% 30%, var(--brand-light), var(--brand-1) 45%, var(--brand-2));
+  box-shadow:
+    0 0 80px color-mix(in oklab, var(--brand-1) 60%, transparent),
+    inset -18px -22px 40px color-mix(in oklab, var(--brand-bg-1) 55%, transparent);
+  animation: planet-breathe 6s var(--ease) infinite alternate;
+}
+.space-scene__orbit {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-full);
+  border: 1.5px solid color-mix(in oklab, var(--brand-star) 28%, transparent);
+  transform: rotateX(68deg) rotateZ(-20deg);
+  transform-style: preserve-3d;
+}
+.space-scene__orbit--2 {
+  inset: 8%;
+  border-style: dashed;
+  border-color: color-mix(in oklab, var(--brand-glow) 30%, transparent);
+  transform: rotateX(70deg) rotateZ(30deg);
+}
+.space-scene__orbit--3 {
+  inset: -10%;
+  border-color: color-mix(in oklab, var(--brand-star) 14%, transparent);
+  transform: rotateX(74deg) rotateZ(8deg);
+}
+.space-scene__orbit::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  animation: orbit-spin 14s linear infinite;
+}
+.space-scene__sat {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  translate: -50% -50%;
+  animation: orbit-spin 12s linear infinite;
+}
+.space-scene__sat::after {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  translate: -50% 0;
+  border-radius: var(--radius-full);
+  background: var(--brand-star);
+  box-shadow: 0 0 18px 4px var(--brand-glow);
+}
+.space-scene__sat--b {
+  animation-duration: 18s;
+  animation-direction: reverse;
+}
+.space-scene__sat--b::after {
+  width: 9px;
+  height: 9px;
+  background: var(--brand-glow);
+}
+.space-scene__sat--c {
+  animation-duration: 26s;
+}
+.space-scene__sat--c::after {
+  width: 7px;
+  height: 7px;
+  opacity: 0.8;
+}
+@keyframes orbit-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes planet-breathe {
+  to {
+    transform: scale(1.04);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .space-scene__sat,
+  .space-scene__planet {
+    animation: none;
+  }
+}

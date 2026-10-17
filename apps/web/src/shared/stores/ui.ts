@@ -59,7 +59,7 @@ export function useCrumb(title: string | null | undefined) {
   const setCrumb = useUi((s) => s.setCrumb);
   useEffect(() => {
     setCrumb(title ?? null);
-    if (title) document.title = `${title} · Omni`;
+    if (title) document.title = `${title} · SpaceUp`;
     return () => setCrumb(null);
   }, [title, setCrumb]);
 }

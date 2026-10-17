@@ -82,8 +82,6 @@ const NewCommunity = lazyNamed(communities, 'NewCommunity');
 const CommunityPage = lazyNamed(communities, 'CommunityPage');
 
 const SearchPage = lazyNamed(explore, 'SearchPage');
-const TrendsPage = lazyNamed(explore, 'TrendsPage');
-const PeoplePage = lazyNamed(explore, 'PeoplePage');
 
 const NotificationsPage = lazyNamed(notifications, 'NotificationsPage');
 const FollowRequestsPage = lazyNamed(notifications, 'FollowRequestsPage');
@@ -92,6 +90,7 @@ const SettingsHome = lazyNamed(settings, 'SettingsHome');
 const ProfileSettings = lazyNamed(settings, 'ProfileSettings');
 const UsernameSettings = lazyNamed(settings, 'UsernameSettings');
 const EmailSettings = lazyNamed(settings, 'EmailSettings');
+const PhoneSettings = lazyNamed(settings, 'PhoneSettings');
 const ExportSettings = lazyNamed(settings, 'ExportSettings');
 const DeleteAccountSettings = lazyNamed(settings, 'DeleteAccountSettings');
 const PrivacySettings = lazyNamed(settings, 'PrivacySettings');
@@ -209,8 +208,6 @@ export function AppRoutes() {
 
         {/* Обзор */}
         <Route path="search" element={<SearchPage />} />
-        <Route path="explore/trends" element={<TrendsPage />} />
-        <Route path="explore/people" element={<PeoplePage />} />
 
         {/* Уведомления */}
         <Route path="notifications" element={<NotificationsPage />} />
@@ -234,12 +231,14 @@ export function AppRoutes() {
         <Route path="settings/account/profile" element={<ProfileSettings />} />
         <Route path="settings/account/username" element={<UsernameSettings />} />
         <Route path="settings/account/email" element={<EmailSettings />} />
+        <Route path="settings/account/phone" element={<PhoneSettings />} />
         <Route path="settings/account/export" element={<ExportSettings />} />
         <Route path="settings/account/delete" element={<DeleteAccountSettings />} />
         <Route path="settings/privacy" element={<Navigate to="/settings/privacy/profile" replace />} />
         <Route path="settings/privacy/profile" element={<PrivacySettings section="profile" />} />
         <Route path="settings/privacy/messages" element={<PrivacySettings section="messages" />} />
         <Route path="settings/privacy/last-seen" element={<PrivacySettings section="last-seen" />} />
+        <Route path="settings/privacy/phone" element={<PrivacySettings section="phone" />} />
         <Route path="settings/privacy/interactions" element={<PrivacySettings section="interactions" />} />
         <Route path="settings/privacy/blocked" element={<RelationsList which="blocks" />} />
         <Route path="settings/privacy/muted" element={<RelationsList which="mutes" />} />

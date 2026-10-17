@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Clock, Eye, MessageCircle, MessageSquare, User, UserX, VolumeX } from 'lucide-react';
+import { Clock, Eye, MessageCircle, MessageSquare, Phone, User, UserX, VolumeX } from 'lucide-react';
 import type { UserSummary } from '@omni/shared';
 import { api } from '../../shared/api/client';
 import { Button, EmptyState, SettingRow, Switch, UserRow } from '../../shared/ui';
 import { AudienceSelect, Panel, SettingsPage, usePrivacy } from './common';
 
-export function PrivacySettings({ section }: { section: 'profile' | 'messages' | 'last-seen' | 'interactions' }) {
+export function PrivacySettings({ section }: { section: 'profile' | 'messages' | 'last-seen' | 'interactions' | 'phone' }) {
   const { privacy, update } = usePrivacy();
   if (section === 'profile') {
     return (
@@ -15,6 +15,18 @@ export function PrivacySettings({ section }: { section: 'profile' | 'messages' |
         </Panel>
         <Panel footer="Если выключено, вас можно найти только по точному имени пользователя.">
           <SettingRow title="Показывать в поиске" description="И в рекомендациях «Кого почитать»" control={<Switch checked={privacy.showInSearch} onChange={(v) => update({ showInSearch: v })} label="Показывать в поиске" />} />
+        </Panel>
+      </SettingsPage>
+    );
+  }
+  if (section === 'phone') {
+    return (
+      <SettingsPage title="Номер телефона" subtitle="Кто может найти вас по номеру и увидеть его в профиле" icon={<Phone size={22} />}>
+        <Panel title="Кто может найти меня по номеру" footer="Поиск по номеру — только по точному совпадению: перебрать номера и узнать, кто зарегистрирован, не получится.">
+          <AudienceSelect value={privacy.findByPhone ?? 'everyone'} onChange={(v) => update({ findByPhone: v })} label="Поиск по номеру" />
+        </Panel>
+        <Panel title="Кто видит мой номер">
+          <AudienceSelect value={privacy.showPhone ?? 'nobody'} onChange={(v) => update({ showPhone: v })} label="Видимость номера" />
         </Panel>
       </SettingsPage>
     );

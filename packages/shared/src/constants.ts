@@ -4,7 +4,7 @@
  * подсказок и ранней валидации форм.
  */
 
-export const APP_NAME = 'Omni';
+export const APP_NAME = 'SpaceUp';
 export const API_PREFIX = '/api/v1';
 
 export const LIMITS = {
