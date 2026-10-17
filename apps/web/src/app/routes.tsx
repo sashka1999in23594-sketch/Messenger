@@ -18,7 +18,7 @@ const video = () => import('../features/video');
 const shorts = () => import('../features/shorts');
 const stories = () => import('../features/stories');
 const profile = () => import('../features/profile');
-const communities = () => import('../features/communities');
+const spaces = () => import('../features/spaces');
 const explore = () => import('../features/explore');
 const notifications = () => import('../features/notifications');
 const settings = () => import('../features/settings');
@@ -69,10 +69,12 @@ const CloseFriendsPage = lazyNamed(stories, 'CloseFriendsPage');
 const ProfilePage = lazyNamed(profile, 'ProfilePage');
 const FollowListPage = lazyNamed(profile, 'FollowListPage');
 
-const MyCommunities = lazyNamed(communities, 'MyCommunities');
-const DiscoverCommunities = lazyNamed(communities, 'DiscoverCommunities');
-const NewCommunity = lazyNamed(communities, 'NewCommunity');
-const CommunityPage = lazyNamed(communities, 'CommunityPage');
+const SpacesHome = lazyNamed(spaces, 'SpacesHome');
+const DiscoverSpaces = lazyNamed(spaces, 'DiscoverSpaces');
+const NewSpacePage = lazyNamed(spaces, 'NewSpacePage');
+const SpaceLayout = lazyNamed(spaces, 'SpaceLayout');
+const SpaceWelcome = lazyNamed(spaces, 'SpaceWelcome');
+const JoinSpaceLink = lazyNamed(spaces, 'JoinSpaceLink');
 
 const SearchPage = lazyNamed(explore, 'SearchPage');
 
@@ -197,10 +199,22 @@ export function AppRoutes() {
         <Route path="stories/archive" element={<StoriesArchivePage />} />
 
         {/* Сообщества */}
-        <Route path="communities" element={<MyCommunities />} />
-        <Route path="communities/discover" element={<DiscoverCommunities />} />
-        <Route path="communities/new" element={<NewCommunity />} />
-        <Route path="c/:slug" element={<CommunityPage />} />
+        <Route path="communities" element={<SpacesHome kind="community" />} />
+        <Route path="communities/discover" element={<DiscoverSpaces />} />
+        <Route path="communities/new" element={<NewSpacePage kind="community" />} />
+        <Route path="communities/:spaceId" element={<SpaceLayout />}>
+          <Route index element={<SpaceWelcome />} />
+          <Route path=":chatId" element={<ChatView />} />
+        </Route>
+        <Route path="s/:token" element={<JoinSpaceLink />} />
+
+        {/* Компании */}
+        <Route path="companies" element={<SpacesHome kind="company" />} />
+        <Route path="companies/new" element={<NewSpacePage kind="company" />} />
+        <Route path="companies/:spaceId" element={<SpaceLayout />}>
+          <Route index element={<SpaceWelcome />} />
+          <Route path=":chatId" element={<ChatView />} />
+        </Route>
 
         {/* Поиск */}
         <Route path="search" element={<SearchPage />} />

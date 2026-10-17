@@ -179,9 +179,9 @@ export const PostCard = memo(function PostCard({ post, detail }: { post: Post; d
           </div>
         )}
         {shown.community && (
-          <Link className="post__context" style={{ margin: 0 }} to={`/c/${shown.community.slug}`} onClick={(e) => e.stopPropagation()}>
+          <span className="post__context" style={{ margin: 0 }}>
             <Users size={14} /> {shown.community.name}
-          </Link>
+          </span>
         )}
         <div className="post__head">
           {detail && <Avatar src={shown.author.avatarUrl} name={shown.author.displayName} id={shown.author.id} size={48} />}

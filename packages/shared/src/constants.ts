@@ -141,3 +141,29 @@ export const SECURITY_EVENT_LABELS: Record<string, string> = {
   device_key_registered: 'Зарегистрирован ключ шифрования устройства',
   account_deleted: 'Аккаунт удалён',
 };
+
+/**
+ * Права в компаниях и сообществах (битовая маска, как роли в Discord).
+ * Владелец имеет все права; «Администратор» — тоже все, кроме передачи владения.
+ */
+export const SPACE_PERMS = {
+  /** Название, описание, аватар */
+  manageSpace: 1,
+  /** Создавать роли и выдавать их участникам */
+  manageRoles: 2,
+  /** Категории, чаты и каналы */
+  manageRooms: 4,
+  /** Приглашать людей */
+  invite: 8,
+  /** Исключать участников */
+  kick: 16,
+  /** Удалять чужие сообщения, блокировать в чатах */
+  moderate: 32,
+  /** Публиковать в каналах-объявлениях */
+  announce: 64,
+  /** Все права сразу */
+  admin: 128,
+} as const;
+export const SPACE_PERMS_ALL = 255;
+export type SpacePerm = keyof typeof SPACE_PERMS;
+export const ROLE_COLORS = ['#99aab5', '#5865f2', '#57f287', '#fee75c', '#eb459e', '#ed4245', '#f0b232', '#1fb6e6', '#7c5cff', '#2ecc71'] as const;

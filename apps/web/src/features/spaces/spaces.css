@@ -1,0 +1,331 @@
+/* ─── Компании и сообщества ─────────────────────────────────────────────── */
+.section-title {
+  margin: 0 0 4px 4px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+}
+.space-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+.space-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-xl);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  color: inherit;
+  transition:
+    transform var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.space-card:hover {
+  text-decoration: none;
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+}
+.space-card--action {
+  align-items: center;
+}
+.space-card__avatar {
+  position: relative;
+  flex: 0 0 auto;
+}
+.space-card__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+}
+.space-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.invite-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+}
+@media (max-width: 560px) {
+  .invite-card {
+    flex-wrap: wrap;
+  }
+  .invite-card > .row {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* ─── Боковая панель пространства (как в Discord) ─── */
+.space-side__head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.space-side__title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  color: var(--text);
+}
+.space-side__title:hover {
+  background: var(--surface-hover);
+}
+.space-side__join {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.space-side__scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 8px 24px;
+}
+.room-group {
+  margin-bottom: 10px;
+}
+.room-group__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 2px 4px 4px;
+}
+.room-group__toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: var(--fs-xs);
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+.room-group__toggle:hover {
+  color: var(--text);
+}
+.room-group__empty {
+  padding: 4px 12px;
+}
+.room {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 10px;
+  margin: 1px 0;
+  border-radius: var(--radius-md);
+  color: var(--text-2);
+  font-weight: 550;
+}
+.room:hover {
+  text-decoration: none;
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.room--active {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.room--unread {
+  color: var(--text);
+  font-weight: 750;
+}
+.room--guest {
+  opacity: 0.7;
+}
+.room__icon {
+  flex: 0 0 auto;
+  color: var(--text-3);
+}
+.room__hint {
+  font-size: var(--fs-xs);
+  color: var(--accent-fg);
+}
+.room__gear {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  color: var(--text-3);
+  opacity: 0;
+}
+.room:hover .room__gear,
+.room--active .room__gear {
+  opacity: 1;
+}
+.room__gear:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+@media (hover: none) {
+  .room__gear {
+    opacity: 1;
+  }
+}
+
+/* ─── Участники по ролям ─── */
+.space-members__title {
+  margin: 14px 14px 4px;
+  font-size: var(--fs-xs);
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+.space-member {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  color: var(--text-2);
+}
+.space-member:hover {
+  text-decoration: none;
+  background: var(--surface-hover);
+}
+.space-member__crown {
+  flex: 0 0 auto;
+  color: var(--warning);
+}
+
+/* ─── Роли ─── */
+.role-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.role-picks--small {
+  gap: 4px;
+  margin-top: 2px;
+}
+.role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-2);
+}
+.role-chip--on {
+  border-color: var(--role);
+  color: var(--text);
+  background: color-mix(in oklab, var(--role) 18%, transparent);
+}
+.role-chip--static {
+  height: 22px;
+  padding: 0 8px;
+  font-size: var(--fs-xs);
+}
+.role-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--role);
+  flex: 0 0 auto;
+}
+.role-dot--lg {
+  width: 16px;
+  height: 16px;
+}
+.color-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.color-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow: inset 0 0 0 2px var(--bg-elevated-solid);
+}
+.color-swatch--on {
+  border-color: var(--text);
+}
+
+/* ─── Настройки ─── */
+.space-settings__layout {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 16px;
+  min-height: 420px;
+}
+.space-settings__tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.space-settings__tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  color: var(--text-2);
+  font-weight: 600;
+  text-align: left;
+}
+.space-settings__tab:hover {
+  background: var(--surface-hover);
+}
+.space-settings__tab--on {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.space-settings__body {
+  min-width: 0;
+}
+.danger-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--danger);
+  background: var(--danger-soft);
+}
+@media (max-width: 640px) {
+  .space-settings__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .space-settings__tabs {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .space-settings__tab {
+    flex: 0 0 auto;
+  }
+}

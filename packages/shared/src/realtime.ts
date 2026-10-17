@@ -23,6 +23,10 @@ export type ServerEvent =
   | { t: 'chat.changed'; chatId: ID }
   /** Вас удалили из чата или чат удалён */
   | { t: 'chat.removed'; chatId: ID }
+  /** Изменилась компания или сообщество (состав, роли, чаты) */
+  | { t: 'space.changed'; spaceId: ID }
+  /** Вас исключили или пространство удалено */
+  | { t: 'space.removed'; spaceId: ID }
   | { t: 'typing'; chatId: ID; userId: ID; displayName: string; activity?: ChatActivity }
   | { t: 'read'; chatId: ID; userId: ID; seq: number }
   | { t: 'presence'; userId: ID; online: boolean; lastSeenAt: string | null }

@@ -558,6 +558,59 @@ export const createCommunitySchema = z.object({
   visibility: z.enum(['public', 'private']).default('public'),
 });
 
+// ─── Компании и сообщества ──────────────────────────────────────────────────
+
+const roleColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Цвет в формате #RRGGBB');
+
+export const createSpaceSchema = z.object({
+  kind: z.enum(['company', 'community']),
+  name: requiredText(LIMITS.communityNameMax),
+  description: text(LIMITS.chatDescriptionMax).default(''),
+  /** Только для сообществ: компании всегда закрытые */
+  isPublic: z.boolean().default(true),
+  slug: slug.nullable().optional(),
+  avatarMediaId: id.nullable().optional(),
+});
+
+export const updateSpaceSchema = z
+  .object({
+    name: requiredText(LIMITS.communityNameMax),
+    description: text(LIMITS.chatDescriptionMax),
+    isPublic: z.boolean(),
+    avatarMediaId: id.nullable(),
+  })
+  .partial();
+
+export const spaceRoleSchema = z.object({
+  name: requiredText(40),
+  color: roleColor.default('#99aab5'),
+  permissions: z.number().int().min(0).max(255).default(0),
+});
+export const updateSpaceRoleSchema = spaceRoleSchema.partial().extend({ position: z.number().int().min(0).max(1000).optional() });
+
+export const spaceCategorySchema = z.object({ name: requiredText(40), position: z.number().int().min(0).max(1000).optional() });
+
+export const spaceRoomSchema = z.object({
+  title: requiredText(LIMITS.chatTitleMax),
+  description: text(LIMITS.chatDescriptionMax).default(''),
+  /** Обычный чат или канал-объявления (пишут только те, у кого есть право) */
+  kind: z.enum(['group', 'channel']).default('group'),
+  categoryId: id.nullable().optional(),
+  roleIds: z.array(id).max(50).default([]),
+  /** В сообществе: открытая группа (вступает кто хочет) или по приглашению */
+  isPublic: z.boolean().default(true),
+});
+export const updateSpaceRoomSchema = z
+  .object({
+    categoryId: id.nullable(),
+    roleIds: z.array(id).max(50),
+    position: z.number().int().min(0).max(1000),
+  })
+  .partial();
+
+export const memberRolesSchema = z.object({ roleIds: z.array(id).max(50) });
+export const spaceInviteSchema = z.object({ userId: id });
+
 export const reportSchema = z.object({
   entityType: z.enum(['user', 'post', 'comment', 'message', 'chat', 'community', 'story']),
   entityId: id,
@@ -567,7 +620,7 @@ export const reportSchema = z.object({
 
 export const searchSchema = z.object({
   q: z.string().trim().min(1).max(LIMITS.searchQueryMax),
-  type: z.enum(['all', 'users', 'posts', 'chats', 'communities', 'hashtags']).default('all'),
+  type: z.enum(['all', 'users', 'posts', 'chats', 'spaces', 'hashtags']).default('all'),
   limit: z.coerce.number().int().min(1).max(50).default(10),
 });
 

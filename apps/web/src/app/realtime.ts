@@ -43,6 +43,10 @@ function handle(event: ServerEvent): void {
           const preview = me.notifications.showPreviews ? excerpt(messageLabel(event.message.kind, event.message.text), 80) || 'Медиа' : 'Новое сообщение';
           const isChannel = queryClient.getQueryData<{ type: string }>(qk.chat(event.chatId))?.type === 'channel';
           const open = () => navigateFn(`/${isChannel ? 'channels' : 'chats'}/${event.chatId}`);
+          // Сообщения компаний и сообществ видны внутри них — без всплывашек на весь экран
+          if (window.location.pathname.match(/^\/(companies|communities)\//) && activeChat.id !== event.chatId) {
+            void queryClient.invalidateQueries({ queryKey: ['space'] });
+          }
           if (activeChat.id !== event.chatId) toast({ text: `${event.message.sender!.displayName}: ${preview}`, action: { label: 'Открыть', onClick: open } });
           playSound('message');
           desktopNotify(event.message.sender!.displayName, preview, open);
@@ -63,9 +67,19 @@ function handle(event: ServerEvent): void {
       void queryClient.invalidateQueries({ queryKey: qk.chatsAll });
       void queryClient.invalidateQueries({ queryKey: qk.members(event.chatId) });
       break;
+    case 'space.changed':
+      void queryClient.invalidateQueries({ queryKey: ['space', event.spaceId] });
+      void queryClient.invalidateQueries({ queryKey: ['space-members', event.spaceId] });
+      void queryClient.invalidateQueries({ queryKey: ['spaces'] });
+      break;
+    case 'space.removed':
+      queryClient.removeQueries({ queryKey: ['space', event.spaceId] });
+      void queryClient.invalidateQueries({ queryKey: ['spaces'] });
+      if (window.location.pathname.includes(`/${event.spaceId}`)) navigateFn(window.location.pathname.startsWith('/companies') ? '/companies' : '/communities');
+      break;
     case 'chat.removed':
       forgetChat(event.chatId);
-      if (activeChat.id === event.chatId) navigateFn(window.location.pathname.startsWith('/channels') ? '/channels' : '/chats');
+      if (activeChat.id === event.chatId) navigateFn(window.location.pathname.match(/^\/(companies|communities)\/[^/]+/)?.[0] ?? (window.location.pathname.startsWith('/channels') ? '/channels' : '/chats'));
       break;
     case 'typing':
       useRealtime.getState().addTyping(event.chatId, event.userId, event.displayName, event.activity);

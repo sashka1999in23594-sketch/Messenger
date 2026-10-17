@@ -60,7 +60,7 @@ export function SearchPage() {
   });
   const r = res.data;
   const hits = msgs.data?.items ?? [];
-  const empty = r && !r.users.length && !r.posts.length && !r.chats.length && !r.communities.length && !hits.length;
+  const empty = r && !r.users.length && !r.posts.length && !r.chats.length && !r.spaces.length && !hits.length;
 
   return (
     <div className="scroll">
@@ -117,10 +117,10 @@ export function SearchPage() {
                   ))}
                 </Section>
               )}
-              {r.communities.length > 0 && (
+              {r.spaces.length > 0 && (
                 <Section title="Сообщества">
-                  {r.communities.map((c) => (
-                    <Link key={c.id} className="list-item" to={`/c/${c.slug}`}>
+                  {r.spaces.map((c) => (
+                    <Link key={c.id} className="list-item" to={`/communities/${c.id}`}>
                       <Avatar src={c.avatarUrl} name={c.name} id={c.id} size={44} />
                       <span className="list-item__body">
                         <span className="list-item__title" style={{ display: 'block' }}>

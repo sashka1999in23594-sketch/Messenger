@@ -22,6 +22,9 @@ export interface ChatRow {
   last_message_at: number | null;
   pinned_message_id: string | null;
   comments_enabled: number;
+  space_id: string | null;
+  space_category_id: string | null;
+  space_position: number;
   ttl_seconds: number;
   slow_mode_sec: number;
   secret_devices: string | null;

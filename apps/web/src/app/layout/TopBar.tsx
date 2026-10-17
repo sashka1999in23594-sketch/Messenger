@@ -52,7 +52,6 @@ function pageTitleFromPath(pathname: string): string | null {
   if (pathname.startsWith('/watch/')) return 'Просмотр';
   if (pathname.startsWith('/u/')) return `@${decodeURIComponent(pathname.split('/')[2] ?? '')}`;
   if (pathname.startsWith('/tag/')) return `#${decodeURIComponent(pathname.split('/')[2] ?? '')}`;
-  if (pathname.startsWith('/c/')) return 'Сообщество';
   if (pathname.startsWith('/playlist/')) return 'Плейлист';
   return null;
 }

@@ -10,6 +10,7 @@ export function useBadge(kind: NavSection['badge']): number {
   const counters = useSession((s) => s.me?.counters);
   if (!counters || !kind) return 0;
   if (kind === 'chats') return counters.unreadChats;
+  if (kind === 'channels') return counters.unreadChannels ?? 0;
   if (kind === 'notifications') return counters.unreadNotifications + counters.followRequests;
   return counters.followRequests;
 }

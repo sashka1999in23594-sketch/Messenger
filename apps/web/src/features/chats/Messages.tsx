@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, memo, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AlertCircle, BellOff, Check, CheckCheck, ChevronRight, Clock, Copy, Ellipsis, Eye, Flag, Forward, Lock, MessageSquare, Pencil, Pin, Plus, Reply, RotateCcw, SmilePlus, Trash2 } from 'lucide-react';
 import { REACTIONS, type ChatSummary } from '@omni/shared';
 import { Avatar, EmojiPicker, Menu, MediaGrid, RichText, useMenu, type MenuEntry } from '../../shared/ui';
@@ -26,6 +26,9 @@ export interface MessageActions {
 }
 
 const EDIT_WINDOW = 48 * 3600 * 1000;
+
+/** Цвета имён авторов (в компаниях и сообществах — цвет главной роли). */
+export const SenderColors = createContext<Map<string, string> | null>(null);
 
 function Ticks({ msg, chat }: { msg: LocalMessage; chat: ChatSummary }) {
   if (msg.local?.status === 'sending') return <Clock size={13} />;
@@ -57,6 +60,7 @@ interface BubbleProps {
 
 const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, secret, actions }: BubbleProps) {
   const menu = useMenu();
+  const roleColors = useContext(SenderColors);
   const [picker, setPicker] = useState<{ x: number; y: number } | null>(null);
   const longPress = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Пост канала — широкая карточка от имени канала, а не «пузырь» отправителя
@@ -135,7 +139,7 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
           </div>
         )}
         {showSender && msg.sender && (
-          <div className="bubble__sender" style={{ color: `hsl(${(msg.sender.id.charCodeAt(12) * 37) % 360} 65% 55%)` }}>
+          <div className="bubble__sender" style={{ color: roleColors?.get(msg.sender.id) ?? `hsl(${(msg.sender.id.charCodeAt(12) * 37) % 360} 65% 55%)` }}>
             {msg.sender.displayName}
           </div>
         )}

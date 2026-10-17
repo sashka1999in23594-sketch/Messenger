@@ -4,6 +4,7 @@
  * в одном месте и сложно случайно ослабить.
  */
 import type { Audience, Relationship } from '@omni/shared';
+import { SPACE_PERMS, SPACE_PERMS_ALL } from '@omni/shared';
 import type { Db } from '../../db/index.js';
 import { bool } from '../../db/index.js';
 import { privacyOf, type UserRow } from '../users/users.repo.js';
@@ -124,6 +125,50 @@ export class Policy {
       { id: communityId, v: viewerId },
     );
     return !!row && (row.visibility === 'public' || bool(row.member));
+  }
+
+  // ─── Компании и сообщества ────────────────────────────────────────────────
+
+  isSpaceMember(spaceId: string, userId: string): boolean {
+    return !!this.db.get('SELECT 1 FROM space_members WHERE space_id = :s AND user_id = :u', { s: spaceId, u: userId });
+  }
+
+  /**
+   * Права участника: владелец — все; остальным — объединение прав их ролей
+   * и роли «Все участники». Право «Администратор» включает все остальные.
+   * Не участник — 0.
+   */
+  spacePermissions(spaceId: string, userId: string): number {
+    const space = this.db.get<{ owner_id: string }>('SELECT owner_id FROM spaces WHERE id = :s AND deleted_at IS NULL', { s: spaceId });
+    if (!space || !this.isSpaceMember(spaceId, userId)) return 0;
+    if (space.owner_id === userId) return SPACE_PERMS_ALL;
+    const rows = this.db.all<{ permissions: number }>(
+      `SELECT r.permissions FROM space_roles r
+       WHERE r.space_id = :s AND (r.is_default = 1
+         OR EXISTS (SELECT 1 FROM space_member_roles mr WHERE mr.role_id = r.id AND mr.user_id = :u))`,
+      { s: spaceId, u: userId },
+    );
+    const perms = rows.reduce((acc, r) => acc | r.permissions, 0);
+    return perms & SPACE_PERMS.admin ? SPACE_PERMS_ALL : perms;
+  }
+
+  hasSpacePerm(spaceId: string, userId: string, perm: number): boolean {
+    return (this.spacePermissions(spaceId, userId) & perm) === perm;
+  }
+
+  /** Видит ли участник чат пространства: чат без ограничений или у человека есть одна из его ролей. */
+  canSeeSpaceRoom(spaceId: string, chatId: string, userId: string): boolean {
+    if (!this.isSpaceMember(spaceId, userId)) return false;
+    const owner = this.db.get('SELECT 1 FROM spaces WHERE id = :s AND owner_id = :u', { s: spaceId, u: userId });
+    if (owner || this.hasSpacePerm(spaceId, userId, SPACE_PERMS.admin)) return true;
+    const restricted = this.db.all<{ role_id: string }>('SELECT role_id FROM space_room_roles WHERE chat_id = :c', { c: chatId });
+    if (!restricted.length) return true;
+    return !!this.db.get(
+      `SELECT 1 FROM space_room_roles rr JOIN space_roles r ON r.id = rr.role_id
+       WHERE rr.chat_id = :c AND (r.is_default = 1 OR EXISTS (SELECT 1 FROM space_member_roles mr WHERE mr.role_id = r.id AND mr.user_id = :u))
+       LIMIT 1`,
+      { c: chatId, u: userId },
+    );
   }
 
   /**

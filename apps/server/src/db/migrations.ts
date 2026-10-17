@@ -739,4 +739,81 @@ CREATE TABLE stat_daily (
 );
 `,
   },
+  {
+    version: '007_spaces',
+    sql: /* sql */ `
+-- ── Компании и сообщества: роли с правами, категории, чаты внутри ─────────
+CREATE TABLE spaces (
+  id              TEXT PRIMARY KEY,
+  kind            TEXT NOT NULL CHECK (kind IN ('company', 'community')),
+  name            TEXT NOT NULL,
+  slug            TEXT UNIQUE,
+  description     TEXT NOT NULL DEFAULT '',
+  avatar_media_id TEXT REFERENCES media(id) ON DELETE SET NULL,
+  owner_id        TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  is_public       INTEGER NOT NULL DEFAULT 0,
+  invite_token    TEXT UNIQUE,
+  member_count    INTEGER NOT NULL DEFAULT 0,
+  created_at      INTEGER NOT NULL,
+  deleted_at      INTEGER
+);
+CREATE INDEX spaces_public ON spaces(kind, is_public, member_count) WHERE deleted_at IS NULL;
+
+CREATE TABLE space_members (
+  space_id  TEXT NOT NULL REFERENCES spaces(id) ON DELETE CASCADE,
+  user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  joined_at INTEGER NOT NULL,
+  PRIMARY KEY (space_id, user_id)
+);
+CREATE INDEX space_members_user ON space_members(user_id);
+
+CREATE TABLE space_roles (
+  id          TEXT PRIMARY KEY,
+  space_id    TEXT NOT NULL REFERENCES spaces(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  color       TEXT NOT NULL,
+  permissions INTEGER NOT NULL DEFAULT 0,
+  position    INTEGER NOT NULL DEFAULT 0,
+  is_default  INTEGER NOT NULL DEFAULT 0,
+  created_at  INTEGER NOT NULL
+);
+CREATE INDEX space_roles_space ON space_roles(space_id, position);
+
+CREATE TABLE space_member_roles (
+  space_id TEXT NOT NULL REFERENCES spaces(id) ON DELETE CASCADE,
+  user_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role_id  TEXT NOT NULL REFERENCES space_roles(id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, role_id)
+);
+CREATE INDEX space_member_roles_space ON space_member_roles(space_id, user_id);
+
+CREATE TABLE space_categories (
+  id       TEXT PRIMARY KEY,
+  space_id TEXT NOT NULL REFERENCES spaces(id) ON DELETE CASCADE,
+  name     TEXT NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE space_room_roles (
+  chat_id TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  role_id TEXT NOT NULL REFERENCES space_roles(id) ON DELETE CASCADE,
+  PRIMARY KEY (chat_id, role_id)
+);
+
+CREATE TABLE space_invites (
+  id         TEXT PRIMARY KEY,
+  space_id   TEXT NOT NULL REFERENCES spaces(id) ON DELETE CASCADE,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  inviter_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  created_at INTEGER NOT NULL,
+  UNIQUE (space_id, user_id)
+);
+CREATE INDEX space_invites_user ON space_invites(user_id);
+
+ALTER TABLE chats ADD COLUMN space_id TEXT REFERENCES spaces(id) ON DELETE CASCADE;
+ALTER TABLE chats ADD COLUMN space_category_id TEXT;
+ALTER TABLE chats ADD COLUMN space_position INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX chats_space ON chats(space_id, space_position) WHERE space_id IS NOT NULL;
+`,
+  },
 ];

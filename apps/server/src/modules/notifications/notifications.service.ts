@@ -30,6 +30,7 @@ const PREF_FOR: Record<NotificationType, keyof ReturnType<typeof notificationPre
   mention: 'mentions',
   repost: 'reposts',
   community_join: 'communities',
+  space_invite: 'communities',
   new_post: 'subscriptions',
   story_reaction: 'stories',
   security: 'security',
@@ -57,7 +58,8 @@ export class NotificationService {
     const target = this.users.byId(input.userId);
     if (!target) return;
     const prefs = notificationPrefsOf(target);
-    if (input.type !== 'security' && !prefs[PREF_FOR[input.type]]) return;
+    // Безопасность и приглашения в компании приходят всегда — без них не узнать о важном
+    if (input.type !== 'security' && input.type !== 'space_invite' && !prefs[PREF_FOR[input.type]]) return;
     if (input.actorId) {
       const muted = this.db.get(
         `SELECT 1 FROM blocks WHERE blocker_id = :u AND blocked_id = :a
@@ -146,17 +148,20 @@ export class NotificationService {
   }
 
   counters(userId: string): Counters {
-    const row = this.db.get<{ chats: number; notifs: number; requests: number }>(
+    const unread = (kind: string) => `(SELECT COUNT(*) FROM chat_members m JOIN chats c ON c.id = m.chat_id
+          WHERE m.user_id = :u AND m.hidden = 0 AND m.archived = 0 AND c.deleted_at IS NULL AND c.space_id IS NULL AND ${kind}
+            AND EXISTS (SELECT 1 FROM messages x WHERE x.chat_id = c.id AND x.seq > max(m.last_read_seq, m.cleared_seq)
+              AND x.thread_root_id IS NULL AND x.deleted_at IS NULL AND (x.sender_id IS NULL OR x.sender_id != :u))
+            AND (m.muted_until IS NULL OR m.muted_until < :now))`;
+    const row = this.db.get<{ chats: number; channels: number; notifs: number; requests: number }>(
       `SELECT
-        (SELECT COUNT(*) FROM chat_members m JOIN chats c ON c.id = m.chat_id
-          WHERE m.user_id = :u AND m.hidden = 0 AND m.archived = 0 AND c.deleted_at IS NULL
-            AND c.last_seq > max(m.last_read_seq, m.cleared_seq)
-            AND (m.muted_until IS NULL OR m.muted_until < :now)) AS chats,
+        ${unread("c.type != 'channel'")} AS chats,
+        ${unread("c.type = 'channel'")} AS channels,
         (SELECT COUNT(*) FROM notifications WHERE user_id = :u AND read_at IS NULL) AS notifs,
         (SELECT COUNT(*) FROM follows WHERE followee_id = :u AND status = 'pending') AS requests`,
       { u: userId, now: Date.now() },
     )!;
-    return { unreadChats: row.chats, unreadNotifications: row.notifs, followRequests: row.requests };
+    return { unreadChats: row.chats, unreadChannels: row.channels, unreadNotifications: row.notifs, followRequests: row.requests };
   }
 
   pushCounters(userId: string): void {

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { NavLink, useLocation } from 'react-router';
 import { ChevronRight, PanelLeftClose, Search, Star, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import type { Community } from '@omni/shared';
+import type { SpaceSummary } from '@omni/shared';
 import { findByPath, flatNodes, type NavNode, type NavSection } from '../navigation';
 import { usePrefs } from '../../shared/stores/prefs';
 import { useSession } from '../../shared/stores/session';
@@ -106,26 +106,26 @@ function TreeRow({ node, depth, filter, onNavigate }: { node: NavNode; depth: nu
   );
 }
 
-/** Динамические подразделы: сообщества пользователя появляются прямо в дереве. */
+/** Динамические подразделы: компании и сообщества пользователя появляются прямо в дереве. */
 function useDynamicChildren(section: NavSection): NavNode[] {
-  const enabled = section.id === 'communities';
+  const kind = section.id === 'companies' ? 'company' : section.id === 'communities' ? 'community' : null;
   const { data } = useQuery({
-    queryKey: qk.communities('mine'),
-    queryFn: () => api.get<{ items: Community[] }>('/me/communities'),
-    enabled,
+    queryKey: ['spaces', kind ?? 'none'],
+    queryFn: () => api.get<{ items: SpaceSummary[] }>(`/spaces?kind=${kind}`),
+    enabled: !!kind,
   });
   return useMemo(
     () =>
-      enabled && data?.items.length
+      kind && data?.items.length
         ? [
             {
-              id: 'communities.joined',
-              label: 'Подписан(а)',
-              children: data.items.map((c) => ({ id: `community.${c.id}`, label: c.name, path: `/c/${c.slug}` })),
+              id: `${section.id}.joined`,
+              label: kind === 'company' ? 'Мои компании' : 'Я состою',
+              children: data.items.map((s) => ({ id: `space.${s.id}`, label: s.name, path: `/${kind === 'company' ? 'companies' : 'communities'}/${s.id}` })),
             },
           ]
         : [],
-    [enabled, data],
+    [kind, data, section.id],
   );
 }
 

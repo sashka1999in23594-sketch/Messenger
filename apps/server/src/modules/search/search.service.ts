@@ -3,7 +3,7 @@ import type { SearchResults } from '@omni/shared';
 import { looksLikePhone, normalizePhone } from '@omni/shared';
 import type { Db } from '../../db/index.js';
 import type { ChatsService } from '../chats/chats.service.js';
-import type { CommunitiesService } from '../communities/communities.service.js';
+import type { SpacesService } from '../spaces/spaces.service.js';
 import { Policy } from '../policy/policy.service.js';
 import type { PostRow, PostsService } from '../posts/posts.service.js';
 import { privacyOf, type UsersRepo, type UserRow } from '../users/users.repo.js';
@@ -28,7 +28,7 @@ export class SearchService {
     private readonly users: UsersRepo,
     private readonly posts: PostsService,
     private readonly chats: ChatsService,
-    private readonly communities: CommunitiesService,
+    private readonly spaces: SpacesService,
     private readonly policy: Policy,
   ) {}
 
@@ -38,7 +38,7 @@ export class SearchService {
     const isMention = q.startsWith('@');
     const term = q.replace(/^[#@]/, '');
     const want = (t: string) => type === 'all' || type === t;
-    const res: SearchResults = { users: [], posts: [], chats: [], communities: [], hashtags: [] };
+    const res: SearchResults = { users: [], posts: [], chats: [], spaces: [], hashtags: [] };
     if (!term) return res;
 
     // Поиск по номеру телефона — только точное совпадение и с учётом приватности
@@ -91,7 +91,7 @@ export class SearchService {
     }
 
     if (want('chats') && !isTag) res.chats = this.chats.discover(viewerId, term, limit);
-    if (want('communities') && !isTag && !isMention) res.communities = this.communities.discover(viewerId, term, undefined, limit).items;
+    if (want('spaces') && !isTag && !isMention) res.spaces = this.spaces.discover(viewerId, term, limit);
     return res;
   }
 }

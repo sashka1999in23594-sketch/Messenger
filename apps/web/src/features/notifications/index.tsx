@@ -1,13 +1,15 @@
 import { useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { AtSign, Bell, CheckCheck, Heart, MessageSquare, Repeat2, Shield, UserCheck, UserPlus, Users } from 'lucide-react';
+import { AtSign, Bell, Briefcase, CheckCheck, Heart, MessageSquare, Repeat2, Shield, UserCheck, UserPlus, Users } from 'lucide-react';
 import type { AppNotification, NotificationType, UserSummary } from '@omni/shared';
 import { api } from '../../shared/api/client';
 import { flatPages, qk, queryClient, useCursorList } from '../../shared/api/query';
 import { useSession } from '../../shared/stores/session';
 import { cn, timeAgo } from '../../shared/lib/format';
 import { Avatar, Button, EmptyState, ListSkeleton, LoadMore, PageHeader, TabLinks, UserRow } from '../../shared/ui';
+import { InviteCard } from '../spaces';
+import { useMyInvites } from '../spaces/api';
 
 export const notificationText = (t: NotificationType) => TEXT[t];
 
@@ -23,6 +25,7 @@ const TEXT: Record<NotificationType, string> = {
   community_join: 'вступил(а) в ваше сообщество',
   new_post: 'опубликовал(а) новое',
   story_reaction: 'отреагировал(а) на вашу историю',
+  space_invite: '',
   security: 'Безопасность',
 };
 
@@ -38,12 +41,15 @@ const ICON: Record<NotificationType, React.ReactNode> = {
   community_join: <Users size={16} />,
   new_post: <Bell size={16} />,
   story_reaction: <Heart size={16} />,
+  space_invite: <Briefcase size={16} />,
   security: <Shield size={16} />,
 };
 
 function NotificationRow({ n }: { n: AppNotification }) {
   const navigate = useNavigate();
-  return (
+  // Приглашение в компанию или сообщество — с кнопками «Принять» и «Отклонить», пока не ответили
+  const invite = useMyInvites().data?.items.find((i) => n.type === 'space_invite' && i.id === n.entityId);
+  const row = (
     <button
       className="list-item"
       style={{ alignItems: 'flex-start', background: n.readAt ? undefined : 'var(--accent-soft)' }}
@@ -71,9 +77,19 @@ function NotificationRow({ n }: { n: AppNotification }) {
         </span>
         {n.preview && <span className="list-item__sub clamp-2" style={{ display: 'block' }}>{n.preview}</span>}
         <span className="xs faint">{timeAgo(n.createdAt)}</span>
+
       </span>
       {!n.readAt && <span className="badge badge--dot" style={{ marginTop: 8 }} />}
     </button>
+  );
+  if (!invite) return row;
+  return (
+    <div className="notif-invite">
+      {row}
+      <div style={{ padding: '0 14px 14px 72px' }}>
+        <InviteCard inv={invite} compact />
+      </div>
+    </div>
   );
 }
 

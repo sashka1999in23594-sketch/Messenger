@@ -20,6 +20,7 @@ import { InvitesService } from './modules/chats/invites.service.js';
 import { ScheduledService } from './modules/chats/scheduled.service.js';
 import { ChatsService } from './modules/chats/chats.service.js';
 import { CommunitiesService } from './modules/communities/communities.service.js';
+import { SpacesService } from './modules/spaces/spaces.service.js';
 import { KeysService } from './modules/keys/keys.service.js';
 import { MediaService } from './modules/media/media.service.js';
 import { NotificationService } from './modules/notifications/notifications.service.js';
@@ -65,7 +66,8 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub) {
   const mutedWords = new MutedWordsService(db);
   const stories = new StoriesService(db, usersRepo, policy, media, notifications);
   const communities = new CommunitiesService(db, usersRepo, media, notifications);
-  const search = new SearchService(db, usersRepo, posts, chats, communities, policy);
+  const spaces = new SpacesService(db, usersRepo, media, chats, policy, notifications, hub, config.publicOrigin);
+  const search = new SearchService(db, usersRepo, posts, chats, spaces, policy);
   const reports = new ReportsService(db);
   const exporter = new AccountExporter(db, users);
 
@@ -107,6 +109,7 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub) {
     mutedWords,
     stories,
     communities,
+    spaces,
     search,
     reports,
     exporter,

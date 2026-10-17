@@ -17,6 +17,7 @@ import {
   AtSign,
   Bell,
   Bookmark,
+  Briefcase,
   Calendar,
   ChartColumn,
   CircleUser,
@@ -88,7 +89,7 @@ export interface NavNode {
   planned?: string[];
   description?: string;
   keywords?: string[];
-  badge?: 'chats' | 'notifications' | 'requests';
+  badge?: 'chats' | 'channels' | 'notifications' | 'requests';
   adminOnly?: boolean;
 }
 
@@ -198,6 +199,7 @@ export const sections: NavSection[] = [
     short: 'Каналы',
     icon: Megaphone,
     path: '/channels',
+    badge: 'channels',
     description: 'Публикации авторов: реакции, комментарии и просмотры',
     children: [
       { id: 'channels.mine', label: 'Мои подписки', icon: Megaphone, path: '/channels', keywords: ['каналы', 'подписки'] },
@@ -255,6 +257,18 @@ export const sections: NavSection[] = [
     ],
   },
   {
+    id: 'companies',
+    label: 'Компании',
+    short: 'Компании',
+    icon: Briefcase,
+    path: '/companies',
+    description: 'Рабочие пространства: роли, отделы и закрытые чаты',
+    children: [
+      { id: 'companies.mine', label: 'Мои компании', icon: Briefcase, path: '/companies', keywords: ['работа', 'команда', 'приглашения'] },
+      { id: 'companies.new', label: 'Создать компанию', icon: Plus, path: '/companies/new', keywords: ['руководитель', 'роли', 'сотрудники'] },
+    ],
+  },
+  {
     id: 'communities',
     label: 'Сообщества',
     short: 'Сообщ.',
@@ -263,7 +277,7 @@ export const sections: NavSection[] = [
     description: 'Большие сообщества с множеством групп внутри',
     children: [
       { id: 'communities.mine', label: 'Мои сообщества', icon: Users, path: '/communities' },
-      { id: 'communities.discover', label: 'Обзор', icon: Compass, path: '/communities/discover' },
+      { id: 'communities.discover', label: 'Обзор', icon: Compass, path: '/communities/discover', keywords: ['найти сообщество', 'открытые'] },
       { id: 'communities.new', label: 'Создать сообщество', icon: Plus, path: '/communities/new' },
     ],
   },
@@ -464,7 +478,8 @@ const SECTION_PREFIXES: [string, string][] = [
   ['/watch', 'video'],
   ['/playlist', 'video'],
   ['/communities', 'communities'],
-  ['/c/', 'communities'],
+  ['/companies', 'companies'],
+  ['/s/', 'communities'],
   ['/search', 'search'],
   ['/notifications', 'notifications'],
   ['/profile', 'profile'],

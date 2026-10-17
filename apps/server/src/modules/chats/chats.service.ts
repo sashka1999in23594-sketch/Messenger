@@ -92,7 +92,12 @@ const FOLDER_SQL: Record<ChatFolder, string> = {
 
 const likeEscape = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 
+/** Проверка доступа к чату внутри компании или сообщества (задаёт SpacesService). */
+export type SpaceGate = (userId: string, chat: ChatRow) => boolean;
+
 export class ChatsService {
+  private spaceGate: SpaceGate = () => false;
+
   constructor(
     private readonly db: Db,
     private readonly users: UsersRepo,
@@ -106,6 +111,16 @@ export class ChatsService {
   ) {}
 
   // ─── Доступ ───────────────────────────────────────────────────────────────
+
+  setSpaceGate(gate: SpaceGate): void {
+    this.spaceGate = gate;
+  }
+
+  /** Открытый чат можно смотреть без вступления; внутри пространства — только его участникам. */
+  private canPreview(chat: ChatRow, userId: string): boolean {
+    if (!bool(chat.is_public)) return false;
+    return !chat.space_id || this.spaceGate(userId, chat);
+  }
 
   private chat(chatId: string): ChatRow {
     const c = this.db.get<ChatRow>('SELECT * FROM chats WHERE id = :id AND deleted_at IS NULL', { id: chatId });
@@ -152,7 +167,7 @@ export class ChatsService {
               'last_read_seq', m.last_read_seq, 'cleared_seq', m.cleared_seq, 'pinned', m.pinned, 'archived', m.archived,
               'muted_until', m.muted_until, 'hidden', m.hidden) AS m_json
        FROM chat_members m JOIN chats c ON c.id = m.chat_id
-       WHERE m.user_id = :u AND m.hidden = 0 AND c.deleted_at IS NULL AND ${where.sql}
+       WHERE m.user_id = :u AND m.hidden = 0 AND c.deleted_at IS NULL AND c.space_id IS NULL AND ${where.sql}
        ORDER BY m.pinned DESC, coalesce(c.last_message_at, c.created_at) DESC
        LIMIT :limit OFFSET :offset`,
       { u: userId, limit: limit + 1, offset, ...where.params },
@@ -166,7 +181,7 @@ export class ChatsService {
     const member = this.member(chatId, userId);
     if (!member) {
       // Публичный канал/группа можно просматривать без вступления
-      if (bool(chat.is_public)) return this.summarize(chat, null, userId);
+      if (this.canPreview(chat, userId)) return this.summarize(chat, null, userId);
       throw notFound('Чат не найден');
     }
     return this.summarize(chat, member, userId);
@@ -239,6 +254,7 @@ export class ChatsService {
       handle: chat.handle,
       isPublic: bool(chat.is_public),
       commentsEnabled: chat.type === 'channel' && bool(chat.comments_enabled),
+      spaceId: chat.space_id,
       memberCount: chat.member_count,
       role: member?.role ?? null,
       lastMessage,
@@ -271,8 +287,9 @@ export class ChatsService {
     const now = Date.now();
     const id = newId(now);
     this.db.run(
-      `INSERT INTO chats (id, type, title, description, avatar_media_id, owner_id, handle, is_public, direct_key, ttl_seconds, secret_devices, created_at, updated_at)
-       VALUES (:id, :type, :title, :description, :avatar, :owner, :handle, :pub, :dk, :ttl, :sd, :now, :now)`,
+      `INSERT INTO chats (id, type, title, description, avatar_media_id, owner_id, handle, is_public, direct_key, ttl_seconds, secret_devices,
+         space_id, space_category_id, space_position, created_at, updated_at)
+       VALUES (:id, :type, :title, :description, :avatar, :owner, :handle, :pub, :dk, :ttl, :sd, :space, :cat, :pos, :now, :now)`,
       {
         id,
         type: row.type,
@@ -285,6 +302,9 @@ export class ChatsService {
         dk: row.direct_key ?? null,
         ttl: row.ttl_seconds ?? 0,
         sd: row.secret_devices ?? null,
+        space: row.space_id ?? null,
+        cat: row.space_category_id ?? null,
+        pos: row.space_position ?? 0,
         now,
       },
     );
@@ -595,6 +615,7 @@ export class ChatsService {
   join(userId: string, chatId: string): ChatSummary {
     const chat = this.chat(chatId);
     if (!bool(chat.is_public) || (chat.type !== 'channel' && chat.type !== 'group')) throw forbidden('Вступить можно только в открытый чат');
+    if (chat.space_id && !this.spaceGate(userId, chat)) throw forbidden('Сначала вступите в сообщество');
     this.assertNotBanned(chatId, userId);
     if (!this.member(chatId, userId)) {
       this.db.tx(() => {
@@ -610,6 +631,7 @@ export class ChatsService {
   joinByInvite(userId: string, chatId: string): ChatSummary {
     const chat = this.chat(chatId);
     if (chat.type !== 'channel' && chat.type !== 'group') throw badRequest('Приглашение недействительно');
+    if (chat.space_id && !this.spaceGate(userId, chat)) throw forbidden('Сначала вступите в сообщество');
     this.assertNotBanned(chatId, userId);
     if (!this.member(chatId, userId)) {
       if (chat.member_count >= LIMITS.groupMembersMax) throw badRequest('Достигнут лимит участников');
@@ -709,7 +731,7 @@ export class ChatsService {
 
   discover(userId: string, q: string | undefined, limit = 30): ChatSummary[] {
     const rows = this.db.all<ChatRow>(
-      `SELECT * FROM chats WHERE is_public = 1 AND deleted_at IS NULL AND type IN ('channel', 'group')
+      `SELECT * FROM chats WHERE is_public = 1 AND deleted_at IS NULL AND space_id IS NULL AND type IN ('channel', 'group')
          AND (:q IS NULL OR title LIKE :like ESCAPE '\\' OR handle LIKE :like ESCAPE '\\')
        ORDER BY member_count DESC, created_at DESC LIMIT :limit`,
       { q: q ?? null, like: q ? `%${likeEscape(q)}%` : null, limit },
@@ -722,7 +744,7 @@ export class ChatsService {
   messages(userId: string, chatId: string, opts: { before?: number; after?: number; limit: number }): { items: Message[]; hasMore: boolean } {
     const chat = this.chat(chatId);
     const member = this.member(chatId, userId);
-    if (!member && !bool(chat.is_public)) throw notFound('Чат не найден');
+    if (!member && !this.canPreview(chat, userId)) throw notFound('Чат не найден');
     const cleared = member?.cleared_seq ?? 0;
     const params = { c: chatId, u: userId, cleared, limit: opts.limit + 1, before: opts.before ?? null, after: opts.after ?? null };
     const base = `FROM messages WHERE chat_id = :c AND deleted_at IS NULL AND seq > :cleared AND thread_root_id IS NULL
@@ -1146,6 +1168,71 @@ export class ChatsService {
     this.hub.sendToUsers(this.memberIds(chatId), { t: 'typing', chatId, userId, displayName: u.displayName, activity }, userId);
   }
 
+  // ─── Чаты внутри компаний и сообществ ──────────────────────────────────────
+
+  /** Новый чат или канал пространства; участников расставляет SpacesService. */
+  createSpaceRoom(
+    ownerId: string,
+    spaceId: string,
+    input: { title: string; description: string; type: 'group' | 'channel'; isPublic: boolean; categoryId: string | null; position: number },
+  ): string {
+    return this.insertChat({
+      type: input.type,
+      title: input.title,
+      description: input.description,
+      owner_id: ownerId,
+      is_public: input.isPublic ? 1 : 0,
+      space_id: spaceId,
+      space_category_id: input.categoryId,
+      space_position: input.position,
+    });
+  }
+
+  spaceRooms(spaceId: string): ChatRow[] {
+    return this.db.all<ChatRow>('SELECT * FROM chats WHERE space_id = :s AND deleted_at IS NULL ORDER BY space_position, created_at', { s: spaceId });
+  }
+
+  /** Карточки чатов пространства для боковой панели: с непрочитанным для этого человека. */
+  roomSummary(userId: string, chat: ChatRow): ChatSummary {
+    return this.summarize(chat, this.member(chat.id, userId) ?? null, userId);
+  }
+
+  /**
+   * Участие в чате пространства: роль или null (убрать). Возвращает true,
+   * если что-то изменилось. Уведомления о составе шлёт вызывающий.
+   */
+  setSpaceMembership(chatId: string, userId: string, role: ChatRole | null): boolean {
+    const current = this.member(chatId, userId);
+    if (!role) {
+      if (!current) return false;
+      this.db.run('DELETE FROM chat_members WHERE chat_id = :c AND user_id = :u', { c: chatId, u: userId });
+      this.db.run('UPDATE chats SET member_count = member_count - 1 WHERE id = :id', { id: chatId });
+      this.hub.sendToUser(userId, { t: 'chat.removed', chatId });
+      return true;
+    }
+    if (!current) {
+      this.addMember(chatId, userId, role);
+      return true;
+    }
+    if (current.role === role) return false;
+    this.db.run('UPDATE chat_members SET role = :r WHERE chat_id = :c AND user_id = :u', { r: role, c: chatId, u: userId });
+    return true;
+  }
+
+  updateSpaceRoom(chatId: string, patch: { categoryId?: string | null; position?: number }): void {
+    this.db.run(
+      `UPDATE chats SET space_category_id = CASE WHEN :setCat = 1 THEN :cat ELSE space_category_id END,
+         space_position = coalesce(:pos, space_position), updated_at = :now WHERE id = :id`,
+      { setCat: patch.categoryId !== undefined ? 1 : 0, cat: patch.categoryId ?? null, pos: patch.position ?? null, now: Date.now(), id: chatId },
+    );
+  }
+
+  deleteSpaceRoom(chatId: string): void {
+    const ids = this.memberIds(chatId);
+    this.db.run('UPDATE chats SET deleted_at = :now WHERE id = :id', { now: Date.now(), id: chatId });
+    this.hub.sendToUsers(ids, { t: 'chat.removed', chatId });
+  }
+
   // ─── Каналы: комментарии, просмотры, баны ─────────────────────────────────
 
   /** Заблокирован ли пользователь в чате (бан действует до until или навсегда). */
@@ -1155,6 +1242,10 @@ export class ChatsService {
       { c: chatId, u: userId, now: Date.now() },
     );
     return row ? row.until : undefined;
+  }
+
+  isBanned(chatId: string, userId: string): boolean {
+    return this.bannedUntil(chatId, userId) !== undefined;
   }
 
   private assertNotBanned(chatId: string, userId: string): void {
@@ -1220,7 +1311,7 @@ export class ChatsService {
   comments(userId: string, chatId: string, rootId: string, opts: { after?: number; limit: number }): { root: Message; items: Message[]; hasMore: boolean } {
     const chat = this.chat(chatId);
     const member = this.member(chatId, userId);
-    if (!member && !bool(chat.is_public)) throw notFound('Чат не найден');
+    if (!member && !this.canPreview(chat, userId)) throw notFound('Чат не найден');
     const root = this.threadRoot(chatId, rootId);
     const rows = this.db.all<MessageRow>(
       `SELECT * FROM messages WHERE thread_root_id = :r AND deleted_at IS NULL AND seq > :after ORDER BY seq ASC LIMIT :limit`,
@@ -1237,7 +1328,7 @@ export class ChatsService {
   markViews(userId: string, chatId: string, messageIds: string[]): Record<string, number> {
     const chat = this.chat(chatId);
     if (chat.type !== 'channel') return {};
-    if (!this.member(chatId, userId) && !bool(chat.is_public)) throw notFound('Чат не найден');
+    if (!this.member(chatId, userId) && !this.canPreview(chat, userId)) throw notFound('Чат не найден');
     const out: Record<string, number> = {};
     let fresh = 0;
     this.db.tx(() => {

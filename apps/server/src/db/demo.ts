@@ -7,6 +7,7 @@
 import { createReadStream, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SPACE_PERMS } from '@omni/shared';
 import type { Config } from '../config.js';
 import { createServices } from '../context.js';
 import { RealtimeHub } from '../modules/realtime/hub.js';
@@ -283,13 +284,52 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
 
       const news = s.chats.createChannel(users.spaceup!.id, { title: 'SpaceUp Новости', description: 'Официальный канал: обновления и советы по безопасности', handle: 'spaceup_news', isPublic: true });
       for (const u of names) if (u !== 'spaceup') s.chats.join(users[u]!.id, news.id);
-      say('spaceup', news.id, '🎉 SpaceUp открыт! Мессенджер, лента, видео, клипы, фото и истории — в одном приложении.');
+      say('spaceup', news.id, '🎉 SpaceUp открыт! Чаты и звонки, каналы, лента, кометы, компании и сообщества — в одном приложении.');
       say('spaceup', news.id, '🔐 Новое: секретные чаты со сквозным шифрованием (ECDH P-256 + AES-GCM). Ключи не покидают ваше устройство.');
       say('spaceup', news.id, '🛡 Советуем включить 2FA и проверить список активных сеансов в настройках безопасности.');
 
       const code = s.chats.createChannel(users.boris!.id, { title: 'Код и кофе ☕', description: 'Заметки бэкенд-разработчика', handle: 'code_coffee', isPublic: true });
       s.chats.join(users.sasha!.id, code.id);
       say('boris', code.id, 'Почему мы храним в базе только хэш токена сессии: если база утечёт, токены бесполезны.');
+
+      // ── Компания и сообщество ─────────────────────────────────────────────────
+      const company = s.spaces.create(users.sasha!.id, { kind: 'company', name: 'Орбита Студио', description: 'Делаем SpaceUp: продукт, дизайн и разработка', isPublic: false });
+      for (const u of ['alice', 'boris', 'maria', 'kirill'] as const) {
+        const inv = s.spaces.invite(users.sasha!.id, company.id, users[u]!.id);
+        s.spaces.respond(users[u]!.id, inv.id, true);
+      }
+      const devRole = s.spaces.createRole(users.sasha!.id, company.id, { name: 'Разработка', color: '#57f287', permissions: SPACE_PERMS.announce });
+      const designRole = s.spaces.createRole(users.sasha!.id, company.id, { name: 'Дизайн', color: '#eb459e', permissions: 0 });
+      const headRole = company.roles.find((r) => r.name === 'Руководитель отдела')!;
+      s.spaces.setMemberRoles(users.sasha!.id, company.id, users.boris!.id, [devRole.id, headRole.id]);
+      s.spaces.setMemberRoles(users.sasha!.id, company.id, users.kirill!.id, [devRole.id]);
+      s.spaces.setMemberRoles(users.sasha!.id, company.id, users.alice!.id, [designRole.id]);
+      const depts = s.spaces.createCategory(users.sasha!.id, company.id, { name: 'Отделы' });
+      const devRoom = s.spaces.createRoom(users.sasha!.id, company.id, { title: 'разработка', description: 'Бэкенд, фронтенд, релизы', kind: 'group', categoryId: depts.id, roleIds: [devRole.id], isPublic: false });
+      s.spaces.createRoom(users.sasha!.id, company.id, { title: 'дизайн', description: 'Макеты и ревью', kind: 'group', categoryId: depts.id, roleIds: [designRole.id], isPublic: false });
+      const coGeneral = company.rooms.find((r) => r.chat.type === 'group')!.chat.id;
+      const coNews = company.rooms.find((r) => r.chat.type === 'channel')!.chat.id;
+      say('sasha', coNews, 'Добро пожаловать в «Орбита Студио»! Здесь — важные объявления, обсуждения — в #общий.');
+      say('sasha', coGeneral, 'Всем привет! Планёрка в понедельник в 11:00 🚀');
+      say('alice', coGeneral, 'Принесу новые макеты главной');
+      say('boris', devRoom.chat.id, 'Выкатил комментарии в каналах, посмотрите на стенде');
+      say('kirill', devRoom.chat.id, 'Смотрю. Просмотры считаются один раз на человека — проверил 👍');
+
+      // Приглашение, которое ждёт ответа: так выглядит приглашение в уведомлениях
+      const cafe = s.spaces.create(users.olga!.id, { kind: 'company', name: 'Кофейня «Комета»', description: 'Команда кофейни', isPublic: false });
+      s.spaces.invite(users.olga!.id, cafe.id, users.sasha!.id);
+
+      const astro = s.spaces.create(users.elena!.id, { kind: 'community', name: 'Астрономия', description: 'Наблюдения, телескопы и фото звёздного неба', isPublic: true });
+      const astroGroups = s.spaces.createCategory(users.elena!.id, astro.id, { name: 'Темы' });
+      const sky = s.spaces.createRoom(users.elena!.id, astro.id, { title: 'Наблюдения', description: 'Что видно сегодня', kind: 'group', categoryId: astroGroups.id, roleIds: [], isPublic: true });
+      s.spaces.createRoom(users.elena!.id, astro.id, { title: 'Телескопы', description: 'Выбор и настройка', kind: 'group', categoryId: astroGroups.id, roleIds: [], isPublic: true });
+      s.spaces.createRoom(users.elena!.id, astro.id, { title: 'Новости космоса', description: '', kind: 'channel', categoryId: astroGroups.id, roleIds: [], isPublic: true });
+      for (const u of ['sasha', 'alice', 'nikita', 'kirill'] as const) {
+        s.spaces.join(users[u]!.id, astro.id);
+        s.chats.join(users[u]!.id, sky.chat.id);
+      }
+      say('elena', sky.chat.id, 'Сегодня отлично видно Сатурн — после 22:00 на юго-востоке 🪐');
+      say('nikita', sky.chat.id, 'Поймал кольца даже в бинокль!');
 
       const saved = s.chats.getOrCreateSaved(users.sasha!.id);
       say('sasha', saved.id, 'Идеи: голосовые сообщения, звонки, стикеры, папки чатов, боты 💡');

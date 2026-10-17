@@ -177,6 +177,8 @@ export interface DevMail {
 
 export interface Counters {
   unreadChats: number;
+  /** Каналы с новыми постами */
+  unreadChannels: number;
   unreadNotifications: number;
   followRequests: number;
 }
@@ -274,6 +276,8 @@ export interface ChatSummary {
   isPublic: boolean;
   /** В канале можно комментировать посты */
   commentsEnabled: boolean;
+  /** Чат внутри компании или сообщества */
+  spaceId: ID | null;
   memberCount: number;
   role: ChatRole | null;
   lastMessage: MessagePreview | null;
@@ -639,13 +643,14 @@ export type NotificationType =
   | 'community_join'
   | 'new_post'
   | 'story_reaction'
+  | 'space_invite'
   | 'security';
 
 export interface AppNotification {
   id: ID;
   type: NotificationType;
   actor: UserSummary | null;
-  entityType: 'post' | 'comment' | 'user' | 'community' | 'session' | 'message' | 'call' | 'story' | null;
+  entityType: 'post' | 'comment' | 'user' | 'community' | 'session' | 'message' | 'call' | 'story' | 'space' | null;
   entityId: ID | null;
   /** Ссылка внутри приложения, куда ведёт уведомление */
   link: string | null;
@@ -660,12 +665,88 @@ export interface SearchResults {
   users: UserSummary[];
   posts: Post[];
   chats: ChatSummary[];
-  communities: Community[];
+  /** Открытые сообщества */
+  spaces: SpaceSummary[];
   hashtags: Hashtag[];
 }
 
 export interface ChatBan {
   user: UserSummary;
   until: ISODate | null;
+  createdAt: ISODate;
+}
+
+// ─── Компании и сообщества ──────────────────────────────────────────────────
+
+/** company — по приглашению руководителя, роли и права; community — открытое или закрытое, много групп внутри */
+export type SpaceKind = 'company' | 'community';
+
+export interface SpaceSummary {
+  id: ID;
+  kind: SpaceKind;
+  name: string;
+  slug: string | null;
+  description: string;
+  avatarUrl: string | null;
+  /** Открытое: найти и вступить может любой */
+  isPublic: boolean;
+  memberCount: number;
+  ownerId: ID;
+  /** Вы участник */
+  joined: boolean;
+  /** Ваши права (битовая маска SPACE_PERMS) */
+  permissions: number;
+  /** Чатов с непрочитанным */
+  unreadRooms: number;
+  createdAt: ISODate;
+}
+
+export interface SpaceRole {
+  id: ID;
+  name: string;
+  color: string;
+  permissions: number;
+  position: number;
+  /** Роль «Все участники»: есть у каждого, удалить нельзя */
+  isDefault: boolean;
+  memberCount: number;
+}
+
+export interface SpaceCategory {
+  id: ID;
+  name: string;
+  position: number;
+}
+
+export interface SpaceRoom {
+  chat: ChatSummary;
+  categoryId: ID | null;
+  position: number;
+  /** Видят только эти роли (пусто — все участники) */
+  roleIds: ID[];
+  /** Вы в этом чате (в сообществах в группы вступают по желанию) */
+  joined: boolean;
+}
+
+export interface SpaceDetails extends SpaceSummary {
+  roles: SpaceRole[];
+  categories: SpaceCategory[];
+  rooms: SpaceRoom[];
+  /** Ссылка-приглашение (видна тем, кто может приглашать) */
+  inviteLink: string | null;
+}
+
+export interface SpaceMember {
+  user: UserSummary;
+  roleIds: ID[];
+  isOwner: boolean;
+  joinedAt: ISODate;
+}
+
+export interface SpaceInvite {
+  id: ID;
+  space: Pick<SpaceSummary, 'id' | 'kind' | 'name' | 'avatarUrl' | 'memberCount'>;
+  inviter: UserSummary | null;
+  user: UserSummary | null;
   createdAt: ISODate;
 }

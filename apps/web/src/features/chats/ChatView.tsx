@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useInfiniteQuery, useMutation, useQuery, type InfiniteData } from '@tanstack/react-query';
 import { ArrowDown, ArrowLeft, Ban, Bell, BellOff, CalendarClock, Eraser, Flag, Info, Lock, LogOut, Megaphone, Phone, Pin, Search, ShieldAlert, Trash2, Video, X } from 'lucide-react';
@@ -35,12 +35,17 @@ type PendingBody = {
 };
 const pending = new Map<string, PendingBody>();
 
+/** Дополнительные кнопки в шапке чата (например, «Участники» в компании). */
+export const ChatHeaderExtra = createContext<ReactNode>(null);
+
 export function ChatView() {
   const { chatId = '' } = useParams();
   const me = useMe();
   const navigate = useNavigate();
-  // Каналы открываются в своём разделе, остальные чаты — в мессенджере
-  const base = useLocation().pathname.startsWith('/channels') ? '/channels' : '/chats';
+  // Каналы открываются в своём разделе, чаты компаний и сообществ — в своём, остальные — в мессенджере
+  const { pathname } = useLocation();
+  const base = pathname.match(/^\/(companies|communities)\/[^/]+/)?.[0] ?? (pathname.startsWith('/channels') ? '/channels' : '/chats');
+  const headerExtra = useContext(ChatHeaderExtra);
   useImmersive(true);
   const toggleInfo = useChatUi((s) => s.toggleInfo);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -276,6 +281,7 @@ export function ChatView() {
     onSuccess: (c) => {
       queryClient.setQueryData(qk.chat(chatId), c);
       void queryClient.invalidateQueries({ queryKey: qk.chatsAll });
+      if (c.spaceId) void queryClient.invalidateQueries({ queryKey: ['space', c.spaceId] });
       toast({ text: c.type === 'channel' ? 'Вы подписались на канал' : 'Вы вступили в группу', kind: 'success' });
     },
   });
@@ -350,6 +356,7 @@ export function ChatView() {
             <Search size={20} />
           </IconButton>
         )}
+        {headerExtra}
         <IconButton label="Информация" onClick={toggleInfo} className="desktop-only">
           <Info size={20} />
         </IconButton>
