@@ -69,7 +69,17 @@
   --z-drawer: 60;
   --z-modal: 80;
   --z-toast: 90;
+  --z-call: 95;
   --z-lock: 100;
+
+  /* Экран звонка всегда тёмный — поверх любой темы */
+  --call-bg: #07060d;
+  --call-fg: #f6f5fb;
+  --call-fg-2: rgba(246, 245, 251, 0.68);
+  --call-glass: rgba(255, 255, 255, 0.12);
+  --call-glass-strong: rgba(255, 255, 255, 0.22);
+  --call-green: #22c55e;
+  --call-red: #ef4444;
 
   --blur: 22px;
   --blur-strong: 34px;

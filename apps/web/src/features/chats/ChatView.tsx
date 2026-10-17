@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { useInfiniteQuery, useMutation, useQuery, type InfiniteData } from '@tanstack/react-query';
-import { ArrowDown, ArrowLeft, Ban, Bell, BellOff, CalendarClock, Eraser, Flag, Info, Lock, LogOut, Megaphone, Pin, Search, ShieldAlert, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, Ban, Bell, BellOff, CalendarClock, Eraser, Flag, Info, Lock, LogOut, Megaphone, Phone, Pin, Search, ShieldAlert, Trash2, Video, X } from 'lucide-react';
 import type { ChatSummary, EncryptedPayload, Message, PollInput, ScheduledMessage } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { qk, queryClient } from '../../shared/api/query';
+import { startCall } from '../../shared/calls/engine';
 import { encryptMessage } from '../../shared/crypto/e2e';
 import { realtime } from '../../shared/realtime/socket';
 import { useRealtime } from '../../shared/stores/realtime';
@@ -240,8 +241,9 @@ export function ChatView() {
         void navigator.clipboard.writeText(text).then(() => toast('Текст скопирован'));
       },
       readers: (m) => setReadersOf(m),
+      callBack: chat?.peer ? (video) => void startCall(chatId, video) : undefined,
     }),
-    [chatId, chat?.pinnedMessage?.id, deliver],
+    [chatId, chat?.pinnedMessage?.id, chat?.peer, deliver],
   );
 
   const prefs = useMutation({
@@ -276,6 +278,7 @@ export function ChatView() {
   const muted = !!chat.mutedUntil;
   const isMember = !!chat.role;
   const isAdmin = chat.role === 'owner' || chat.role === 'admin';
+  const canCall = (chat.type === 'direct' || chat.type === 'secret') && !!chat.peer && isMember;
   const canWrite = isMember && (chat.type !== 'channel' || isAdmin) && (chat.type !== 'secret' || secret.status === 'ready');
 
   const removeChat = async () => {
@@ -311,6 +314,16 @@ export function ChatView() {
             <CalendarClock size={20} />
             <span className="badge header-badge">{scheduledCount}</span>
           </IconButton>
+        )}
+        {canCall && (
+          <>
+            <IconButton label="Аудиозвонок" onClick={() => void startCall(chat.id, false)}>
+              <Phone size={20} />
+            </IconButton>
+            <IconButton label="Видеозвонок" onClick={() => void startCall(chat.id, true)} className="desktop-only">
+              <Video size={21} />
+            </IconButton>
+          </>
         )}
         {chat.type !== 'secret' && (
           <IconButton label="Поиск в чате" onClick={() => setSearchOpen(true)}>
@@ -439,6 +452,7 @@ export function ChatView() {
           },
           { label: chat.pinned ? 'Открепить чат' : 'Закрепить чат', icon: <Pin size={18} />, onClick: () => prefs.mutate({ pinned: !chat.pinned }), hidden: !isMember },
           { label: 'Информация', icon: <Info size={18} />, onClick: toggleInfo },
+          { label: 'Видеозвонок', icon: <Video size={18} />, onClick: () => void startCall(chat.id, true), hidden: !canCall },
           {
             label: 'Очистить историю',
             icon: <Eraser size={18} />,

@@ -7,6 +7,7 @@ import { realtime } from '../shared/realtime/socket';
 import { useRealtime } from '../shared/stores/realtime';
 import { useSession } from '../shared/stores/session';
 import { toast } from '../shared/stores/ui';
+import { handleCallEvent, restoreIncomingCall } from '../shared/calls/engine';
 import { activeChat, forgetChat, onIncomingMessage, patchChat, patchMessage, removeMessage } from '../features/chats/cache';
 
 type Navigate = (to: string) => void;
@@ -72,6 +73,11 @@ function handle(event: ServerEvent): void {
     case 'counters':
       useSession.getState().setCounters(event.counters);
       break;
+    case 'call.incoming':
+    case 'call.updated':
+    case 'call.signal':
+      void handleCallEvent(event).catch(() => undefined);
+      break;
     case 'session.revoked':
       sessionEvents.dispatchEvent(new Event('revoked'));
       break;
@@ -91,6 +97,7 @@ export function startRealtime(): void {
     if (activeChat.id) void queryClient.invalidateQueries({ queryKey: qk.messages(activeChat.id) });
   });
   realtime.connect();
+  void restoreIncomingCall();
 }
 
 export function stopRealtime(): void {

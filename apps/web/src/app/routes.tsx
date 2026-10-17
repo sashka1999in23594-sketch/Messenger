@@ -21,6 +21,7 @@ const communities = () => import('../features/communities');
 const explore = () => import('../features/explore');
 const notifications = () => import('../features/notifications');
 const settings = () => import('../features/settings');
+const calls = () => import('../features/calls');
 
 const ChatsLayout = lazyNamed(chats, 'ChatsLayout');
 const NoChatSelected = lazyNamed(chats, 'NoChatSelected');
@@ -28,6 +29,7 @@ const ChatView = lazyNamed(chats, 'ChatView');
 const NewChatPage = lazyNamed(chats, 'NewChatPage');
 const DiscoverChannels = lazyNamed(chats, 'DiscoverChannels');
 const OpenSaved = lazyNamed(chats, 'OpenSaved');
+const CallsPage = lazyNamed(calls, 'CallsPage');
 
 const FeedPage = lazyNamed(feed, 'FeedPage');
 const ComposePage = lazyNamed(feed, 'ComposePage');
@@ -115,6 +117,8 @@ export function AppRoutes() {
           <Route path="new/:kind" element={<NewChatPage />} />
           <Route path=":chatId" element={<ChatView />} />
         </Route>
+        <Route path="calls" element={<CallsPage filter="all" />} />
+        <Route path="calls/missed" element={<CallsPage filter="missed" />} />
         <Route path="contacts/following" element={<FollowListPage which="following" />} />
         <Route path="contacts/followers" element={<FollowListPage which="followers" />} />
         <Route path="contacts/suggestions" element={<FollowListPage which="suggestions" />} />

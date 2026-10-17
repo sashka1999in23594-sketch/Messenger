@@ -1,0 +1,317 @@
+/* ─── Экран звонка ─────────────────────────────────────────────────────────── */
+.call-screen {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-call);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--call-fg);
+  background: var(--call-bg);
+  overflow: hidden;
+  animation: fade-in var(--dur) var(--ease);
+  padding: calc(var(--safe-top) + var(--space-4)) var(--space-4) calc(var(--safe-bottom) + var(--space-8));
+}
+.call-screen__bg {
+  position: absolute;
+  inset: -40px;
+  background:
+    radial-gradient(60% 50% at 30% 20%, color-mix(in oklab, var(--accent) 55%, transparent), transparent 70%),
+    radial-gradient(60% 55% at 75% 80%, color-mix(in oklab, var(--accent-2) 50%, transparent), transparent 70%),
+    var(--call-bg);
+  background-size: cover;
+  background-position: center;
+  filter: blur(90px) saturate(1.4) brightness(0.5);
+  transform: scale(1.1);
+  z-index: 0;
+}
+.call-screen > *:not(.call-screen__bg, .call-screen__remote, .call-screen__local) {
+  position: relative;
+  z-index: 1;
+}
+.call-screen__remote {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  background: var(--call-bg);
+}
+.call-screen--video::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, var(--call-bg) 0%, transparent 22%, transparent 70%, var(--call-bg) 100%);
+  opacity: 0.7;
+}
+.call-screen__top {
+  width: 100%;
+  max-width: 960px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+}
+.call-screen__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  background: var(--call-glass);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--call-fg-2);
+}
+.call-screen__min {
+  position: absolute;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  display: grid;
+  place-items: center;
+  color: var(--call-fg);
+  background: var(--call-glass);
+  transition: background var(--dur-fast) var(--ease);
+}
+.call-screen__min:hover {
+  background: var(--call-glass-strong);
+}
+.call-screen__peer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  text-align: center;
+  animation: rise-in var(--dur-slow) var(--ease);
+}
+.call-screen__avatar {
+  position: relative;
+  border-radius: var(--radius-full);
+  margin-bottom: var(--space-4);
+}
+.call-screen__avatar::before,
+.call-screen__avatar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid var(--call-glass-strong);
+  opacity: 0;
+}
+.call-screen__avatar--ringing::before {
+  animation: call-ripple 2.4s var(--ease) infinite;
+}
+.call-screen__avatar--ringing::after {
+  animation: call-ripple 2.4s var(--ease) 1.2s infinite;
+}
+@keyframes call-ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+.call-screen__name {
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+}
+.call-screen__status {
+  font-size: var(--fs-lg);
+  color: var(--call-fg-2);
+  font-variant-numeric: tabular-nums;
+}
+.call-screen__note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  background: var(--call-glass);
+  font-size: var(--fs-sm);
+}
+.call-screen__overlay-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: var(--space-2);
+  font-size: var(--fs-lg);
+  text-shadow: 0 1px 8px var(--call-bg);
+}
+.call-screen__overlay-info span {
+  font-size: var(--fs-sm);
+  color: var(--call-fg-2);
+  font-variant-numeric: tabular-nums;
+}
+.call-screen--video .call-screen__controls {
+  margin-top: auto;
+}
+.call-screen__local {
+  position: absolute;
+  z-index: 2;
+  right: var(--space-4);
+  bottom: calc(var(--safe-bottom) + 150px);
+  width: clamp(110px, 22vw, 240px);
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--call-glass-strong);
+  box-shadow: var(--shadow-lg);
+  transform: scaleX(-1);
+  background: var(--call-bg);
+  animation: scale-in var(--dur) var(--ease);
+}
+.call-screen__controls {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: clamp(var(--space-4), 6vw, var(--space-10));
+  min-height: 100px;
+}
+.call-ctrl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--call-fg);
+  width: 84px;
+}
+.call-ctrl__btn {
+  width: 68px;
+  height: 68px;
+  border-radius: var(--radius-full);
+  display: grid;
+  place-items: center;
+  background: var(--call-glass);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    background var(--dur-fast) var(--ease);
+}
+.call-ctrl:hover .call-ctrl__btn {
+  background: var(--call-glass-strong);
+  transform: scale(1.06);
+}
+.call-ctrl:active .call-ctrl__btn {
+  transform: scale(0.94);
+}
+.call-ctrl__btn--on {
+  background: var(--call-fg) !important;
+  color: var(--call-bg);
+}
+.call-ctrl__btn--danger {
+  background: var(--call-red) !important;
+  box-shadow: 0 8px 28px color-mix(in oklab, var(--call-red) 50%, transparent);
+}
+.call-ctrl__btn--success {
+  background: var(--call-green) !important;
+  box-shadow: 0 8px 28px color-mix(in oklab, var(--call-green) 50%, transparent);
+  animation: glow-pulse 1.8s var(--ease) infinite;
+}
+.call-ctrl__label {
+  font-size: var(--fs-xs);
+  color: var(--call-fg-2);
+  text-align: center;
+}
+.call-screen--ended .call-screen__peer {
+  opacity: 0.75;
+}
+
+/* Свёрнутый звонок — плашка сверху */
+.call-pill {
+  position: fixed;
+  top: calc(var(--safe-top) + var(--space-3));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-call);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 4px 4px 4px 12px;
+  max-width: calc(100vw - 32px);
+  border-radius: var(--radius-full);
+  color: var(--call-fg);
+  background: color-mix(in oklab, var(--call-green) 82%, var(--call-bg));
+  box-shadow: var(--shadow-lg);
+  animation: slide-up var(--dur) var(--ease);
+}
+.call-pill__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--call-fg);
+  animation: call-blink 1.4s ease-in-out infinite;
+}
+.call-pill__main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px 8px;
+  min-width: 0;
+  color: inherit;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+.call-pill__btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  display: grid;
+  place-items: center;
+  color: inherit;
+  background: var(--call-glass);
+}
+.call-pill__btn--danger {
+  background: var(--call-red);
+}
+@keyframes call-blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* ─── История звонков ─── */
+.call-row__icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.call-row--missed .list-item__title,
+.call-row--missed .call-row__icon {
+  color: var(--danger);
+}
+.call-row__actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+@media (max-width: 640px) {
+  .call-screen__name {
+    font-size: var(--fs-2xl);
+  }
+  .call-ctrl__btn {
+    width: 60px;
+    height: 60px;
+  }
+  .call-ctrl {
+    width: 72px;
+  }
+  .call-screen__local {
+    bottom: calc(var(--safe-bottom) + 140px);
+  }
+}

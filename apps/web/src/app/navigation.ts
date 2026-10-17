@@ -169,14 +169,15 @@ export const sections: NavSection[] = [
         label: 'Звонки',
         icon: Phone,
         children: [
+          { id: 'messenger.calls.recent', label: 'Недавние', icon: Phone, path: '/calls', keywords: ['звонок', 'видеозвонок', 'webrtc'] },
+          { id: 'messenger.calls.missed', label: 'Пропущенные', icon: PhoneMissed, path: '/calls/missed' },
           {
-            id: 'messenger.calls.recent',
-            label: 'Недавние',
-            icon: Phone,
-            path: '/calls',
-            planned: ['Аудио- и видеозвонки (WebRTC)', 'Сквозное шифрование звонков', 'Групповые конференции до 50 человек', 'Демонстрация экрана'],
+            id: 'messenger.calls.group',
+            label: 'Конференции',
+            icon: Users,
+            path: '/calls/group',
+            planned: ['Групповые звонки до 50 человек', 'Демонстрация экрана', 'Запись разговора'],
           },
-          { id: 'messenger.calls.missed', label: 'Пропущенные', icon: PhoneMissed, path: '/calls/missed', planned: ['История пропущенных', 'Перезвонить в один тап'] },
         ],
       },
       {

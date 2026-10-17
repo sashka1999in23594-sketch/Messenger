@@ -192,12 +192,15 @@ export class CallsService {
     return r ? this.dto(r) : null;
   }
 
-  history(userId: string, cursor: string | undefined, limit: number): Paginated<CallInfo> {
+  /** История звонков; `missed` — только входящие без ответа */
+  history(userId: string, cursor: string | undefined, limit: number, missed = false): Paginated<CallInfo> {
     const offset = offsetCursor.decode(cursor);
-    const rows = this.db.all<CallRow>(
-      'SELECT * FROM calls WHERE caller_id = :u OR callee_id = :u ORDER BY created_at DESC LIMIT :l OFFSET :o',
-      { u: userId, l: limit + 1, o: offset },
-    );
+    const where = missed ? "callee_id = :u AND status IN ('missed', 'cancelled')" : '(caller_id = :u OR callee_id = :u)';
+    const rows = this.db.all<CallRow>(`SELECT * FROM calls WHERE ${where} ORDER BY created_at DESC LIMIT :l OFFSET :o`, {
+      u: userId,
+      l: limit + 1,
+      o: offset,
+    });
     return { items: this.repo.toDtos(rows.slice(0, limit)), nextCursor: offsetCursor.next(offset, rows.length, limit) };
   }
 

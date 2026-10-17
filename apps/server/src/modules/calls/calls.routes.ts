@@ -19,7 +19,8 @@ export async function callsRoutes(app: FastifyInstance): Promise<void> {
   app.get('/calls/current', async (req) => ({ call: calls.current(requireAuth(req).userId) }));
   app.get('/calls', async (req) => {
     const q = parse(pagination, req.query);
-    return calls.history(requireAuth(req).userId, q.cursor, q.limit);
+    const missed = (req.query as { filter?: string }).filter === 'missed';
+    return calls.history(requireAuth(req).userId, q.cursor, q.limit, missed);
   });
   app.post('/calls', { config: callLimit }, async (req, reply) => {
     const auth = requireAuth(req);
