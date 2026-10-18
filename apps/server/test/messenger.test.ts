@@ -352,3 +352,27 @@ describe('каналы', () => {
     expect((await b.client.post(`/chats/${closed.body.id}/join`)).status).toBe(403);
   });
 });
+
+describe('звонки: STUN и TURN', () => {
+  it('без TURN клиент узнаёт, что резервного маршрута нет', async () => {
+    const u = await registerUser(app);
+    const r = await u.client.get('/calls/config');
+    expect(r.body.relay).toBe(false);
+    expect(r.body.turnSource).toBeNull();
+    expect(JSON.stringify(r.body.iceServers)).toContain('stun:');
+  });
+
+  it('свой TURN из окружения выдаётся вместе с учётными данными', async () => {
+    const turnApp = await createTestApp({ TURN_URLS: 'turn:turn.example.com:3478', TURN_USERNAME: 'u', TURN_CREDENTIAL: 'p' });
+    try {
+      const u = await registerUser(turnApp);
+      const r = await u.client.get('/calls/config');
+      expect(r.body).toMatchObject({ relay: true, turnSource: 'static' });
+      expect(r.body.iceServers.some((s: { urls: string[]; username?: string }) => s.urls.includes('turn:turn.example.com:3478') && s.username === 'u')).toBe(true);
+      // Без входа настройки не выдаются
+      expect((await new Client(turnApp).get('/calls/config')).status).toBe(401);
+    } finally {
+      await turnApp.close();
+    }
+  });
+});

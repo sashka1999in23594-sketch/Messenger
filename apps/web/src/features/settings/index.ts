@@ -16,3 +16,4 @@ export { AppearanceSettings } from './appearance';
 export { EmailSettings } from './email';
 export { TwoFactorSettings } from './twofactor';
 export { BehaviorSettings, FontSettings, PowerSettings, QuietSettings, SoundsSettings, SpaceModeSettings } from './device';
+export { CallsSettings } from './calls';

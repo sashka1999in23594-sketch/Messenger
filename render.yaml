@@ -36,3 +36,9 @@ services:
         sync: false
       - key: MAIL_FROM
         sync: false
+      # Звонки между разными сетями (мобильный интернет ↔ Wi-Fi) идут через TURN.
+      # Бесплатно у Cloudflare: Realtime → TURN Server → создать ключ (Token ID и API Token).
+      - key: CF_TURN_KEY_ID
+        sync: false
+      - key: CF_TURN_API_TOKEN
+        sync: false

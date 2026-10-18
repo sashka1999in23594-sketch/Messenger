@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { pagination, startCallSchema } from '@omni/shared';
 import { parse } from '../../lib/errors.js';
 import { requireAuth } from '../../http/request.js';
+import { IceProvider } from './ice.js';
 
 type P = { Params: { id: string } };
 
@@ -11,10 +12,11 @@ export async function callsRoutes(app: FastifyInstance): Promise<void> {
   const { config } = app.ctx;
   const callLimit = { rateLimit: { max: 20, timeWindow: '1 minute' } };
 
-  /** STUN/TURN-серверы для установки соединения */
+  const ice = new IceProvider(config, app.log);
+  /** STUN/TURN-серверы для установки соединения (TURN — с временными учётными данными) */
   app.get('/calls/config', async (req) => {
     requireAuth(req);
-    return { iceServers: config.iceServers };
+    return { ...(await ice.get()), turnSource: ice.source };
   });
   app.get('/calls/current', async (req) => ({ call: calls.current(requireAuth(req).userId) }));
   app.get('/calls', async (req) => {

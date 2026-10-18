@@ -7,13 +7,14 @@ import { loadConfig } from '../src/config.js';
 
 export const ORIGIN = 'http://localhost:5173';
 
-export async function createTestApp(): Promise<FastifyInstance> {
+export async function createTestApp(env: Record<string, string> = {}): Promise<FastifyInstance> {
   const dataDir = mkdtempSync(path.join(tmpdir(), 'omni-test-'));
   const config = loadConfig({
     NODE_ENV: 'test',
     DATA_DIR: dataDir,
     APP_SECRET: 'test-secret-test-secret-test-secret-0123456789',
     PUBLIC_ORIGIN: ORIGIN,
+    ...env,
   });
   const app = await buildApp(config);
   await app.ready();

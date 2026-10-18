@@ -37,6 +37,11 @@ const envSchema = z.object({
   TURN_URLS: z.string().default(''),
   TURN_USERNAME: z.string().default(''),
   TURN_CREDENTIAL: z.string().default(''),
+  /** TURN от Cloudflare (бесплатно): временные логин и пароль выдаются по ключу на каждый звонок */
+  CF_TURN_KEY_ID: z.string().default(''),
+  CF_TURN_API_TOKEN: z.string().default(''),
+  /** TURN от Metered: полная ссылка вида https://<app>.metered.live/api/v1/turn/credentials?apiKey=… */
+  METERED_TURN_URL: z.string().default(''),
 });
 
 export type Config = ReturnType<typeof loadConfig>;
@@ -124,5 +129,9 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
         ? [{ urls: env.TURN_URLS.split(',').map((u) => u.trim()).filter(Boolean), username: env.TURN_USERNAME, credential: env.TURN_CREDENTIAL }]
         : []),
     ] as { urls: string[]; username?: string; credential?: string }[],
+    turn: {
+      cloudflare: env.CF_TURN_KEY_ID && env.CF_TURN_API_TOKEN ? { keyId: env.CF_TURN_KEY_ID, token: env.CF_TURN_API_TOKEN } : null,
+      meteredUrl: env.METERED_TURN_URL || null,
+    },
   };
 }

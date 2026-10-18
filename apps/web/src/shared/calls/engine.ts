@@ -50,10 +50,17 @@ export const useCall = create<CallState>(() => ({ ...initial }));
 
 let pc: RTCPeerConnection | null = null;
 let pendingIce: RTCIceCandidateInit[] = [];
-let iceServers: RTCIceServer[] | null = null;
+let ice: { servers: RTCIceServer[]; at: number } | null = null;
 let ring: { stop: () => void } | null = null;
 let endTimer: number | null = null;
 let dropTimer: number | null = null;
+/** Соединение не установилось за отведённое время — звонок завершается с понятной причиной */
+let connectTimer: number | null = null;
+/** Сколько раз перезапускали ICE в этом звонке (при смене сети или сбое) */
+let restarts = 0;
+
+const CONNECT_TIMEOUT_MS = 30_000;
+const RECOVER_TIMEOUT_MS = 15_000;
 
 /** Звонка нет или на экране только итог прошлого («Звонок завершён») */
 const isFree = () => {
@@ -110,9 +117,60 @@ function startRing(kind: 'in' | 'out') {
   };
 }
 
-async function getIce(): Promise<RTCIceServer[]> {
-  if (!iceServers) iceServers = (await api.get<{ iceServers: RTCIceServer[] }>('/calls/config')).iceServers;
-  return iceServers;
+/** STUN/TURN: учётные данные TURN временные, поэтому берём свежие не реже раза в 10 минут. */
+export async function getIce(): Promise<RTCIceServer[]> {
+  if (!ice || Date.now() - ice.at > 10 * 60_000) {
+    ice = { servers: (await api.get<{ iceServers: RTCIceServer[] }>('/calls/config')).iceServers, at: Date.now() };
+  }
+  return ice.servers;
+}
+
+function clearTimers() {
+  if (dropTimer) window.clearTimeout(dropTimer);
+  if (connectTimer) window.clearTimeout(connectTimer);
+  dropTimer = null;
+  connectTimer = null;
+}
+
+/** Ждём соединения: если ICE так и не договорился — завершаем, а не висим на «Соединение…» */
+function armConnectTimeout() {
+  if (connectTimer) window.clearTimeout(connectTimer);
+  connectTimer = window.setTimeout(() => {
+    connectTimer = null;
+    if (useCall.getState().phase === 'connecting') {
+      toast({ text: 'Не удалось соединиться: сеть не пропускает звонок. Попробуйте ещё раз или другую сеть (Wi-Fi ↔ мобильный интернет)', kind: 'error' });
+      void hangup();
+    }
+  }, CONNECT_TIMEOUT_MS);
+}
+
+/** Перезапуск ICE: звонящий заново договаривается о маршруте, собеседник отвечает на новое предложение. */
+async function restartIce(peer: RTCPeerConnection) {
+  const call = useCall.getState().call;
+  if (!call || call.caller.id !== me() || restarts >= 2 || peer.signalingState !== 'stable') return;
+  restarts++;
+  try {
+    peer.restartIce();
+    const offer = await peer.createOffer({ iceRestart: true });
+    await peer.setLocalDescription(offer);
+    send({ type: 'offer', sdp: offer.sdp ?? '' });
+  } catch {
+    // не вышло — сработает таймер восстановления
+  }
+}
+
+/** Связь пропала: показываем «Восстанавливаем связь…», пробуем перезапуск, по таймеру — завершаем. */
+function startRecovery(peer: RTCPeerConnection) {
+  useCall.setState({ reconnecting: true });
+  void restartIce(peer);
+  if (dropTimer) return;
+  dropTimer = window.setTimeout(() => {
+    dropTimer = null;
+    if (pc === peer && peer.connectionState !== 'connected') {
+      toast({ text: 'Связь прервалась', kind: 'error' });
+      void hangup();
+    }
+  }, RECOVER_TIMEOUT_MS);
 }
 
 async function getMedia(video: boolean): Promise<MediaStream> {
@@ -133,8 +191,8 @@ async function getMedia(video: boolean): Promise<MediaStream> {
 
 function cleanup(endedText: string | null) {
   ring?.stop();
-  if (dropTimer) window.clearTimeout(dropTimer);
-  dropTimer = null;
+  clearTimers();
+  restarts = 0;
   pc?.getSenders().forEach((s) => s.track?.stop());
   pc?.close();
   pc = null;
@@ -161,31 +219,21 @@ async function createPeer(): Promise<RTCPeerConnection> {
     if (e.candidate) send({ type: 'ice', candidate: e.candidate.candidate, sdpMid: e.candidate.sdpMid, sdpMLineIndex: e.candidate.sdpMLineIndex });
   };
   peer.onconnectionstatechange = () => {
-    if (peer.connectionState === 'connected') {
-      if (dropTimer) window.clearTimeout(dropTimer);
-      dropTimer = null;
+    if (pc !== peer) return;
+    const state = peer.connectionState;
+    if (state === 'connected') {
+      clearTimers();
       if (useCall.getState().phase !== 'active') {
         ring?.stop();
         useCall.setState({ phase: 'active', startedAt: Date.now(), reconnecting: false });
       } else useCall.setState({ reconnecting: false });
+      return;
     }
-    // Кратковременный обрыв (смена сети): ждём восстановления 12 секунд, потом завершаем
-    if (peer.connectionState === 'disconnected' && useCall.getState().phase === 'active') {
-      useCall.setState({ reconnecting: true });
-      if (!dropTimer) {
-        dropTimer = window.setTimeout(() => {
-          dropTimer = null;
-          if (pc === peer && peer.connectionState !== 'connected') {
-            toast({ text: 'Связь прервалась', kind: 'error' });
-            void hangup();
-          }
-        }, 12_000);
-      }
-    }
-    if (peer.connectionState === 'failed') {
-      toast({ text: 'Не удалось установить соединение. Возможно, нужен TURN-сервер для вашей сети', kind: 'error' });
-      void hangup();
-    }
+    const phase = useCall.getState().phase;
+    // Обрыв во время разговора (смена сети, туннель): пробуем восстановить
+    if ((state === 'disconnected' || state === 'failed') && phase === 'active') startRecovery(peer);
+    // Не договорились о маршруте ещё до начала разговора — одна попытка перезапуска, дальше решит таймер
+    if (state === 'failed' && phase === 'connecting') void restartIce(peer);
   };
   const local = useCall.getState().localStream;
   local?.getTracks().forEach((t) => peer.addTrack(t, local));
@@ -229,6 +277,7 @@ export async function acceptCall(withVideo?: boolean): Promise<void> {
     const local = await getMedia(withVideo ?? call.video);
     useCall.setState({ localStream: local, phase: 'connecting', cameraOff: !(withVideo ?? call.video) });
     await createPeer();
+    armConnectTimeout();
     await api.post<CallInfo>(`/calls/${call.id}/accept`);
   } catch (e) {
     toast({ text: errorMessage(e), kind: 'error' });
@@ -300,6 +349,7 @@ export async function handleCallEvent(event: ServerEvent): Promise<void> {
       if (call.caller.id === me() && !pc) {
         ring?.stop();
         useCall.setState({ phase: 'connecting' });
+        armConnectTimeout();
         const peer = await createPeer();
         const offer = await peer.createOffer();
         await peer.setLocalDescription(offer);
@@ -322,11 +372,14 @@ export async function handleCallEvent(event: ServerEvent): Promise<void> {
     if (!state.call || state.call.id !== event.callId) return;
     const sig = event.signal;
     if (sig.type === 'offer' && pc) {
+      // Новое предложение посреди разговора — это перезапуск ICE с той стороны
+      if (useCall.getState().phase === 'active') useCall.setState({ reconnecting: true });
       await pc.setRemoteDescription({ type: 'offer', sdp: sig.sdp });
       await flushIce();
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       send({ type: 'answer', sdp: answer.sdp ?? '' });
+      if (pc.connectionState === 'connected') useCall.setState({ reconnecting: false });
     } else if (sig.type === 'answer' && pc) {
       await pc.setRemoteDescription({ type: 'answer', sdp: sig.sdp });
       await flushIce();

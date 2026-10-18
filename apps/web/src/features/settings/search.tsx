@@ -18,6 +18,7 @@ interface Entry {
 const ITEMS: [title: string, path: string, where: string, keywords?: string][] = [
   ['Тёмная и светлая тема', '/settings/appearance/theme', 'Оформление', 'ночь день система'],
   ['Режим «Пространство»', '/settings/space', 'Пространство', 'окна рабочий стол масштаб колесо'],
+  ['Проверка звонков', '/settings/calls', 'Звонки', 'микрофон камера связь не соединяется turn'],
   ['Палитра «северного сияния»', '/settings/appearance/theme', 'Оформление', 'закат океан лес сакура'],
   ['Цвет акцента', '/settings/appearance/accent', 'Оформление', 'цвет кнопок'],
   ['Матовое стекло', '/settings/power', 'Энергосбережение', 'прозрачность размытие blur'],

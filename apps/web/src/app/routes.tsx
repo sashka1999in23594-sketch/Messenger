@@ -117,6 +117,7 @@ const FontSettings = lazyNamed(settings, 'FontSettings');
 const BehaviorSettings = lazyNamed(settings, 'BehaviorSettings');
 const PowerSettings = lazyNamed(settings, 'PowerSettings');
 const SpaceModeSettings = lazyNamed(settings, 'SpaceModeSettings');
+const CallsSettings = lazyNamed(settings, 'CallsSettings');
 
 /** Стартовая страница — из настроек «Поведение» (устаревшие значения ведут на главную) */
 function StartRedirect() {
@@ -279,6 +280,7 @@ export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
         <Route path="settings/behavior" element={<BehaviorSettings />} />
         <Route path="settings/power" element={<PowerSettings />} />
         <Route path="settings/space" element={<SpaceModeSettings />} />
+        <Route path="settings/calls" element={<CallsSettings />} />
         <Route path="settings/appearance" element={<Navigate to="/settings/appearance/theme" replace />} />
         <Route path="settings/appearance/theme" element={<AppearanceSettings section="theme" />} />
         <Route path="settings/appearance/accent" element={<AppearanceSettings section="accent" />} />
