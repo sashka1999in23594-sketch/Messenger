@@ -28,10 +28,16 @@ jobs:
         run: |
           set -euo pipefail
           fail() { echo "::error::$1"; exit 1; }
+          # Ход настройки — заметками (::notice::), их видно и без доступа к логам
+          note() { echo "::notice::$1"; }
+          note "Секреты: B2_KEY_ID ${#B2_KEY_ID} симв., B2_APP_KEY ${#B2_APP_KEY} симв., RENDER_API_KEY ${#RENDER_API_KEY} симв."
+          for v in B2_KEY_ID B2_APP_KEY RENDER_API_KEY; do
+            [ -n "${!v}" ] || fail "Секрет $v не найден: проверьте имя в Settings → Secrets and variables → Actions"
+          done
 
           # --- Backblaze B2 ---
           auth=$(curl -sS --fail-with-body -u "$B2_KEY_ID:$B2_APP_KEY" https://api.backblazeb2.com/b2api/v2/b2_authorize_account) \
-            || fail "Backblaze не принял главный ключ: $(jq -r '.message // .' <<<"$auth" 2>/dev/null || echo '?')"
+            || fail "Backblaze не принял главный ключ: $(jq -r '[(.status|tostring), .code, .message] | join(" ")' <<<"$auth" 2>/dev/null || echo "$auth")"
           token=$(jq -r .authorizationToken <<<"$auth"); echo "::add-mask::$token"
           api=$(jq -r .apiUrl <<<"$auth")
           account=$(jq -r .accountId <<<"$auth")
@@ -39,23 +45,23 @@ jobs:
           b2() {
             local out
             out=$(curl -sS --fail-with-body -H "Authorization: $token" "$api/b2api/v2/$1" -d "$2") \
-              || { echo "::error::Backblaze $1: $(jq -r '.message // .code // .' <<<"$out" 2>/dev/null || echo "$out")" >&2; return 1; }
+              || { echo "::error::Backblaze $1: $(jq -r '[(.status|tostring), .code, .message] | join(" ")' <<<"$out" 2>/dev/null || echo "$out")" >&2; return 1; }
             printf '%s' "$out"
           }
 
           bucket_id=$(b2 b2_list_buckets "{\"accountId\":\"$account\",\"bucketName\":\"$BUCKET\"}" | jq -r '.buckets[0].bucketId // empty')
           if [ -z "$bucket_id" ]; then
             bucket_id=$(b2 b2_create_bucket "{\"accountId\":\"$account\",\"bucketName\":\"$BUCKET\",\"bucketType\":\"allPrivate\",\"defaultServerSideEncryption\":{\"mode\":\"SSE-B2\",\"algorithm\":\"AES256\"}}" | jq -r .bucketId)
-            echo "Создан приватный бакет $BUCKET"
+            note "Создан приватный бакет $BUCKET"
           else
-            echo "Бакет $BUCKET уже есть"
+            note "Бакет $BUCKET уже есть"
           fi
 
           key=$(b2 b2_create_key "{\"accountId\":\"$account\",\"keyName\":\"spaceup-render\",\"bucketId\":\"$bucket_id\",\"capabilities\":[\"listBuckets\",\"listFiles\",\"readFiles\",\"writeFiles\",\"deleteFiles\"]}")
           key_id=$(jq -r .applicationKeyId <<<"$key"); app_key=$(jq -r .applicationKey <<<"$key")
           echo "::add-mask::$key_id"; echo "::add-mask::$app_key"
           [ -n "$app_key" ] && [ "$app_key" != null ] || fail "Backblaze не создал ключ"
-          echo "Создан ключ для сайта (Read and Write, только к $BUCKET), адрес хранилища $endpoint"
+          note "Создан ключ для сайта (Read and Write, только к $BUCKET), адрес хранилища $endpoint"
 
           # --- Render ---
           r() {
@@ -67,12 +73,12 @@ jobs:
           service=$(r "https://api.render.com/v1/services?limit=100" \
             | jq -r --arg site "$SITE" '[.[].service | select(.serviceDetails.url == $site or .name == "omni")][0].id // empty')
           [ -n "$service" ] || fail "Сервис $SITE не найден в Render"
-          echo "Сервис Render: $service"
+          note "Сервис Render: $service"
           for pair in "S3_ENDPOINT=$endpoint" "S3_BUCKET=$BUCKET" "S3_ACCESS_KEY_ID=$key_id" "S3_SECRET_ACCESS_KEY=$app_key"; do
             name=${pair%%=*}; value=${pair#*=}
             r -X PUT "https://api.render.com/v1/services/$service/env-vars/$name" -d "$(jq -n --arg v "$value" '{value: $v}')" > /dev/null
-            echo "В Render записано: $name"
           done
+          note "В Render записаны S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY"
 
           deploy=$(r -X POST "https://api.render.com/v1/services/$service/deploys" -d '{"clearCache":"do_not_clear"}' | jq -r .id)
           echo "Запущен деплой $deploy"
@@ -87,15 +93,16 @@ jobs:
             esac
           done
           [ "$status" = live ] || fail "Деплой не завершился за 15 минут"
+          note "Деплой $deploy: live"
 
           # --- Проверка сайта ---
           for i in $(seq 1 12); do
             health=$(curl -sS --max-time 60 "$SITE/api/v1/health" || true)
             echo "health: $health"
             if jq -e '.storage == "external"' <<<"$health" > /dev/null 2>&1; then
-              echo "Готово: данные сайта сохраняются в Backblaze"
+              note "Готово: $health"
               exit 0
             fi
             sleep 10
           done
-          fail "Сайт отвечает без внешнего хранилища"
+          fail "Сайт отвечает без внешнего хранилища: $health"
