@@ -195,7 +195,10 @@ export class S3Storage {
   async download(key: string, dest: string): Promise<boolean> {
     const res = await this.request('GET', this.url(this.full(key)), null, EMPTY_HASH);
     if (res.statusCode === 404) {
-      res.resume();
+      let text = '';
+      for await (const chunk of res as Readable) text += String(chunk);
+      // «Нет файла» — нормально, а «нет бакета» — ошибка настройки, а не пустое хранилище
+      if (text.includes('<Code>NoSuchBucket</Code>')) throw new S3Error(404, 'NoSuchBucket', `S3 GET ${key}: NoSuchBucket — бакета «${this.opts.bucket}» нет, проверьте S3_BUCKET`);
       return false;
     }
     if (res.statusCode !== 200) return this.fail(res, `GET ${key}`);

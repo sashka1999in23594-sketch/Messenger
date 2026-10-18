@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
-import { DbBackup, restoreDb, type RestoreResult } from './db/backup.js';
+import { checkWrite, DbBackup, restoreDb, type RestoreResult } from './db/backup.js';
 import { DEMO_PASSWORD, seedDemo } from './db/demo.js';
 import { startJobs } from './jobs.js';
 import { S3Storage } from './lib/s3.js';
@@ -13,8 +13,9 @@ let restored: RestoreResult = { from: 'local' };
 if (storage) {
   try {
     restored = await restoreDb(storage, config.dbFile);
+    await checkWrite(storage);
   } catch (err) {
-    console.error(`Не удалось восстановить базу из хранилища ${storage.label}: ${String(err)}`);
+    console.error(`Хранилище ${storage.label} недоступно: ${String(err)}`);
     console.error('Запуск остановлен, чтобы не начать с пустой базой и не затереть копию. Проверьте S3_* переменные.');
     process.exit(1);
   }

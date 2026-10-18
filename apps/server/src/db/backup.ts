@@ -55,6 +55,11 @@ export async function restoreDb(s3: S3Storage, dbFile: string): Promise<RestoreR
   }
 }
 
+/** Проверка при старте: ключ должен уметь писать, иначе копии тихо не сохранялись бы. */
+export async function checkWrite(s3: S3Storage): Promise<void> {
+  await s3.put('db/write-check.txt', Buffer.from(new Date().toISOString()), 'text/plain');
+}
+
 export class DbBackup {
   /** Счётчик изменений на момент последней отправленной копии (-1 — копии ещё нет) */
   private sent: number;

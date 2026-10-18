@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { DbBackup, DB_KEY, restoreDb } from '../src/db/backup.js';
+import { checkWrite, DbBackup, DB_KEY, restoreDb } from '../src/db/backup.js';
 import { Db } from '../src/db/index.js';
 import { regionFromEndpoint, S3Storage, signV4 } from '../src/lib/s3.js';
 import { createTestApp, PNG_1x1, registerUser } from './helpers.js';
@@ -48,6 +48,7 @@ function fakeS3() {
         return void res.writeHead(200).end();
       }
       const obj = objects.get(key);
+      if (key.startsWith('missing-bucket/')) return void res.writeHead(404).end('<Error><Code>NoSuchBucket</Code></Error>');
       if (!obj) return void res.writeHead(404).end('<Error><Code>NoSuchKey</Code></Error>');
       res.writeHead(200, { 'content-length': obj.length });
       res.end(req.method === 'HEAD' ? undefined : obj);
@@ -130,6 +131,17 @@ describe('копия базы', () => {
 
     // Локальная база уже есть — ничего не трогаем
     expect((await restoreDb(storage, fresh)).from).toBe('local');
+  });
+
+  it('несуществующий бакет и ключ без права записи — ошибка, а не «пустое хранилище»', async () => {
+    const wrong = new S3Storage({ ...storageOpts(), bucket: 'missing-bucket' });
+    await expect(restoreDb(wrong, path.join(tempDir(), 'e.db'))).rejects.toThrow(/NoSuchBucket/);
+    s3.state.failPut = true;
+    try {
+      await expect(checkWrite(new S3Storage(storageOpts()))).rejects.toThrow(/S3 PUT/);
+    } finally {
+      s3.state.failPut = false;
+    }
   });
 
   it('пустое хранилище — новая база; ошибка доступа — запуск останавливается', async () => {
