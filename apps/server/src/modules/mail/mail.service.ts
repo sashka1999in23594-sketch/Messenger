@@ -30,6 +30,14 @@ export interface StoredMail {
 
 type Logger = Pick<Console, 'info' | 'warn' | 'error'>;
 
+/**
+ * Состояние почты для /health: off — не настроена; ok — ключ принят и отправитель
+ * подтверждён; bad_key — провайдер не принял ключ; sender_not_verified — адрес из
+ * MAIL_FROM не подтверждён у провайдера; ip_blocked — Brevo пускает только с разрешённых
+ * IP (у хостинга адрес меняется); on — настроена, но проверить нельзя (SMTP).
+ */
+export type MailHealth = 'off' | 'dev' | 'checking' | 'ok' | 'on' | 'bad_key' | 'ip_blocked' | 'sender_not_verified' | 'unreachable';
+
 const OUTBOX_MAX = 100;
 const SEND_TIMEOUT_MS = 15_000;
 
@@ -40,8 +48,48 @@ export class MailService {
   logger: Logger = console;
   private smtp: Promise<{ sendMail: (m: object) => Promise<unknown> }> | null = null;
 
+  health: MailHealth;
+
   constructor(private readonly config: Config) {
     this.provider = config.mail.provider;
+    this.health = this.provider === 'disabled' ? 'off' : this.provider === 'dev' ? 'dev' : this.provider === 'brevo' ? 'checking' : 'on';
+  }
+
+  /**
+   * Проверка при запуске (только Brevo): принят ли ключ и подтверждён ли отправитель.
+   * Без подтверждённого отправителя Brevo письма не отправит — об этом лучше узнать сразу.
+   */
+  async verify(): Promise<MailHealth> {
+    if (this.provider !== 'brevo') return this.health;
+    const get = (path: string) =>
+      fetch(`https://api.brevo.com/v3/${path}`, {
+        headers: { accept: 'application/json', 'api-key': this.config.mail.brevoApiKey! },
+        signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
+      });
+    try {
+      const account = await get('account');
+      if (account.status === 401 || account.status === 403) {
+        // У новых аккаунтов Brevo бывает включена защита «только с разрешённых IP»
+        const text = await account.text().catch(() => '');
+        this.health = /\bIP\b|unrecogni[sz]ed/i.test(text) ? 'ip_blocked' : 'bad_key';
+      } else {
+        const res = await get('senders');
+        const { senders = [] } = res.ok ? ((await res.json()) as { senders?: { email: string; active: boolean }[] }) : {};
+        const from = this.config.mail.fromEmail.toLowerCase();
+        this.health = senders.some((x) => x.active && x.email.toLowerCase() === from) ? 'ok' : 'sender_not_verified';
+      }
+    } catch {
+      this.health = 'unreachable';
+    }
+    const hints: Record<string, string> = {
+      ok: `Brevo: ключ принят, отправитель ${this.config.mail.fromEmail} подтверждён`,
+      bad_key: 'Brevo не принял BREVO_API_KEY — создайте новый ключ в SMTP & API → API Keys',
+      ip_blocked: 'Brevo блокирует запросы с IP хостинга — отключите защиту: Security → Authorized IPs → Deactivate blocking',
+      sender_not_verified: `Brevo: адрес ${this.config.mail.fromEmail} из MAIL_FROM не подтверждён — добавьте его в Senders и подтвердите кодом из письма`,
+      unreachable: 'Brevo не отвечает — проверим при отправке письма',
+    };
+    (this.health === 'ok' ? this.logger.info : this.logger.warn).call(this.logger, hints[this.health]);
+    return this.health;
   }
 
   /** Письма реально уходят адресату (или в тестовый ящик в разработке). */

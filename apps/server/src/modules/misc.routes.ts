@@ -133,5 +133,7 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
     time: new Date().toISOString(),
     /** Где живут данные: «external» — с копией во внешнем хранилище, «local» — только на диске сервера */
     storage: app.ctx.storage ? 'external' : 'local',
+    /** Письма с кодами: ok — готовы к отправке; off — не настроены; остальное — что исправить */
+    mail: app.ctx.services.mail.health,
   }));
 }

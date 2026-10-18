@@ -2,7 +2,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { loadConfig } from '../src/config.js';
 import { Client, createTestApp, registerUser } from './helpers.js';
@@ -205,5 +205,30 @@ describe('почта: оповещения и режимы', () => {
     const box = await prod.inject({ method: 'GET', url: '/api/v1/dev/mail' });
     expect(box.statusCode).toBe(404);
     await prod.close();
+  });
+});
+
+describe('самопроверка Brevo при запуске', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const brevo = async (account: Response, senders: unknown) => {
+    vi.stubGlobal('fetch', async (url: string) => (String(url).endsWith('/account') ? account : new Response(JSON.stringify(senders))));
+    const dir = mkdtempSync(path.join(tmpdir(), 'omni-mail-'));
+    const config = loadConfig({ NODE_ENV: 'test', DATA_DIR: dir, APP_SECRET: 'test-secret-test-secret-test-secret-0123456789', BREVO_API_KEY: 'xkeysib-test', MAIL_FROM: 'SpaceUp <Me@Gmail.com>' });
+    const a = await buildApp(config);
+    a.ctx.services.mail.logger = { info: () => undefined, warn: () => undefined, error: () => undefined };
+    const health = await a.ctx.services.mail.verify();
+    await a.close();
+    return health;
+  };
+
+  it('ключ принят и отправитель подтверждён — ok', async () => {
+    expect(await brevo(new Response('{}'), { senders: [{ email: 'me@gmail.com', active: true }] })).toBe('ok');
+  });
+  it('отправитель не подтверждён', async () => {
+    expect(await brevo(new Response('{}'), { senders: [{ email: 'me@gmail.com', active: false }] })).toBe('sender_not_verified');
+  });
+  it('неверный ключ и блокировка по IP различаются', async () => {
+    expect(await brevo(new Response('{"code":"unauthorized","message":"Key not found"}', { status: 401 }), {})).toBe('bad_key');
+    expect(await brevo(new Response('{"code":"unauthorized","message":"We have detected you are using an unrecognised IP address"}', { status: 401 }), {})).toBe('ip_blocked');
   });
 });

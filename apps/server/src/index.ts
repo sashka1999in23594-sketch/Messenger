@@ -71,3 +71,4 @@ const mailModes = {
   disabled: 'выключены — задайте BREVO_API_KEY, RESEND_API_KEY или SMTP_URL',
 } as const;
 app.log.info(`Письма: ${mailModes[config.mail.provider]}`);
+void app.ctx.services.mail.verify();
