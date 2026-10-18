@@ -118,6 +118,13 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
         prefix: env.S3_PREFIX.trim().replace(/^\/+|\/+$/g, ''),
       }
     : null;
+  // Частые ошибки настройки — понятным текстом, а не «Malformed Access Key Id» от хранилища
+  if (storage && !/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(storage.bucket)) {
+    throw new Error(`S3_BUCKET «${storage.bucket}»: по S3 имя бакета — только строчные латинские буквы, цифры, точки и дефисы (3–63 символа). Создайте бакет с таким именем`);
+  }
+  if (storage?.endpoint.includes('backblazeb2.com') && (/^[0-9a-f]{12}$/.test(storage.accessKeyId) || /^[0-9a-f]{40,}$/.test(storage.secretAccessKey))) {
+    throw new Error('S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY: это главный ключ Backblaze (Master Application Key), по S3 он не работает. Создайте ключ: Application Keys → Add a New Application Key (keyID — около 25 символов, applicationKey начинается с K00)');
+  }
   const from = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(env.MAIL_FROM);
   const mail = {
     fromName: from?.[1] || 'SpaceUp',
