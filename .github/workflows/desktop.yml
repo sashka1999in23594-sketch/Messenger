@@ -1,0 +1,159 @@
+name: Приложения для компьютера
+
+# Собирает SpaceUp для Windows, macOS и Linux (Electron-обёртка над сайтом)
+# и выкладывает файлы в GitHub Release с постоянными ссылками вида
+# https://github.com/<владелец>/<репозиторий>/releases/latest/download/SpaceUp-Setup.exe
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'desktop-app/**'
+      - '.github/workflows/desktop.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Два запуска подряд не должны одновременно перезаписывать один и тот же релиз.
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Адрес сайта зашивается в приложение при сборке; можно переопределить переменной репозитория SPACEUP_URL.
+  SPACEUP_URL: ${{ vars.SPACEUP_URL || 'https://omni-w0fb.onrender.com' }}
+  # Сертификатов подписи нет: не искать их в системе.
+  CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+jobs:
+  build:
+    name: Сборка — ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            platform: --win
+            files: SpaceUp-Setup.exe
+          - name: macOS
+            os: macos-latest
+            platform: --mac # dmg для arm64 и x64 — см. build.mac в package.json
+            files: SpaceUp-mac-arm64.dmg SpaceUp-mac-x64.dmg
+          - name: Linux
+            os: ubuntu-latest
+            platform: --linux
+            files: SpaceUp.AppImage spaceup_amd64.deb
+    defaults:
+      run:
+        shell: bash
+        working-directory: desktop-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop-app/package-lock.json
+
+      - name: Установка зависимостей
+        run: npm install --no-audit --no-fund
+
+      - name: Адрес сайта → src/config.json
+        run: node scripts/write-config.js
+
+      - name: Сборка приложения
+        run: npx electron-builder ${{ matrix.platform }} --publish never
+
+      - name: Проверка имён файлов
+        run: |
+          mkdir -p ../release-files
+          for f in ${{ matrix.files }}; do
+            if [ ! -f "dist/$f" ]; then
+              echo "::error::Нет файла dist/$f"
+              ls -la dist
+              exit 1
+            fi
+            cp "dist/$f" ../release-files/
+          done
+          ls -la ../release-files
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.name }}
+          path: release-files/
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Публикация релиза
+    needs: build
+    # Релиз — только из main; из других веток файлы остаются в артефактах запуска.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Версия из desktop-app/package.json
+        id: version
+        run: echo "version=$(node -p "require('./desktop-app/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: release-files
+          merge-multiple: true
+
+      - name: Файлы релиза
+        run: ls -la release-files
+
+      # Тег ставится на текущий коммит; при пересборке той же версии — переносится на него.
+      - name: Тег desktop-v${{ steps.version.outputs.version }}
+        run: |
+          tag="desktop-v${{ steps.version.outputs.version }}"
+          git tag -f "$tag" "$GITHUB_SHA"
+          git push -f origin "refs/tags/$tag" || echo "::warning::Не удалось перенести тег $tag — релиз обновится на прежнем теге"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-v${{ steps.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: SpaceUp для компьютера ${{ steps.version.outputs.version }}
+          make_latest: true
+          overwrite_files: true
+          fail_on_unmatched_files: true
+          files: |
+            release-files/SpaceUp-Setup.exe
+            release-files/SpaceUp-mac-arm64.dmg
+            release-files/SpaceUp-mac-x64.dmg
+            release-files/SpaceUp.AppImage
+            release-files/spaceup_amd64.deb
+          body: |
+            Приложение SpaceUp для компьютера — окно с мессенджером, которое живёт в панели задач / Dock, присылает уведомления и не теряется среди вкладок браузера. Внутри — тот же SpaceUp, что и на сайте: обновления сайта приходят сами, переустанавливать ничего не нужно.
+
+            ## Что скачать
+
+            | Система | Файл |
+            | --- | --- |
+            | Windows 10/11 (64-бит) | `SpaceUp-Setup.exe` |
+            | macOS на Apple Silicon (M1 и новее) | `SpaceUp-mac-arm64.dmg` |
+            | macOS на Intel | `SpaceUp-mac-x64.dmg` |
+            | Linux, любой дистрибутив | `SpaceUp.AppImage` |
+            | Ubuntu / Debian | `spaceup_amd64.deb` |
+
+            ## Первый запуск
+
+            Приложение пока не подписано платным сертификатом разработчика, поэтому система один раз переспросит.
+
+            **Windows.** Если появилось окно «Система Windows защитила ваш компьютер» (SmartScreen), нажмите «Подробнее» → «Выполнить в любом случае». Установка идёт в папку пользователя без прав администратора, ярлыки появятся на рабочем столе и в меню «Пуск».
+
+            **macOS.** Откройте `.dmg` и перетащите SpaceUp в «Программы». При первом запуске macOS сообщит, что не может проверить разработчика: нажмите «Готово», затем откройте «Системные настройки» → «Конфиденциальность и безопасность» и внизу нажмите «Всё равно открыть» рядом с SpaceUp. На macOS 14 и старше достаточно щёлкнуть по приложению правой кнопкой → «Открыть». Если macOS пишет, что приложение «повреждено», выполните в Терминале `xattr -cr /Applications/SpaceUp.app` и откройте снова. Для демонстрации экрана разрешите SpaceUp «Запись экрана» в тех же настройках.
+
+            **Linux (AppImage).** Сделайте файл исполняемым и запустите: `chmod +x SpaceUp.AppImage && ./SpaceUp.AppImage` (или «Свойства» → «Разрешить запуск как программы»). На Ubuntu 22.04 и новее может понадобиться пакет `libfuse2` (`libfuse2t64` на 24.04). Если AppImage не запускается из-за песочницы, поставьте `.deb`.
+
+            **Linux (deb).** `sudo apt install ./spaceup_amd64.deb` — SpaceUp появится в меню приложений.

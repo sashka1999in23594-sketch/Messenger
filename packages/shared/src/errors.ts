@@ -18,6 +18,8 @@ export const ErrorCode = {
   WeakPassword: 'WEAK_PASSWORD',
   EmailCodeInvalid: 'EMAIL_CODE_INVALID',
   MailUnavailable: 'MAIL_UNAVAILABLE',
+  /** Шаги входа или регистрации устарели — начните заново */
+  FlowExpired: 'FLOW_EXPIRED',
   Internal: 'INTERNAL_ERROR',
 } as const;
 
@@ -53,5 +55,6 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   WEAK_PASSWORD: 'Пароль слишком простой',
   EMAIL_CODE_INVALID: 'Неверный или устаревший код из письма',
   MAIL_UNAVAILABLE: 'Отправка писем на сервере не настроена',
+  FLOW_EXPIRED: 'Время на вход истекло. Начните заново',
   INTERNAL_ERROR: 'Что-то пошло не так. Мы уже разбираемся',
 };

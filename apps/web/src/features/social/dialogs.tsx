@@ -87,7 +87,7 @@ export function CollectionPickerDialog({ post, onClose }: { post: Post; onClose:
         ) : (
           items.map((c) => (
             <button key={c.id} type="button" className={cn('pick-row', c.hasPost && 'pick-row--on')} onClick={() => toggle.mutate(c)} disabled={toggle.isPending}>
-              <span className="collection-icon">{c.cover ? <img src={c.cover.kind === 'video' ? (c.cover.posterUrl ?? '') : c.cover.url} alt="" /> : c.emoji}</span>
+              <span className="collection-icon">{c.cover ? <img src={c.cover.kind === 'video' ? (c.cover.posterUrl ?? undefined) : c.cover.url} alt="" /> : c.emoji}</span>
               <span className="grow">
                 <b>
                   {c.emoji} {c.name}

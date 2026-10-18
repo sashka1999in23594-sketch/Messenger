@@ -49,6 +49,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.get('/auth/session', async (req, reply) => {
     noStore(reply);
     app.issueCsrf(reply, req.auth?.sessionId ?? null);
+    // У каждого есть служебный чат SpaceUp (у старых аккаунтов он появится при первом заходе)
+    if (req.auth) services.system.chatId(req.auth.userId);
     return { me: req.auth ? services.users.me(req.auth.userId) : null };
   });
 
@@ -57,48 +59,62 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     return { mail: { enabled: services.mail.enabled, dev: services.mail.dev }, demo: config.demoSeed } satisfies AuthConfig;
   });
 
-  app.post('/auth/register', { config: authRateLimit }, async (req, reply) => {
-    noStore(reply);
-    const input = parse(registerSchema, req.body);
-    const s = await services.auth.register(input, requestMeta(req, input.deviceName));
-    setSession(reply, s);
-    return reply.status(201).send({ status: 'ok', me: services.users.me(s.userId) } satisfies LoginResult);
-  });
+  /**
+   * Прежние одношаговые вход, регистрация и сброс пароля — только для тестов и
+   * разработки. В production вход всегда идёт через код (см. flow.routes.ts).
+   */
+  if (!config.isProd) {
+    app.post('/auth/register', { config: authRateLimit }, async (req, reply) => {
+      noStore(reply);
+      const input = parse(registerSchema, req.body);
+      const s = await services.auth.register(input, requestMeta(req, input.deviceName));
+      setSession(reply, s);
+      return reply.status(201).send({ status: 'ok', me: services.users.me(s.userId) } satisfies LoginResult);
+    });
 
-  app.post('/auth/login', { config: authRateLimit }, async (req, reply) => {
-    noStore(reply);
-    const input = parse(loginSchema, req.body);
-    const result = await services.auth.login(input.username, input.password, requestMeta(req, input.deviceName));
-    if ('challenge' in result) {
-      return { status: 'two_factor_required', ...result.challenge } satisfies LoginResult;
-    }
-    setSession(reply, result.session);
-    return { status: 'ok', me: services.users.me(result.session.userId) } satisfies LoginResult;
-  });
+    app.post('/auth/login', { config: authRateLimit }, async (req, reply) => {
+      noStore(reply);
+      const input = parse(loginSchema, req.body);
+      const result = await services.auth.login(input.username, input.password, requestMeta(req, input.deviceName));
+      if ('challenge' in result) {
+        return { status: 'two_factor_required', ...result.challenge } satisfies LoginResult;
+      }
+      setSession(reply, result.session);
+      return { status: 'ok', me: services.users.me(result.session.userId) } satisfies LoginResult;
+    });
 
-  /** Прислать код входа на почту (если включён вход по коду из письма). */
-  app.post('/auth/login/2fa/email', { config: mailRateLimit }, async (req, reply) => {
-    noStore(reply);
-    const input = parse(challengeSchema, req.body);
-    return services.auth.sendLoginCode(input.challengeId, requestMeta(req));
-  });
+    /** Прислать код входа на почту (если включён вход по коду из письма). */
+    app.post('/auth/login/2fa/email', { config: mailRateLimit }, async (req, reply) => {
+      noStore(reply);
+      const input = parse(challengeSchema, req.body);
+      return services.auth.sendLoginCode(input.challengeId, requestMeta(req));
+    });
 
-  /** Восстановление пароля: ответ одинаковый для существующих и несуществующих аккаунтов. */
-  app.post('/auth/password/forgot', { config: mailRateLimit }, async (req, reply) => {
-    noStore(reply);
-    const input = parse(forgotPasswordSchema, req.body);
-    services.auth.requestPasswordReset(input.login, requestMeta(req));
-    return { ok: true };
-  });
+    /** Восстановление пароля: ответ одинаковый для существующих и несуществующих аккаунтов. */
+    app.post('/auth/password/forgot', { config: mailRateLimit }, async (req, reply) => {
+      noStore(reply);
+      const input = parse(forgotPasswordSchema, req.body);
+      services.auth.requestPasswordReset(input.login, requestMeta(req));
+      return { ok: true };
+    });
 
-  app.post('/auth/password/reset', { config: authRateLimit }, async (req, reply) => {
-    noStore(reply);
-    const input = parse(resetPasswordSchema, req.body);
-    const s = await services.auth.resetPassword(input.login, input.code, input.newPassword, requestMeta(req, input.deviceName));
-    if (!s) return { status: 'login_required' as const };
-    setSession(reply, s);
-    return { status: 'ok' as const, me: services.users.me(s.userId) };
-  });
+    app.post('/auth/password/reset', { config: authRateLimit }, async (req, reply) => {
+      noStore(reply);
+      const input = parse(resetPasswordSchema, req.body);
+      const s = await services.auth.resetPassword(input.login, input.code, input.newPassword, requestMeta(req, input.deviceName));
+      if (!s) return { status: 'login_required' as const };
+      setSession(reply, s);
+      return { status: 'ok' as const, me: services.users.me(s.userId) };
+    });
+
+    app.post('/auth/login/2fa', { config: authRateLimit }, async (req, reply) => {
+      noStore(reply);
+      const input = parse(twoFactorLoginSchema, req.body);
+      const s = services.auth.loginWithSecondFactor(input.challengeId, input.code, requestMeta(req));
+      setSession(reply, s);
+      return { status: 'ok', me: services.users.me(s.userId) } satisfies LoginResult;
+    });
+  }
 
   // ─── Почта аккаунта ────────────────────────────────────────────────────────
 
@@ -130,14 +146,6 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       } satisfies { items: DevMail[] };
     });
   }
-
-  app.post('/auth/login/2fa', { config: authRateLimit }, async (req, reply) => {
-    noStore(reply);
-    const input = parse(twoFactorLoginSchema, req.body);
-    const s = services.auth.loginWithSecondFactor(input.challengeId, input.code, requestMeta(req));
-    setSession(reply, s);
-    return { status: 'ok', me: services.users.me(s.userId) } satisfies LoginResult;
-  });
 
   app.post('/auth/logout', async (req, reply) => {
     if (req.auth) services.auth.logout(req.auth.userId, req.auth.sessionId, requestMeta(req));
@@ -188,7 +196,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.post('/security/password', { config: sensitiveRateLimit }, async (req) => {
     const auth = requireAuth(req);
     const input = parse(changePasswordSchema, req.body);
-    await services.auth.changePassword(auth.userId, auth.sessionId, input.currentPassword, input.newPassword, requestMeta(req));
+    await services.auth.changePassword(auth.userId, auth.sessionId, input.currentPassword, input.newPassword, requestMeta(req), input.passwordHint);
     return { ok: true };
   });
 

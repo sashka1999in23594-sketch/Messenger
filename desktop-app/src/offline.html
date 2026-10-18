@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Локальная страница: никаких внешних ресурсов, сеть — только для проверки, вернулся ли сайт. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; connect-src https: http://localhost:* http://127.0.0.1:*"
+    />
+    <title>SpaceUp — нет соединения</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b0b14;
+        --text: #ecebff;
+        --muted: #9a98b8;
+        --faint: #6b6988;
+        --accent: #7c5cff;
+        --accent-2: #1fb6e6;
+        --card: rgba(255, 255, 255, 0.04);
+        --border: rgba(255, 255, 255, 0.08);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        display: grid;
+        place-items: center;
+        padding: 24px 16px;
+        background: radial-gradient(60% 50% at 50% 0%, rgba(124, 92, 255, 0.18), transparent 70%),
+          var(--bg);
+        color: var(--text);
+        font:
+          15px/1.5 system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          'Helvetica Neue',
+          Arial,
+          sans-serif;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      main {
+        width: 100%;
+        max-width: 420px;
+        padding: 32px 24px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: var(--card);
+        text-align: center;
+      }
+      .logo {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 20px;
+        filter: drop-shadow(0 8px 24px rgba(124, 92, 255, 0.35));
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 22px;
+        font-weight: 650;
+        line-height: 1.25;
+      }
+      p {
+        margin: 0;
+        color: var(--muted);
+      }
+      button {
+        margin-top: 24px;
+        min-width: 160px;
+        padding: 12px 24px;
+        border: 0;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        color: #fff;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:hover {
+        filter: brightness(1.08);
+      }
+      button:focus-visible {
+        outline: 2px solid var(--text);
+        outline-offset: 3px;
+      }
+      .status {
+        margin-top: 16px;
+        min-height: 1.5em;
+        font-size: 13px;
+      }
+      .reason {
+        margin-top: 8px;
+        color: var(--faint);
+        font-size: 12px;
+        word-break: break-word;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+        <defs>
+          <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#0d1240" />
+            <stop offset="1" stop-color="#2a1670" />
+          </linearGradient>
+          <radialGradient id="pl" cx="0.35" cy="0.3" r="0.8">
+            <stop offset="0" stop-color="#c4b5ff" />
+            <stop offset="0.45" stop-color="#7c5cff" />
+            <stop offset="1" stop-color="#1fb6e6" />
+          </radialGradient>
+          <linearGradient id="rg" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#ffffff" stop-opacity="0.2" />
+            <stop offset="0.5" stop-color="#ffffff" />
+            <stop offset="1" stop-color="#7ee8ff" />
+          </linearGradient>
+        </defs>
+        <rect width="48" height="48" rx="14" fill="url(#bg)" />
+        <g transform="rotate(-24 24 24)">
+          <path
+            d="M 5 24 A 19 7.2 0 0 1 43 24"
+            fill="none"
+            stroke="url(#rg)"
+            stroke-width="2.4"
+            stroke-linecap="round"
+            opacity="0.55"
+          />
+        </g>
+        <circle cx="24" cy="24" r="9.5" fill="url(#pl)" />
+        <g transform="rotate(-24 24 24)">
+          <path
+            d="M 43 24 A 19 7.2 0 0 1 5 24"
+            fill="none"
+            stroke="url(#rg)"
+            stroke-width="2.4"
+            stroke-linecap="round"
+          />
+          <circle cx="41.9" cy="26.5" r="2.7" fill="#fff" />
+        </g>
+      </svg>
+      <h1>Нет соединения с SpaceUp</h1>
+      <p>
+        Проверьте подключение к интернету. Если интернет есть, сервер, возможно, просыпается — это
+        занимает до минуты.
+      </p>
+      <button id="retry" type="button">Повторить</button>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+      <p class="reason" id="reason"></p>
+    </main>
+
+    <script>
+      'use strict';
+      // Адрес сайта передаёт главный процесс (?url=…). Пускаем только https и локальную разработку.
+      const params = new URLSearchParams(location.search);
+      const target = (() => {
+        try {
+          const url = new URL(params.get('url') || '');
+          const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+          return url.protocol === 'https:' || (url.protocol === 'http:' && isLocal)
+            ? url.href
+            : null;
+        } catch {
+          return null;
+        }
+      })();
+
+      const RETRY_SECONDS = 10;
+      const statusEl = document.getElementById('status');
+      const retryBtn = document.getElementById('retry');
+      document.getElementById('reason').textContent = params.get('reason') || '';
+
+      let secondsLeft = RETRY_SECONDS;
+      let checking = false;
+
+      function openSite() {
+        if (target) location.replace(target);
+      }
+
+      // Тихая проверка: сайт ответил хоть как-то — значит, связь есть и можно переходить.
+      // Так окно не мигает пустой страницей ошибки каждые 10 секунд.
+      async function check() {
+        if (!target || checking) return;
+        checking = true;
+        statusEl.textContent = 'Проверяем соединение…';
+        try {
+          await fetch(target, {
+            mode: 'no-cors',
+            cache: 'no-store',
+            signal: AbortSignal.timeout(70000),
+          });
+        } catch {
+          checking = false;
+          secondsLeft = RETRY_SECONDS;
+          tick();
+          return;
+        }
+        // checking остаётся true: таймер больше не нужен, уходим на сайт.
+        statusEl.textContent = 'Соединение есть, открываем SpaceUp…';
+        openSite();
+      }
+
+      function tick() {
+        if (checking) return;
+        statusEl.textContent = `Повторная попытка через ${secondsLeft} с`;
+      }
+
+      retryBtn.addEventListener('click', openSite);
+      window.addEventListener('online', check);
+      setInterval(() => {
+        if (checking) return;
+        secondsLeft -= 1;
+        if (secondsLeft <= 0) check();
+        else tick();
+      }, 1000);
+      tick();
+    </script>
+  </body>
+</html>

@@ -42,6 +42,16 @@ export function startJobs(app: FastifyInstance): () => void {
   every(600_000, 'purge-login-challenges', () => db.run('DELETE FROM login_challenges WHERE expires_at < :now', { now: Date.now() }).changes);
   every(6 * 3600_000, 'purge-email-codes', () => services.emailCodes.cleanup());
   every(6 * 3600_000, 'optimize-db', () => db.exec('PRAGMA optimize'));
+  every(600_000, 'purge-auth-flows', () => services.flowStore.cleanup());
+  // Дни рождения: проверяем каждый час (и сразу после запуска — сервер мог спать)
+  every(3600_000, 'birthdays', () => services.birthdays.run());
+  setTimeout(() => {
+    try {
+      services.birthdays.run();
+    } catch (err) {
+      app.log.error({ err, job: 'birthdays' }, 'job failed');
+    }
+  }, 15_000).unref();
   if (app.ctx.storage) everyAsync(60_000, 'storage-sync', () => services.media.syncPending());
 
   return () => {

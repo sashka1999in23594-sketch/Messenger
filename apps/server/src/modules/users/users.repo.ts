@@ -40,6 +40,11 @@ export interface UserRow {
   links: string;
   pinned_post_id: string | null;
   phone: string | null;
+  birth_date: string | null;
+  gender: 'male' | 'female' | null;
+  password_hint: string | null;
+  is_system: number;
+  birthday_greeted_year: number | null;
 }
 
 export const DEFAULT_PRIVACY: Omit<PrivacySettings, 'isPrivate' | 'showInSearch'> = {
@@ -105,7 +110,7 @@ export function emailPrefsOf(row: UserRow): EmailPrefs {
   return json(row.email_prefs, DEFAULT_EMAIL_PREFS);
 }
 
-const SUMMARY_COLS = 'id, username, display_name, avatar_media_id, verified, deleted_at';
+const SUMMARY_COLS = 'id, username, display_name, avatar_media_id, verified, deleted_at, is_system';
 
 /** Доступ к пользователям + пакетная загрузка карточек (без N+1 запросов). */
 export class UsersRepo {
@@ -143,7 +148,9 @@ export class UsersRepo {
     });
   }
 
-  toSummary(row: Pick<UserRow, 'id' | 'username' | 'display_name' | 'avatar_media_id' | 'verified' | 'deleted_at'>): UserSummary {
+  toSummary(
+    row: Pick<UserRow, 'id' | 'username' | 'display_name' | 'avatar_media_id' | 'verified' | 'deleted_at'> & { is_system?: number },
+  ): UserSummary {
     if (row.deleted_at) {
       return { id: row.id, username: 'deleted', displayName: 'Удалённый аккаунт', avatarUrl: null, verified: false };
     }
@@ -153,6 +160,7 @@ export class UsersRepo {
       displayName: row.display_name,
       avatarUrl: this.media.url(row.avatar_media_id),
       verified: bool(row.verified),
+      ...(row.is_system ? { system: true } : {}),
     };
   }
 

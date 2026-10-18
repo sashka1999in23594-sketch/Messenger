@@ -179,6 +179,21 @@
   --skeleton-shine: rgba(255, 255, 255, 0.1);
   --aurora-opacity: 0.55;
   --noise-opacity: 0.05;
+  /* Ссылки и экран входа */
+  --link: #6ea8ff;
+  --link-hover: #9cc4ff;
+  --auth-space: radial-gradient(120% 90% at 50% 45%, #0b1430 0%, #050813 55%, #02030a 100%);
+  --auth-planet-glow: rgba(70, 140, 255, 0.35);
+  --auth-world-fg: #ffffff;
+  --auth-world-fg-2: rgba(226, 234, 255, 0.72);
+  --auth-veil: rgba(255, 255, 255, 0.9);
+  --qr-bg: #ffffff;
+  --qr-fg: #0b1020;
+  /* Земля на экранах входа: точки подключений, орбита Луны, атмосфера, пламя ракеты */
+  --earth-dot: #3ee07f;
+  --earth-orbit: #8fb8ff;
+  --earth-atmosphere: #4f9dff;
+  --earth-rocket-flame: #ffb04a;
 }
 
 /* ─── Светлая основа ─── */
@@ -230,6 +245,20 @@
   --skeleton-shine: rgba(255, 255, 255, 0.7);
   --aurora-opacity: 0.5;
   --noise-opacity: 0.035;
+  /* Ссылки и экран входа (космос слева тёмный в любой теме) */
+  --link: #1f6feb;
+  --link-hover: #1557c0;
+  --auth-space: radial-gradient(120% 90% at 50% 45%, #0b1430 0%, #050813 55%, #02030a 100%);
+  --auth-planet-glow: rgba(70, 140, 255, 0.35);
+  --auth-world-fg: #ffffff;
+  --auth-world-fg-2: rgba(226, 234, 255, 0.72);
+  --auth-veil: rgba(255, 255, 255, 0.92);
+  --qr-bg: #ffffff;
+  --qr-fg: #0b1020;
+  --earth-dot: #22c55e;
+  --earth-orbit: #6f8fd6;
+  --earth-atmosphere: #3d8bff;
+  --earth-rocket-flame: #ff9a2e;
 }
 
 /* ─── Палитры фона: три цвета сияния + акцент по умолчанию ─── */
@@ -421,4 +450,43 @@
   --radius-xl: 30px;
   --radius-2xl: 36px;
   --radius-panel: 34px;
+}
+
+/* Сайт «Помощь и сотрудничество»: всегда чёрным по белому, независимо от темы приложения */
+.help-site {
+  --help-bg: #ffffff;
+  --help-bg-soft: #f6f7f9;
+  --help-bg-hover: #eef0f3;
+  --help-fg: #0b0b0f;
+  --help-fg-2: #2f323a;
+  --help-muted: #626876;
+  --help-line: #e4e6ea;
+  --help-line-strong: #cdd1d8;
+  --help-link: #1a5fd6;
+  --help-link-hover: #0c449f;
+  --help-link-line: rgba(26, 95, 214, 0.32);
+  --help-accent: #2563eb;
+  --help-accent-soft: #edf3ff;
+  --help-ring: rgba(37, 99, 235, 0.2);
+  --help-btn-bg: #0b0b0f;
+  --help-btn-fg: #ffffff;
+  --help-btn-hover: #2b2d34;
+  --help-mark: #ffec99;
+  --help-selection: #cfe0ff;
+  --help-info-bg: #f3f7ff;
+  --help-info-line: #d3e1fd;
+  --help-warn-bg: #fff8e8;
+  --help-warn-line: #f3d68f;
+  --help-warn-fg: #5a3c00;
+  --help-shadow: 0 1px 2px rgba(11, 11, 15, 0.04), 0 6px 20px rgba(11, 11, 15, 0.06);
+  --help-logo-shadow: drop-shadow(0 2px 6px rgba(42, 22, 112, 0.22));
+  --help-col: 820px;
+  --help-gutter: var(--space-6);
+  --help-fs-body: calc(16.5px * var(--font-scale, 1));
+  --help-fs-small: calc(14px * var(--font-scale, 1));
+  --help-fs-lead: calc(18.5px * var(--font-scale, 1));
+  --help-fs-h1: calc(44px * var(--font-scale, 1));
+  --help-fs-h2: calc(25px * var(--font-scale, 1));
+  --help-fs-h3: calc(17.5px * var(--font-scale, 1));
+  --help-lh: 1.65;
 }

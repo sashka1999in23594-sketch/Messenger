@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { AtSign, Bell, Briefcase, CheckCheck, Heart, MessageSquare, Repeat2, Shield, UserCheck, UserPlus, Users } from 'lucide-react';
-import type { AppNotification, NotificationType, UserSummary } from '@omni/shared';
+import { AtSign, Bell, Briefcase, Cake, CheckCheck, Heart, MessageSquare, Repeat2, Shield, UserCheck, UserPlus, Users } from 'lucide-react';
+import type { AppNotification, ChatSummary, NotificationType, UserSummary } from '@omni/shared';
 import { api } from '../../shared/api/client';
 import { flatPages, qk, queryClient, useCursorList } from '../../shared/api/query';
 import { useSession } from '../../shared/stores/session';
@@ -27,6 +27,7 @@ const TEXT: Record<NotificationType, string> = {
   story_reaction: 'отреагировал(а) на вашу историю',
   space_invite: '',
   security: 'Безопасность',
+  birthday: 'празднует день рождения',
 };
 
 const ICON: Record<NotificationType, React.ReactNode> = {
@@ -43,6 +44,7 @@ const ICON: Record<NotificationType, React.ReactNode> = {
   story_reaction: <Heart size={16} />,
   space_invite: <Briefcase size={16} />,
   security: <Shield size={16} />,
+  birthday: <Cake size={16} />,
 };
 
 function NotificationRow({ n }: { n: AppNotification }) {
@@ -65,7 +67,7 @@ function NotificationRow({ n }: { n: AppNotification }) {
         )}
         <span
           className="badge"
-          style={{ position: 'absolute', right: -4, bottom: -4, width: 22, height: 22, padding: 0, background: n.type === 'like' ? '#f91880' : n.type === 'security' ? 'var(--danger)' : 'var(--accent)' }}
+          style={{ position: 'absolute', right: -4, bottom: -4, width: 22, height: 22, padding: 0, background: n.type === 'like' ? '#f91880' : n.type === 'security' ? 'var(--danger)' : n.type === 'birthday' ? 'var(--warning)' : 'var(--accent)' }}
         >
           {ICON[n.type]}
         </span>
@@ -82,6 +84,28 @@ function NotificationRow({ n }: { n: AppNotification }) {
       {!n.readAt && <span className="badge badge--dot" style={{ marginTop: 8 }} />}
     </button>
   );
+  // День рождения: кнопка «Поздравить» открывает личный чат
+  if (n.type === 'birthday' && n.actor) {
+    const actor = n.actor;
+    return (
+      <div className="notif-invite">
+        {row}
+        <div style={{ padding: '0 14px 14px 72px' }}>
+          <Button
+            variant="soft"
+            size="sm"
+            icon={<Cake size={15} />}
+            onClick={async () => {
+              const chat = await api.post<ChatSummary>('/chats/direct', { userId: actor.id });
+              navigate(`/chats/${chat.id}`);
+            }}
+          >
+            Поздравить
+          </Button>
+        </div>
+      </div>
+    );
+  }
   if (!invite) return row;
   return (
     <div className="notif-invite">

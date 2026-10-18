@@ -90,3 +90,35 @@ export function formatPhone(e164: string): string {
   const m = /^\+7(\d{3})(\d{3})(\d{2})(\d{2})$/.exec(e164);
   return m ? `+7 ${m[1]} ${m[2]}-${m[3]}-${m[4]}` : e164;
 }
+
+/** Невидимые «хвосты» эмодзи: селекторы вариантов, модификаторы цвета кожи, клавиша-рамка, теги флагов. */
+const EMOJI_JOINERS = /[\u{FE00}-\u{FE0F}\u{20E3}\u{1F3FB}-\u{1F3FF}\u{E0020}-\u{E007F}\u200D]/gu;
+
+/**
+ * Имя при вводе и вставке: остаются буквы любых алфавитов, цифры, пробел и
+ * одиночные . ' ’ - _ — эмодзи и «самодельные» смайлики вроде :) не проходят.
+ */
+export function sanitizeName(raw: string, max = 64): string {
+  return raw
+    .replace(EMOJI_JOINERS, '')
+    .replace(/[^\p{L}\p{M}\p{N} .'’\-_]/gu, '')
+    .replace(/([.'’\-_])[.'’\-_]+/g, '$1')
+    .replace(/ {2,}/g, ' ')
+    .replace(/^[ .'’\-_]+/, '')
+    .slice(0, max);
+}
+
+/** @имя при вводе и вставке: только латиница, цифры и _ (регистр не важен). */
+export function sanitizeUsername(raw: string, max = 32): string {
+  return raw
+    .toLowerCase()
+    .replace(/^@+/, '')
+    .replace(/[^a-z0-9_]/g, '')
+    .slice(0, max);
+}
+
+/** Есть ли в строке эмодзи или их невидимые части. */
+export function hasEmojiParts(raw: string): boolean {
+  EMOJI_JOINERS.lastIndex = 0;
+  return EMOJI_JOINERS.test(raw) || /\p{Extended_Pictographic}/u.test(raw);
+}

@@ -15,6 +15,7 @@ import { S3Storage } from './lib/s3.js';
 import { registerSecurity } from './http/security.js';
 import './http/types.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
+import { flowRoutes } from './modules/auth/flow.routes.js';
 import { chatsRoutes } from './modules/chats/chats.routes.js';
 import { callsRoutes } from './modules/calls/calls.routes.js';
 import { keysRoutes } from './modules/keys/keys.routes.js';
@@ -75,6 +76,7 @@ export async function buildApp(config: Config, opts: { db?: Db; storage?: S3Stor
   await app.register(
     async (api) => {
       await api.register(authRoutes);
+      await api.register(flowRoutes);
       await api.register(usersRoutes);
       await api.register(keysRoutes);
       await api.register(chatsRoutes);

@@ -18,7 +18,7 @@ import type {
   SendMessageInput,
   UserSummary,
 } from '@omni/shared';
-import { ErrorCode, extractMentions, LIMITS } from '@omni/shared';
+import { SYSTEM_USER_ID, ErrorCode, extractMentions, LIMITS } from '@omni/shared';
 import type { Db } from '../../db/index.js';
 import { bool, iso } from '../../db/index.js';
 import { AppError, badRequest, blocked, conflict, forbidden, notFound, privacyRestricted } from '../../lib/errors.js';
@@ -151,6 +151,16 @@ export class ChatsService {
     return chat.type === 'channel' ? this.isAdmin(m) : m.role !== 'subscriber';
   }
 
+  /** Служебный чат SpaceUp: в нём есть служебный аккаунт. */
+  isSystemChat(chatId: string): boolean {
+    return !!this.db.get('SELECT 1 FROM chat_members WHERE chat_id = :c AND user_id = :s', { c: chatId, s: SYSTEM_USER_ID });
+  }
+
+  /** Писать в служебный чат может только сам SpaceUp. */
+  private assertNotSystemChat(userId: string, chatId: string, what = 'Это служебный чат SpaceUp — писать в него нельзя'): void {
+    if (userId !== SYSTEM_USER_ID && this.isSystemChat(chatId)) throw forbidden(what);
+  }
+
   // ─── Список и карточки чатов ──────────────────────────────────────────────
 
   /** Список чатов: встроенная папка или условие своей папки (см. FoldersService.where). */
@@ -266,6 +276,7 @@ export class ChatsService {
       mutedUntil: member?.muted_until && member.muted_until > Date.now() ? iso(member.muted_until) : null,
       pinnedMessage: pinned && !pinned.deleted_at ? this.messagesRepo.preview(pinned) : null,
       secret,
+      system: chat.type === 'direct' && peer?.system === true,
       createdAt: iso(chat.created_at),
       updatedAt: iso(chat.last_message_at ?? chat.created_at),
     };
@@ -550,6 +561,7 @@ export class ChatsService {
 
   /** Удалить чат: владелец группы/канала удаляет для всех; личный — скрывает у себя и очищает историю. */
   remove(userId: string, chatId: string): void {
+    this.assertNotSystemChat(userId, chatId, 'Служебный чат SpaceUp нельзя удалить: в него приходят коды входа');
     const { chat, member } = this.access(chatId, userId);
     if (chat.type === 'group' || chat.type === 'channel') {
       if (member.role !== 'owner') return this.leave(userId, chatId);
@@ -587,6 +599,7 @@ export class ChatsService {
   }
 
   leave(userId: string, chatId: string): void {
+    this.assertNotSystemChat(userId, chatId, 'Служебный чат SpaceUp нельзя покинуть: в него приходят коды входа');
     const { chat, member } = this.access(chatId, userId);
     if (chat.type !== 'group' && chat.type !== 'channel') return this.remove(userId, chatId);
     this.db.tx(() => {
@@ -647,6 +660,7 @@ export class ChatsService {
 
   /** Может ли пользователь писать в чат (для отложенных сообщений и приглашений). */
   assertCanPost(userId: string, chatId: string): { chat: ChatRow; member: MemberRow } {
+    this.assertNotSystemChat(userId, chatId);
     const { chat, member } = this.access(chatId, userId);
     if (!this.canPost(chat, member)) throw forbidden('В этом канале публикуют только администраторы');
     if (chat.type === 'secret') throw badRequest('В секретном чате это недоступно');
@@ -763,6 +777,7 @@ export class ChatsService {
   }
 
   send(userId: string, chatId: string, input: SendInput): Message {
+    this.assertNotSystemChat(userId, chatId);
     const { chat, member } = this.access(chatId, userId);
     if (!this.canPost(chat, member)) throw forbidden('В этом канале публикуют только администраторы');
 
@@ -1072,6 +1087,7 @@ export class ChatsService {
     const senderName = msg.forward_sender_name ?? (chat.type === 'channel' ? chat.title : (this.users.summary(msg.sender_id ?? '')?.displayName ?? ''));
     const out: Message[] = [];
     for (const targetId of [...new Set(toChatIds)]) {
+      this.assertNotSystemChat(userId, targetId);
       const { chat: target, member } = this.access(targetId, userId);
       if (target.type === 'secret') throw badRequest('В секретный чат нельзя пересылать');
       if (!this.canPost(target, member)) throw forbidden();

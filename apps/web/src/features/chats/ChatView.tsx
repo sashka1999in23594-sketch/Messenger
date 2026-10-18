@@ -292,7 +292,9 @@ export function ChatView() {
   const typingOthers = (typing ?? []).filter((t) => t.userId !== me.id);
   const subtitle = typingOthers.length
     ? activityLabel(typingOthers[0]!.activity, chat.type === 'group' ? typingOthers.map((t) => t.name.split(' ')[0]).join(', ') : undefined)
-    : chat.type === 'direct' || chat.type === 'secret'
+    : chat.system
+      ? 'Служебный чат: коды входа и новости'
+      : chat.type === 'direct' || chat.type === 'secret'
       ? chat.peer
         ? presence
           ? lastSeen(presence)
@@ -304,8 +306,8 @@ export function ChatView() {
   const muted = !!chat.mutedUntil;
   const isMember = !!chat.role;
   const isAdmin = chat.role === 'owner' || chat.role === 'admin';
-  const canCall = (chat.type === 'direct' || chat.type === 'secret') && !!chat.peer && isMember;
-  const canWrite = isMember && (chat.type !== 'channel' || isAdmin) && (chat.type !== 'secret' || secret.status === 'ready');
+  const canCall = (chat.type === 'direct' || chat.type === 'secret') && !!chat.peer && isMember && !chat.system;
+  const canWrite = isMember && !chat.system && (chat.type !== 'channel' || isAdmin) && (chat.type !== 'secret' || secret.status === 'ready');
 
   const removeChat = async () => {
     const leaving = (chat.type === 'group' || chat.type === 'channel') && chat.role !== 'owner';
@@ -460,6 +462,10 @@ export function ChatView() {
               <Button variant="secondary" pill icon={muted ? <Bell size={18} /> : <BellOff size={18} />} onClick={() => prefs.mutate({ mutedUntil: muted ? null : new Date(Date.now() + 365 * 86400_000).toISOString() })}>
                 {muted ? 'Включить уведомления' : 'Выключить уведомления'}
               </Button>
+            ) : chat.system ? (
+              <span className="muted small system-chat__note">
+                Служебный чат SpaceUp: сюда приходят коды входа и новости. Отвечать сюда нельзя — сотрудники SpaceUp никогда не спрашивают коды и пароли.
+              </span>
             ) : (
               <span className="muted small">Отправка недоступна на этом устройстве</span>
             )}
@@ -493,7 +499,7 @@ export function ChatView() {
           {
             label: 'Заблокировать',
             icon: <Ban size={18} />,
-            hidden: chat.type !== 'direct' || !chat.peer,
+            hidden: chat.type !== 'direct' || !chat.peer || chat.system,
             danger: true,
             onClick: async () => {
               if (!(await confirm({ title: `Заблокировать ${chat.peer!.displayName}?`, text: 'Пользователь не сможет писать вам и видеть ваши публикации.', danger: true, confirmLabel: 'Заблокировать' }))) return;
@@ -501,13 +507,13 @@ export function ChatView() {
               toast({ text: 'Пользователь заблокирован', kind: 'success' });
             },
           },
-          { label: 'Пожаловаться', icon: <Flag size={18} />, hidden: chat.type === 'saved', onClick: () => setReporting(chat.peer ? { type: 'user', id: chat.peer.id } : { type: 'chat', id: chat.id }) },
+          { label: 'Пожаловаться', icon: <Flag size={18} />, hidden: chat.type === 'saved' || chat.system, onClick: () => setReporting(chat.peer ? { type: 'user', id: chat.peer.id } : { type: 'chat', id: chat.id }) },
           'separator',
           {
             label: (chat.type === 'group' || chat.type === 'channel') && chat.role !== 'owner' ? 'Покинуть' : 'Удалить чат',
             icon: (chat.type === 'group' || chat.type === 'channel') && chat.role !== 'owner' ? <LogOut size={18} /> : <Trash2 size={18} />,
             danger: true,
-            hidden: !isMember,
+            hidden: !isMember || chat.system,
             onClick: () => void removeChat(),
           },
         ]}

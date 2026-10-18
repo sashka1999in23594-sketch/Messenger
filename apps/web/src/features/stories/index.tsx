@@ -42,7 +42,7 @@ export function StoriesPage() {
             const first = gr.stories.find((s) => !s.viewed) ?? gr.stories[0]!;
             return (
               <button key={gr.author.id} type="button" className="story-thumb" onClick={() => setOpen(i)} style={{ borderRadius: 'var(--radius-lg)' }}>
-                {first.media.kind === 'video' ? <img src={first.media.posterUrl ?? ''} alt="" loading="lazy" /> : <img src={first.media.url} alt="" loading="lazy" />}
+                {first.media.kind === 'video' ? <img src={first.media.posterUrl ?? undefined} alt="" loading="lazy" /> : <img src={first.media.url} alt="" loading="lazy" />}
                 <span className="story-thumb__date" style={{ background: 'none', padding: 0 }}>
                   <Avatar src={gr.author.avatarUrl} name={gr.author.displayName} id={gr.author.id} size={42} ring={gr.hasUnseen ? 'unseen' : 'seen'} />
                 </span>

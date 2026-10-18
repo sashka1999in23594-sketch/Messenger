@@ -12,7 +12,7 @@ export function PhotoGrid({ posts }: { posts: Post[] }) {
         const href = p.kind === 'video' ? `/watch/${p.id}` : p.kind === 'short' ? `/comets?start=${p.id}` : `/post/${p.id}`;
         return (
           <Link key={p.id} to={href} aria-label={p.text || 'Публикация'}>
-            {m && <img src={m.kind === 'image' ? m.url : (m.posterUrl ?? '')} alt="" loading="lazy" decoding="async" />}
+            {m && <img src={m.kind === 'image' ? m.url : (m.posterUrl ?? undefined)} alt="" loading="lazy" decoding="async" />}
             {p.media.length > 1 && <Copy size={18} className="photo-grid__badge" />}
             {(p.kind === 'video' || p.kind === 'short') && <Play size={18} className="photo-grid__badge" fill="currentColor" />}
           </Link>

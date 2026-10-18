@@ -17,7 +17,7 @@ export function CollectionsStrip() {
       <div className="collections-strip" aria-label="Коллекции">
         {(q.data?.items ?? []).map((c) => (
           <Link key={c.id} to={`/feed/collections/${c.id}`} className={cn('collection-card', c.cover && 'collection-card--cover')}>
-            {c.cover && <img src={c.cover.kind === 'video' ? (c.cover.posterUrl ?? '') : c.cover.url} alt="" loading="lazy" />}
+            {c.cover && <img src={c.cover.kind === 'video' ? (c.cover.posterUrl ?? undefined) : c.cover.url} alt="" loading="lazy" />}
             {!c.cover && <span className="collection-card__emoji">{c.emoji}</span>}
             <span className="bold ellipsis">
               {c.cover ? `${c.emoji} ` : ''}

@@ -863,4 +863,60 @@ ALTER TABLE media ADD COLUMN remote_at INTEGER;
 CREATE INDEX media_remote_pending ON media(created_at) WHERE remote_at IS NULL;
 `,
   },
+  {
+    version: '010_auth_flow',
+    sql: `
+-- Профиль: дата рождения (ГГГГ-ММ-ДД), пол, подсказка к паролю; служебный аккаунт SpaceUp
+ALTER TABLE users ADD COLUMN birth_date TEXT;
+ALTER TABLE users ADD COLUMN gender TEXT;
+ALTER TABLE users ADD COLUMN password_hint TEXT;
+ALTER TABLE users ADD COLUMN is_system INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN birthday_greeted_year INTEGER;
+CREATE INDEX users_birthday ON users(substr(birth_date, 6)) WHERE birth_date IS NOT NULL;
+
+-- Пошаговый вход и регистрация. В базе только SHA-256 токена и HMAC кодов
+CREATE TABLE auth_flows (
+  id             TEXT PRIMARY KEY,
+  kind           TEXT NOT NULL CHECK (kind IN ('login', 'signup')),
+  user_id        TEXT REFERENCES users(id) ON DELETE CASCADE,
+  email          TEXT,
+  step           TEXT NOT NULL,
+  device_name    TEXT NOT NULL,
+  user_agent     TEXT NOT NULL,
+  ip             TEXT NOT NULL,
+  code_hash      TEXT,
+  code_expires_at INTEGER,
+  code_attempts  INTEGER NOT NULL DEFAULT 0,
+  -- Второй код при сбросе пароля: тот, что пришёл в чат SpaceUp
+  account_code_hash TEXT,
+  sent_at        INTEGER,
+  resent         INTEGER NOT NULL DEFAULT 0,
+  expires_at     INTEGER NOT NULL,
+  created_at     INTEGER NOT NULL
+);
+CREATE INDEX auth_flows_expires ON auth_flows(expires_at);
+
+-- Отправленные коды — для лимитов (2 за 30 минут на вход, 4 в час на сброс)
+CREATE TABLE code_sends (
+  id         TEXT PRIMARY KEY,
+  subject    TEXT NOT NULL,
+  kind       TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX code_sends_subject ON code_sends(subject, kind, created_at);
+
+-- Вход по QR-коду: новое устройство показывает код, вошедшее — подтверждает
+CREATE TABLE qr_logins (
+  id          TEXT PRIMARY KEY,
+  poll_hash   TEXT NOT NULL,
+  status      TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'used')),
+  user_id     TEXT REFERENCES users(id) ON DELETE CASCADE,
+  device_name TEXT NOT NULL,
+  user_agent  TEXT NOT NULL,
+  ip          TEXT NOT NULL,
+  expires_at  INTEGER NOT NULL,
+  created_at  INTEGER NOT NULL
+);
+`,
+  },
 ];

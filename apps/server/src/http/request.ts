@@ -19,35 +19,45 @@ export function requireRole(req: FastifyRequest, ...roles: AuthInfo['role'][]): 
   return auth;
 }
 
-/** Грубое, но приватное определение устройства по User-Agent (без сторонних сервисов). */
-export function describeDevice(ua: string): string {
+/** Грубое, но приватное определение системы и браузера по User-Agent (без сторонних сервисов). */
+export function parseUserAgent(ua: string): { os: string; browser: string } {
   const os = /iPhone|iPad/.test(ua)
     ? /iPad/.test(ua)
-      ? 'iPad'
-      : 'iPhone'
+      ? 'iPadOS'
+      : 'iOS'
     : /Android/.test(ua)
       ? 'Android'
       : /Windows/.test(ua)
         ? 'Windows'
         : /Mac OS X|Macintosh/.test(ua)
           ? 'macOS'
-          : /Linux/.test(ua)
-            ? 'Linux'
-            : 'Устройство';
-  const browser = /Edg\//.test(ua)
-    ? 'Edge'
-    : /OPR\/|Opera/.test(ua)
-      ? 'Opera'
-      : /YaBrowser/.test(ua)
-        ? 'Яндекс Браузер'
-        : /Firefox\//.test(ua)
-          ? 'Firefox'
-          : /Chrome\//.test(ua)
-            ? 'Chrome'
-            : /Safari\//.test(ua)
-              ? 'Safari'
-              : 'Браузер';
-  return `${browser} · ${os}`;
+          : /CrOS/.test(ua)
+            ? 'ChromeOS'
+            : /Linux/.test(ua)
+              ? 'Linux'
+              : 'Неизвестная система';
+  const browser = /SpaceUp\//.test(ua)
+    ? 'Приложение SpaceUp'
+    : /Edg\//.test(ua)
+      ? 'Edge'
+      : /OPR\/|Opera/.test(ua)
+        ? 'Opera'
+        : /YaBrowser/.test(ua)
+          ? 'Яндекс Браузер'
+          : /Firefox\//.test(ua)
+            ? 'Firefox'
+            : /Chrome\//.test(ua)
+              ? 'Chrome'
+              : /Safari\//.test(ua)
+                ? 'Safari'
+                : 'Браузер';
+  return { os, browser };
+}
+
+export function describeDevice(ua: string): string {
+  const { os, browser } = parseUserAgent(ua);
+  const device = /iPad/.test(ua) ? 'iPad' : /iPhone/.test(ua) ? 'iPhone' : os === 'Неизвестная система' ? 'Устройство' : os;
+  return `${browser} · ${device}`;
 }
 
 export function requestMeta(req: FastifyRequest, deviceName?: string): RequestMeta {

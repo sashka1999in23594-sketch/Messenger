@@ -8,6 +8,7 @@ import type {
   UserProfile,
   UserSummary,
 } from '@omni/shared';
+import { SYSTEM_USER_ID } from '@omni/shared';
 import type { Db } from '../../db/index.js';
 import { bool, iso, isoOrNull } from '../../db/index.js';
 import { badRequest, blocked, conflict, notFound } from '../../lib/errors.js';
@@ -64,6 +65,10 @@ export class UsersService {
       phone: u.phone,
       emailPrefs: emailPrefsOf(u),
       onboarded: !!u.onboarded_at,
+      birthDate: u.birth_date,
+      gender: u.gender ?? (u.birth_date ? 'unspecified' : null),
+      passwordHint: u.password_hint,
+      birthdayToday: isBirthdayToday(u.birth_date),
       privacy: privacyOf(u),
       notifications: notificationPrefsOf(u),
       counters: this.notifications.counters(userId),
@@ -210,7 +215,16 @@ export class UsersService {
 
   updateProfile(
     userId: string,
-    input: Partial<{ displayName: string; bio: string; website: string; location: string; avatarMediaId: string | null; bannerMediaId: string | null }>,
+    input: Partial<{
+      displayName: string;
+      birthDate: string;
+      gender: 'male' | 'female' | 'unspecified';
+      bio: string;
+      website: string;
+      location: string;
+      avatarMediaId: string | null;
+      bannerMediaId: string | null;
+    }>,
   ): Me {
     if (input.avatarMediaId) this.media.assertOwned(userId, [input.avatarMediaId], ['image']);
     if (input.bannerMediaId) this.media.assertOwned(userId, [input.bannerMediaId], ['image']);
@@ -218,6 +232,8 @@ export class UsersService {
     const params: Record<string, unknown> = { id: userId, now: Date.now() };
     const map: Record<string, string> = {
       displayName: 'display_name',
+      birthDate: 'birth_date',
+      gender: 'gender',
       bio: 'bio',
       website: 'website',
       location: 'location',
@@ -228,7 +244,7 @@ export class UsersService {
       const v = (input as Record<string, unknown>)[key];
       if (v === undefined) continue;
       sets.push(`${col} = :${key}`);
-      params[key] = v === '' && (key === 'website' || key === 'location') ? null : v;
+      params[key] = (v === '' && (key === 'website' || key === 'location')) || (key === 'gender' && v === 'unspecified') ? null : v;
     }
     if (sets.length) this.db.run(`UPDATE users SET ${sets.join(', ')}, updated_at = :now WHERE id = :id`, params);
     return this.me(userId);
@@ -397,6 +413,7 @@ export class UsersService {
 
   block(userId: string, targetId: string): void {
     if (userId === targetId) throw badRequest('Нельзя заблокировать себя');
+    if (targetId === SYSTEM_USER_ID) throw badRequest('Служебный аккаунт SpaceUp заблокировать нельзя');
     this.requireUser(targetId);
     this.db.tx(() => {
       this.db.run('INSERT OR IGNORE INTO blocks (blocker_id, blocked_id, created_at) VALUES (:a, :b, :now)', {
@@ -454,4 +471,22 @@ export class UsersService {
     const community = this.db.get('SELECT 1 FROM communities WHERE slug = :u', { u: username });
     if (chat || community) throw conflict('Это имя уже занято', { username: 'Это имя уже занято' });
   }
+}
+
+/** Сегодня день рождения (по Москве; 29 февраля в невисокосный год — 28-го). */
+export function isBirthdayToday(birthDate: string | null, now = new Date()): boolean {
+  if (!birthDate) return false;
+  return birthDate.slice(5) === birthdayKey(now) || (birthDate.slice(5) === '02-29' && birthdayKey(now) === '02-28' && !isLeap(now));
+}
+
+/** «ММ-ДД» сегодняшней даты по Москве. */
+export function birthdayKey(now = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow', month: '2-digit', day: '2-digit' }).formatToParts(now);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
+  return `${get('month')}-${get('day')}`;
+}
+
+function isLeap(now: Date): boolean {
+  const y = Number(new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow', year: 'numeric' }).format(now));
+  return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
 }

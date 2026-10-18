@@ -127,6 +127,30 @@ export class AuthService {
     return { session: this.completeLogin(user, meta) };
   }
 
+  /**
+   * Проверка пароля на шаге входа: блокировка после серии ошибок, обновление
+   * устаревшего хэша. Бросает ошибку при неверном пароле.
+   */
+  async checkLoginPassword(user: UserRow, password: string, meta: RequestMeta): Promise<void> {
+    const now = Date.now();
+    if (user.locked_until && user.locked_until > now) {
+      throw new AppError(429, ErrorCode.AccountLocked, undefined, undefined, Math.ceil((user.locked_until - now) / 1000));
+    }
+    const { ok, needsRehash } = await verifyPassword(password, user.password_hash);
+    if (!ok) {
+      this.registerFailure(user, meta, 'login_failed');
+      throw new AppError(401, ErrorCode.InvalidCredentials, 'Неверный пароль', { password: 'Неверный пароль' });
+    }
+    if (needsRehash) {
+      this.db.run('UPDATE users SET password_hash = :h WHERE id = :id', { h: await hashPassword(password), id: user.id });
+    }
+  }
+
+  /** Код из приложения-аутентификатора или резервный код (если включена такая защита). */
+  checkTotp(user: UserRow, code: string, meta: RequestMeta): boolean {
+    return this.checkSecondFactor(user, code, meta);
+  }
+
   /** Доступные способы второго фактора. Вход по почте работает только с подтверждённым адресом. */
   private twoFactorMethods(user: UserRow): TwoFactorMethod[] {
     const methods: TwoFactorMethod[] = [];
@@ -204,7 +228,7 @@ export class AuthService {
     return false;
   }
 
-  private registerFailure(user: UserRow, meta: RequestMeta, type: string): void {
+  registerFailure(user: UserRow, meta: RequestMeta, type: string): void {
     const failures = user.failed_logins + 1;
     let lockedUntil: number | null = null;
     if (failures >= LOCK_THRESHOLD) {
@@ -216,7 +240,7 @@ export class AuthService {
     this.log.record(user.id, type, meta);
   }
 
-  private completeLogin(user: UserRow, meta: RequestMeta): IssuedSession {
+  completeLogin(user: UserRow, meta: RequestMeta): IssuedSession {
     const known = this.sessions.isKnownDevice(user.id, meta.userAgent);
     this.db.run('UPDATE users SET failed_logins = 0, locked_until = NULL WHERE id = :id', { id: user.id });
     this.log.record(user.id, 'login_success', meta, { device: meta.deviceName });
@@ -323,6 +347,34 @@ export class AuthService {
     return this.completeLogin(user, meta);
   }
 
+  /**
+   * Новый пароль после проверки двух кодов (почта + чат SpaceUp): сохраняем
+   * пароль и подсказку, снимаем блокировку и завершаем все сеансы.
+   */
+  async setNewPassword(user: UserRow, password: string, hint: string, meta: RequestMeta): Promise<void> {
+    const problem = checkPasswordPolicy(password, [user.username, user.display_name]);
+    if (problem) throw new AppError(400, ErrorCode.WeakPassword, problem, { password: problem });
+    this.db.run(
+      'UPDATE users SET password_hash = :h, password_hint = :hint, failed_logins = 0, locked_until = NULL, updated_at = :now WHERE id = :id',
+      { h: await hashPassword(password), hint, now: Date.now(), id: user.id },
+    );
+    const ids = this.sessions.revokeAllExcept(user.id, null);
+    for (const id of ids) this.hub.kickSession(user.id, id);
+    this.log.record(user.id, 'password_reset', meta);
+    this.securityEmail(user.id, 'Пароль сброшен по кодам из письма и чата SpaceUp', meta);
+  }
+
+  /** Подсказка к паролю (из настроек): только с текущим паролем. */
+  async setPasswordHint(userId: string, password: string, hint: string, meta: RequestMeta): Promise<void> {
+    await this.assertPassword(userId, password);
+    this.db.run('UPDATE users SET password_hint = :hint, updated_at = :now WHERE id = :id', { hint, now: Date.now(), id: userId });
+    this.log.record(userId, 'password_hint_changed', meta);
+  }
+
+  issueSession(userId: string, meta: RequestMeta): IssuedSession {
+    return this.issue(userId, meta);
+  }
+
   private issue(userId: string, meta: RequestMeta): IssuedSession {
     const s = this.sessions.create(userId, meta);
     return { ...s, userId };
@@ -358,15 +410,16 @@ export class AuthService {
     return user;
   }
 
-  async changePassword(userId: string, sessionId: string, current: string, next: string, meta: RequestMeta): Promise<void> {
+  async changePassword(userId: string, sessionId: string, current: string, next: string, meta: RequestMeta, hint?: string): Promise<void> {
     const user = await this.assertPassword(userId, current).catch(() => {
       throw badRequest('Неверный текущий пароль', { currentPassword: 'Неверный текущий пароль' });
     });
     const problem = checkPasswordPolicy(next, [user.username, user.display_name]);
     if (problem) throw new AppError(400, ErrorCode.WeakPassword, problem, { newPassword: problem });
     if (current === next) throw badRequest('Новый пароль совпадает со старым', { newPassword: 'Пароль не изменился' });
-    this.db.run('UPDATE users SET password_hash = :h, updated_at = :now WHERE id = :id', {
+    this.db.run('UPDATE users SET password_hash = :h, password_hint = coalesce(:hint, password_hint), updated_at = :now WHERE id = :id', {
       h: await hashPassword(next),
+      hint: hint ?? null,
       now: Date.now(),
       id: userId,
     });

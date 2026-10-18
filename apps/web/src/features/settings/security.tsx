@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import QRCode from 'qrcode';
 import { AlertTriangle, CheckCircle2, Copy, Fingerprint, KeyRound, Laptop, Lock, LogOut, ScrollText, ShieldCheck, Smartphone } from 'lucide-react';
-import { SECURITY_EVENT_LABELS, type DeviceKey, type SecurityEvent, type SessionInfo, type TotpSetup } from '@omni/shared';
+import { LIMITS, SECURITY_EVENT_LABELS, type DeviceKey, type Me, type SecurityEvent, type SessionInfo, type TotpSetup } from '@omni/shared';
 import { api, ApiError, errorMessage } from '../../shared/api/client';
 import { flatPages, useCursorList } from '../../shared/api/query';
 import { getIdentity } from '../../shared/crypto/e2e';
@@ -87,14 +87,18 @@ export function PasswordSettings() {
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [repeat, setRepeat] = useState('');
+  const [hint, setHint] = useState('');
   const [fields, setFields] = useState<Record<string, string>>({});
+  const setMe = useSession((s) => s.setMe);
   const save = useMutation({
-    mutationFn: () => api.post('/security/password', { currentPassword: current, newPassword: next }),
+    mutationFn: () => api.post('/security/password', { currentPassword: current, newPassword: next, passwordHint: hint.trim() || undefined }),
     onSuccess: () => {
       setCurrent('');
       setNext('');
       setRepeat('');
+      setHint('');
       setFields({});
+      void api.get<{ me: Me | null }>('/auth/session').then((r) => r.me && setMe(r.me));
       toast({ text: 'Пароль изменён. Остальные сеансы завершены', kind: 'success' });
     },
     onError: (e) => {
@@ -117,12 +121,64 @@ export function PasswordSettings() {
           <PasswordInput label="Текущий пароль" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" error={fields.currentPassword} />
           <PasswordInput label="Новый пароль" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" showStrength error={fields.newPassword} />
           <PasswordInput label="Повторите новый пароль" value={repeat} onChange={(e) => setRepeat(e.target.value)} autoComplete="new-password" error={mismatch ? 'Пароли не совпадают' : null} />
+          <Input
+            label="Подсказка к новому паролю"
+            value={hint}
+            onChange={(e) => setHint(e.target.value)}
+            maxLength={LIMITS.passwordHintMax}
+            hint="Необязательно: если оставить пустой, сохранится прежняя подсказка"
+            error={fields.passwordHint}
+          />
           <Button type="submit" disabled={!current || next.length < 10 || next !== repeat} loading={save.isPending} style={{ alignSelf: 'flex-start' }}>
             Сменить пароль
           </Button>
         </form>
       </Panel>
+      <PasswordHintPanel />
     </SettingsPage>
+  );
+}
+
+/** Подсказка к паролю: показывается на входе после ввода кода. Меняется с текущим паролем. */
+function PasswordHintPanel() {
+  const me = useMe();
+  const setMe = useSession((s) => s.setMe);
+  const [hint, setHint] = useState(me.passwordHint ?? '');
+  const [password, setPassword] = useState('');
+  const [fields, setFields] = useState<Record<string, string>>({});
+  const save = useMutation({
+    mutationFn: () => api.post<Me>('/security/password-hint', { password, passwordHint: hint }),
+    onSuccess: (m) => {
+      setMe(m);
+      setPassword('');
+      setFields({});
+      toast({ text: 'Подсказка сохранена', kind: 'success' });
+    },
+    onError: (e) => {
+      if (e instanceof ApiError && e.fields) setFields(e.fields);
+      toast({ text: errorMessage(e), kind: 'error' });
+    },
+  });
+  return (
+    <Panel
+      title="Подсказка к паролю"
+      footer="Подсказку видите только вы — на входе, после ввода кода из письма или чата SpaceUp. Не пишите в ней сам пароль."
+    >
+      <form
+        className="col gap-3"
+        style={{ padding: 16 }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          save.mutate();
+        }}
+      >
+        <Input label="Подсказка" value={hint} onChange={(e) => setHint(e.target.value)} maxLength={LIMITS.passwordHintMax} placeholder="Например: кличка первой собаки" error={fields.passwordHint} />
+        <PasswordInput label="Текущий пароль" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" error={fields.password} />
+        <Button type="submit" disabled={hint.trim().length < 2 || !password} loading={save.isPending} style={{ alignSelf: 'flex-start' }}>
+          Сохранить подсказку
+        </Button>
+      </form>
+    </Panel>
   );
 }
 

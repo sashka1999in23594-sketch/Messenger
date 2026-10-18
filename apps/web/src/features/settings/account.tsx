@@ -1,13 +1,13 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import { AtSign, Camera, Download, ImagePlus, PenLine, Phone, Smile, Trash2 } from 'lucide-react';
-import { formatPhone, LIMITS, type Me } from '@omni/shared';
+import { AtSign, Cake, Camera, Download, ImagePlus, PenLine, Phone, Smile, Trash2 } from 'lucide-react';
+import { formatPhone, LIMITS, sanitizeName, type Gender, type Me } from '@omni/shared';
 import { api, ApiError, errorMessage, uploadFile } from '../../shared/api/client';
 import { prepareImage } from '../../shared/lib/media';
 import { useMe, useSession } from '../../shared/stores/session';
 import { toast } from '../../shared/stores/ui';
-import { Avatar, Button, Input, Notice, PasswordInput, SettingRow, Textarea } from '../../shared/ui';
+import { Avatar, Button, Input, Notice, PasswordInput, Segmented, SettingRow, Textarea } from '../../shared/ui';
 import { leaveSession } from '../../app/session';
 import { Panel, SettingsPage } from './common';
 import { LinksEditor, StatusDialog } from '../profile/extras';
@@ -21,6 +21,8 @@ export function ProfileSettings() {
   const [bio, setBio] = useState(me.bio);
   const [website, setWebsite] = useState(me.website ?? '');
   const [location, setLocation] = useState(me.location ?? '');
+  const [birthDate, setBirthDate] = useState(me.birthDate ?? '');
+  const [gender, setGender] = useState<Gender>(me.gender ?? 'unspecified');
   const [fields, setFields] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState<'avatar' | 'banner' | null>(null);
   const avatarInput = useRef<HTMLInputElement>(null);
@@ -86,11 +88,47 @@ export function ProfileSettings() {
       </Panel>
       <Panel title="О себе">
         <div className="col gap-3" style={{ padding: '0 16px 16px' }}>
-          <Input label="Имя" value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={LIMITS.displayNameMax} error={fields.displayName} />
+          <Input
+            label="Имя"
+            value={displayName}
+            onChange={(e) => setDisplayName(sanitizeName(e.target.value, LIMITS.displayNameMax))}
+            maxLength={LIMITS.displayNameMax}
+            hint="Только буквы, цифры, пробел и дефис — без эмодзи"
+            error={fields.displayName}
+          />
           <Textarea label="Био" value={bio} onChange={(e) => setBio(e.target.value)} maxLength={LIMITS.bioMax} hint={`${bio.length}/${LIMITS.bioMax}`} error={fields.bio} />
           <Input label="Сайт" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://" error={fields.website} />
           <Input label="Город" value={location} onChange={(e) => setLocation(e.target.value)} maxLength={LIMITS.locationMax} />
           <Button loading={save.isPending} onClick={() => save.mutate({ displayName, bio, website, location })} style={{ alignSelf: 'flex-start' }}>
+            Сохранить
+          </Button>
+        </div>
+      </Panel>
+      <Panel
+        title="День рождения"
+        footer="Дату никто не видит. В ваш день рождения подписчики, контакты и те, с кем вы переписывались, получат напоминание поздравить вас, а мы пришлём письмо и поздравим в чате SpaceUp."
+      >
+        <div className="col gap-3" style={{ padding: '0 16px 16px' }}>
+          <Input label="Дата рождения" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} min="1906-01-01" error={fields.birthDate} />
+          <div className="field">
+            <span className="field__label">Пол</span>
+            <Segmented<Gender>
+              value={gender}
+              onChange={setGender}
+              options={[
+                { value: 'male', label: 'Мужской' },
+                { value: 'female', label: 'Женский' },
+                { value: 'unspecified', label: 'Не указывать' },
+              ]}
+            />
+          </div>
+          <Button
+            icon={<Cake size={16} />}
+            loading={save.isPending}
+            disabled={!birthDate}
+            onClick={() => save.mutate({ birthDate, gender })}
+            style={{ alignSelf: 'flex-start' }}
+          >
             Сохранить
           </Button>
         </div>

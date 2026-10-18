@@ -307,7 +307,7 @@ export function ChatInfo({ chatId, onClose }: { chatId: string; onClose: () => v
             {chat.mutedUntil ? 'Включить' : 'Без звука'}
           </button>
         )}
-        {chat.peer && (
+        {chat.peer && !chat.system && (
           <Link className="info-action" to={`/u/${chat.peer.username}`}>
             <AtSign size={20} />
             Профиль
@@ -348,7 +348,7 @@ export function ChatInfo({ chatId, onClose }: { chatId: string; onClose: () => v
             <div className="media-tiles">
               {media.map((m, i) => (
                 <button key={m.id} onClick={() => setLightbox(i)}>
-                  <img src={m.kind === 'video' ? (m.posterUrl ?? '') : m.url} alt="" loading="lazy" />
+                  <img src={m.kind === 'video' ? (m.posterUrl ?? undefined) : m.url} alt="" loading="lazy" />
                 </button>
               ))}
             </div>

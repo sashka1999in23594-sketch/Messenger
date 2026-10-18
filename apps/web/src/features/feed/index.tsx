@@ -1,13 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Bookmark, Flame, Hash, Heart, Newspaper, PenLine, TrendingUp } from 'lucide-react';
+import { Bookmark, Flame, Hash, Heart, Newspaper, PenLine, TrendingUp, X } from 'lucide-react';
 import type { Hashtag, Post, UserSummary } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { flatPages, qk, queryClient, useCursorList } from '../../shared/api/query';
+import { useMe } from '../../shared/stores/session';
 import { toast, useCrumb } from '../../shared/stores/ui';
 import { compactNumber, plural } from '../../shared/lib/format';
-import { Button, EmptyState, ErrorState, ListSkeleton, Loading, LoadMore, PageHeader, TabLinks, UserRow } from '../../shared/ui';
+import { Button, EmptyState, ErrorState, IconButton, ListSkeleton, Loading, LoadMore, PageHeader, TabLinks, UserRow } from '../../shared/ui';
 import { CommentsSection } from '../posts/Comments';
 import { PostCard } from '../posts/PostCard';
 import { PostComposer } from '../posts/PostComposer';
@@ -89,6 +90,45 @@ export function WhoToFollow({ limit = 5 }: { limit?: number }) {
 
 const MODES = { '': 'for-you', following: 'following', latest: 'latest', trending: 'trending' } as const;
 
+/** В день рождения на главной — поздравление (закрывается до следующего года). */
+function BirthdayBanner() {
+  const me = useMe();
+  const key = `birthday-${me.id}-${new Date().getFullYear()}`;
+  const [hidden, setHidden] = useState(() => {
+    try {
+      return localStorage.getItem(key) === '1';
+    } catch {
+      return false;
+    }
+  });
+  if (!me.birthdayToday || hidden) return null;
+  return (
+    <div className="birthday-banner" role="status">
+      <span className="birthday-banner__icon" aria-hidden>
+        🎂
+      </span>
+      <div className="col" style={{ gap: 2, minWidth: 0 }}>
+        <b>С днём рождения, {me.displayName}!</b>
+        <span className="small muted">Команда SpaceUp поздравляет вас. Загляните в чаты — там наверняка уже ждут поздравления.</span>
+      </div>
+      <IconButton
+        label="Скрыть"
+        size="sm"
+        onClick={() => {
+          setHidden(true);
+          try {
+            localStorage.setItem(key, '1');
+          } catch {
+            // Хранилище недоступно — просто скрываем до перезагрузки
+          }
+        }}
+      >
+        <X size={16} />
+      </IconButton>
+    </div>
+  );
+}
+
 export function FeedPage({ mode }: { mode: keyof typeof MODES }) {
   const apiMode = MODES[mode];
   return (
@@ -105,6 +145,7 @@ export function FeedPage({ mode }: { mode: keyof typeof MODES }) {
               ]}
             />
           </div>
+          <BirthdayBanner />
           <StoriesBar />
           <PostComposer />
           <PostList queryKey={qk.feed(apiMode, 'all')} path={`/feed/${apiMode}?kind=all`} />

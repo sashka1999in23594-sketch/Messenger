@@ -49,7 +49,7 @@ export function HighlightsRow({ userId, own }: { userId: string; own?: boolean }
             <button type="button" className="col center" style={{ gap: 6, width: '100%' }} onClick={() => void open(h)} aria-label={`Актуальное: ${h.title}`}>
               <span className="highlight__cover">
                 {h.cover ? (
-                  <img src={h.cover.kind === 'video' ? (h.cover.posterUrl ?? '') : h.cover.url} alt="" loading="lazy" />
+                  <img src={h.cover.kind === 'video' ? (h.cover.posterUrl ?? undefined) : h.cover.url} alt="" loading="lazy" />
                 ) : (
                   <span>
                     <Star size={22} />

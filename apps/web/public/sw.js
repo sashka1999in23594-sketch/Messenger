@@ -3,7 +3,7 @@
  * Безопасность: ответы API и медиа НИКОГДА не кэшируются здесь — личные данные
  * не оседают в общем кэше устройства.
  */
-const VERSION = 'omni-v1';
+const VERSION = 'omni-v2';
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png', '/theme-init.js'];
 
 self.addEventListener('install', (event) => {
@@ -39,8 +39,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Статика с хэшем в имени — cache-first
-  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/')) {
+  // Статика с хэшем в имени и текстуры Земли — cache-first (при замене текстур поднимаем VERSION)
+  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/') || url.pathname.startsWith('/earth/')) {
     event.respondWith(
       caches.match(req).then(
         (hit) =>

@@ -1,0 +1,192 @@
+/* ─── Сцена «Земля»: WebGL-холст и запасная CSS-планета ─── */
+.earth-scene {
+  --ef-atmo: var(--earth-atmosphere, #4f9dff);
+  --ef-orbit: var(--earth-orbit, #8fb8ff);
+  --ef-dot: var(--earth-dot, #3ee07f);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  container-type: size;
+}
+.earth-scene__gl {
+  position: absolute;
+  inset: 0;
+}
+.earth-scene__gl canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.9s var(--ease, ease-out);
+}
+.earth-scene__gl canvas.is-ready {
+  opacity: 1;
+}
+
+/* Запасной вариант без WebGL: планета, орбита и Луна */
+.earth-fallback {
+  --ef-size: min(36cqw, 60cqh);
+  --ef-period: 15s;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+.earth-fallback > * {
+  grid-area: 1 / 1;
+}
+.earth-fallback__planet {
+  position: relative;
+  z-index: 1;
+  width: var(--ef-size);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 78% 62%,
+      color-mix(in srgb, black 88%, transparent) 0 30%,
+      transparent 72%
+    ),
+    radial-gradient(
+      circle at 30% 30%,
+      color-mix(in srgb, var(--ef-atmo) 55%, white) 0%,
+      var(--ef-atmo) 28%,
+      color-mix(in srgb, var(--ef-atmo) 45%, black) 62%,
+      color-mix(in srgb, var(--ef-atmo) 15%, black) 100%
+    );
+  box-shadow:
+    0 0 calc(var(--ef-size) * 0.14) color-mix(in srgb, var(--ef-atmo) 60%, transparent),
+    inset calc(var(--ef-size) * 0.02) 0 calc(var(--ef-size) * 0.05)
+      color-mix(in srgb, var(--ef-atmo) 70%, white);
+}
+.earth-fallback__orbit,
+.earth-fallback__track {
+  width: calc(var(--ef-size) * 2.3);
+  height: calc(var(--ef-size) * 0.6);
+  border-radius: 50%;
+  transform: rotate(-6deg);
+}
+.earth-fallback__orbit {
+  position: relative;
+  z-index: 0;
+  border: 1px solid color-mix(in srgb, var(--ef-orbit) 60%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ef-orbit) 30%, transparent);
+}
+/* Передняя половина орбиты проходит перед планетой */
+.earth-fallback__orbit--front {
+  z-index: 2;
+  clip-path: inset(50% 0 0 0);
+}
+/* Луна: эллипс из двух синусоид (left и top), позади планеты — ниже по слою */
+.earth-fallback__track {
+  position: relative;
+  z-index: 3;
+  animation: earth-fallback-layer var(--ef-period) ease-in-out infinite alternate;
+}
+.earth-fallback__moon {
+  position: absolute;
+  left: 86%;
+  top: 82%;
+  width: calc(var(--ef-size) * 0.16);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 30% 35%, #f1efe9, #9a968f 60%, #3d3b38);
+  animation:
+    earth-fallback-x var(--ef-period) ease-in-out calc(var(--ef-period) * -1.5) infinite alternate,
+    earth-fallback-y var(--ef-period) ease-in-out infinite alternate;
+}
+.earth-fallback__dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: var(--ef-dot);
+  box-shadow: 0 0 8px var(--ef-dot);
+  opacity: 0;
+  animation: earth-fallback-blink 3.2s ease-out infinite;
+}
+/* Расходящееся кольцо вокруг точки */
+.earth-fallback__dot::after {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border: 1.5px solid var(--ef-dot);
+  border-radius: 50%;
+  animation: earth-fallback-ring 3.2s ease-out infinite;
+  animation-delay: inherit;
+}
+
+@keyframes earth-fallback-x {
+  from {
+    left: 0%;
+  }
+  to {
+    left: 100%;
+  }
+}
+@keyframes earth-fallback-y {
+  from {
+    top: 0%;
+  }
+  to {
+    top: 100%;
+  }
+}
+@keyframes earth-fallback-layer {
+  0%,
+  50% {
+    z-index: 0;
+  }
+  50.01%,
+  100% {
+    z-index: 3;
+  }
+}
+@keyframes earth-fallback-blink {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  12%,
+  70% {
+    opacity: 1;
+  }
+}
+@keyframes earth-fallback-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  60%,
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .earth-fallback *,
+  .earth-fallback *::after,
+  .earth-scene__gl canvas {
+    animation: none;
+    transition: none;
+  }
+  .earth-fallback__dot {
+    opacity: 1;
+  }
+}
+
+/* Статичный режим по просьбе страницы */
+.earth--still .earth-fallback *,
+.earth--still .earth-fallback *::after,
+.earth--still .earth-scene__gl canvas {
+  animation: none;
+  transition: none;
+}
+.earth--still .earth-fallback__dot {
+  opacity: 1;
+}

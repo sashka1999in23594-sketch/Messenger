@@ -6,8 +6,7 @@ import { applyPrefs, usePrefs } from '../shared/stores/prefs';
 import { useMediaQuery } from '../shared/hooks';
 import { useSession } from '../shared/stores/session';
 import { Aurora, ConfirmHost, Loading, Toasts } from '../shared/ui';
-import { AuthPage } from '../features/auth/AuthPage';
-import { Onboarding } from '../features/onboarding/Onboarding';
+import { GuestApp } from '../features/auth/GuestApp';
 import { AppRoutes } from './routes';
 import { bootstrapSession } from './session';
 
@@ -39,7 +38,6 @@ const Desktop = lazy(() => import('../features/desktop/Desktop').then((m) => ({ 
 
 function Gate() {
   const status = useSession((s) => s.status);
-  const onboarded = useSession((s) => s.me?.onboarded ?? true);
   // «Пространство» — только на экранах, где помещаются окна (планшет и компьютер)
   const spaceMode = usePrefs((s) => s.spaceMode ?? false);
   const wide = useMediaQuery('(min-width: 900px)');
@@ -47,8 +45,12 @@ function Gate() {
     void bootstrapSession();
   }, []);
   if (status === 'loading') return <Loading label="SpaceUp загружается…" />;
-  if (status === 'guest') return <BrowserRouter><AuthPage /></BrowserRouter>;
-  if (!onboarded) return <BrowserRouter><Onboarding /></BrowserRouter>;
+  if (status === 'guest')
+    return (
+      <BrowserRouter>
+        <GuestApp />
+      </BrowserRouter>
+    );
   // У каждого окна свой роутер, поэтому рабочий стол живёт вне общего BrowserRouter
   if (spaceMode && wide)
     return (

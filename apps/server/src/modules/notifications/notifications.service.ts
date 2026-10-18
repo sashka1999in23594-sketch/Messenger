@@ -34,6 +34,7 @@ const PREF_FOR: Record<NotificationType, keyof ReturnType<typeof notificationPre
   new_post: 'subscriptions',
   story_reaction: 'stories',
   security: 'security',
+  birthday: 'follows',
 };
 
 export interface NotifyInput {

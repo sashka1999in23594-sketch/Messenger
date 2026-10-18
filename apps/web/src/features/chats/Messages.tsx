@@ -156,6 +156,7 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
         {msg.kind === 'round' && msg.media[0] && <RoundMessage media={msg.media[0]} />}
         {msg.kind === 'poll' && msg.poll && <PollMessage message={msg} canClose={out || isAdmin} />}
         {msg.kind === 'call' && msg.call && <CallMessage call={msg.call} myId={myId} onCallBack={actions.callBack} />}
+        {chat.system && msg.text && <SystemCode text={msg.text} />}
         {msg.kind === 'encrypted' ? (
           <SecretBody msg={msg} chat={chat} secret={secret} />
         ) : (
@@ -336,6 +337,32 @@ export function MessageList({ messages, chat, myId, secret, actions, hasOlder, l
         )}
         {rendered}
       </div>
+    </div>
+  );
+}
+
+/** Код из сообщения SpaceUp — крупно и с кнопкой «Скопировать». */
+function SystemCode({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const code = /^Код[^:\n]*:\s*(\d{6})/.exec(text)?.[1];
+  if (!code) return null;
+  return (
+    <div className="system-code">
+      <span className="system-code__value" aria-label={`Код ${code.split('').join(' ')}`}>
+        {code.slice(0, 3)} {code.slice(3)}
+      </span>
+      <button
+        type="button"
+        className="system-code__copy"
+        onClick={async () => {
+          await navigator.clipboard.writeText(code).catch(() => undefined);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }}
+      >
+        {copied ? <Check size={15} /> : <Copy size={15} />}
+        {copied ? 'Скопировано' : 'Скопировать'}
+      </button>
     </div>
   );
 }

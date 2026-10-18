@@ -28,7 +28,7 @@ export function MediaGrid({ media, className, onOpen }: { media: MediaItem[]; cl
                 />
               ) : (
                 <>
-                  <img src={m.posterUrl ?? ''} alt="" loading="lazy" />
+                  <img src={m.posterUrl ?? undefined} alt="" loading="lazy" />
                   <span className="media-grid__more" style={{ background: 'rgba(0,0,0,.25)' }}>
                     <Play size={40} fill="#fff" />
                   </span>

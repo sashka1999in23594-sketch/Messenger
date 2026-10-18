@@ -1,8 +1,9 @@
-import { lazy, type ComponentType, type ReactElement } from 'react';
+import { lazy, Suspense, type ComponentType, type ReactElement } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { Shell } from './layout/Shell';
 import { ComingSoon } from '../features/misc/ComingSoon';
 import { START_PAGES, usePrefs } from '../shared/stores/prefs';
+import { Loading } from '../shared/ui';
 
 /**
  * Каждый модуль загружается отдельным чанком при первом заходе в раздел —
@@ -25,6 +26,10 @@ const settings = () => import('../features/settings');
 const calls = () => import('../features/calls');
 const social = () => import('../features/social');
 
+const authPages = () => import('../features/auth/pages');
+const DownloadPage = lazyNamed(authPages, 'DownloadPage');
+const QrApprovePage = lazyNamed(authPages, 'QrApprovePage');
+const HelpSite = lazyNamed(() => import('../features/help'), 'HelpSite');
 const ChatsLayout = lazyNamed(chats, 'ChatsLayout');
 const NoChatSelected = lazyNamed(chats, 'NoChatSelected');
 const NoChannelSelected = lazyNamed(chats, 'NoChannelSelected');
@@ -134,6 +139,23 @@ function StartRedirect() {
 export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
   return (
     <Routes>
+      {/* Отдельные страницы без оболочки приложения: «Скачать» и сайт помощи */}
+      <Route
+        path="download"
+        element={
+          <Suspense fallback={<Loading />}>
+            <DownloadPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="help/*"
+        element={
+          <Suspense fallback={<Loading />}>
+            <HelpSite />
+          </Suspense>
+        }
+      />
       <Route element={layout ?? <Shell />}>
         <Route index element={<StartRedirect />} />
         {/* Главная — лента: зашёл и сразу листаешь */}
@@ -144,6 +166,9 @@ export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
         {/* После входа адреса страницы входа больше не нужны */}
         <Route path="login" element={<Navigate to="/" replace />} />
         <Route path="register" element={<Navigate to="/" replace />} />
+        <Route path="signup" element={<Navigate to="/" replace />} />
+        {/* Ссылка из QR-кода: разрешить вход на новом устройстве */}
+        <Route path="qr/:token" element={<QrApprovePage />} />
 
         {/* Мессенджер */}
         <Route path="chats" element={<ChatsLayout />}>

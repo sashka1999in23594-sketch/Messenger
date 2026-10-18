@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# создаётся перед сборкой (scripts/write-config.js)
+src/config.json

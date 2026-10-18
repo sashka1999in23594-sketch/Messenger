@@ -126,95 +126,6 @@ function TotpSection({ onCodes }: { onCodes: (c: string[]) => void }) {
   );
 }
 
-/** Код на почту: пароль → код из письма → готово. */
-function EmailSection({ onCodes }: { onCodes: (c: string[]) => void }) {
-  const me = useMe();
-  const refreshMe = useRefreshMe();
-  const config = useAuthConfig();
-  const [password, setPassword] = useState('');
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [code, setCode] = useState('');
-  const [resendIn, startResend] = useCountdown();
-  const { fields, setFields, onError } = useFormErrors();
-  const action = me.twoFactor.email ? 'disable' : 'enable';
-  const send = useMutation({
-    mutationFn: () => api.post<{ emailHint: string }>('/security/2fa/email/send', { action, password }),
-    onSuccess: (r) => {
-      setSentTo(r.emailHint);
-      setFields({});
-      startResend(60);
-    },
-    onError: (e) => {
-      if (e instanceof ApiError && e.retryAfter) startResend(e.retryAfter);
-      onError(e);
-    },
-  });
-  const confirm = useMutation({
-    mutationFn: (c: string) => api.post<{ recoveryCodes: string[] | null }>('/security/2fa/email/confirm', { action, code: c }),
-    onSuccess: (r) => {
-      if (r.recoveryCodes) onCodes(r.recoveryCodes);
-      setSentTo(null);
-      setPassword('');
-      setCode('');
-      void refreshMe();
-      toast({ text: action === 'enable' ? 'Вход по коду из письма включён' : 'Вход по коду из письма выключен', kind: 'success' });
-    },
-    onError: (e) => {
-      setCode('');
-      onError(e);
-    },
-  });
-  const mailOff = config.data && !config.data.mail.enabled;
-
-  return (
-    <Panel title="Код на почту" footer="При входе с нового устройства мы пришлём 6-значный код на подтверждённую почту.">
-      <div className="twofa-method">
-        <span className="list-item__icon tile-blue">
-          <Mail size={18} />
-        </span>
-        <span className="grow">
-          <b>Код из письма</b>
-          <span className="small muted" style={{ display: 'block' }}>
-            {me.email ? `Почта: ${me.email}` : 'Почта не указана'}
-          </span>
-        </span>
-        {me.twoFactor.email ? <span className="tag tag--success">Включено</span> : <span className="tag">Выключено</span>}
-      </div>
-      <div className="col gap-3" style={{ padding: '4px 16px 16px' }}>
-        {mailOff ? (
-          <Notice kind="warning">На этом сервере отправка писем не настроена.</Notice>
-        ) : !me.emailVerified ? (
-          <Notice kind="warning">
-            Сначала <Link to="/settings/account/email">подтвердите почту</Link> — коды будут приходить на неё.
-          </Notice>
-        ) : sentTo ? (
-          <>
-            <p className="small">
-              Отправили код на <b>{sentTo}</b>. Введите его, чтобы {action === 'enable' ? 'включить' : 'выключить'} вход по коду из письма.
-            </p>
-            <CodeInput value={code} onChange={setCode} onComplete={(v) => confirm.mutate(v)} error={fields.code} autoFocus />
-            <div className="row wrap">
-              <Button variant={action === 'enable' ? 'primary' : 'danger'} disabled={code.length !== 6} loading={confirm.isPending} onClick={() => confirm.mutate(code)}>
-                {action === 'enable' ? 'Включить' : 'Выключить'}
-              </Button>
-              <Button variant="ghost" disabled={resendIn > 0} loading={send.isPending} onClick={() => send.mutate()}>
-                {resendIn > 0 ? `Ещё раз через ${resendIn} с` : 'Отправить ещё раз'}
-              </Button>
-            </div>
-          </>
-        ) : (
-          <>
-            <PasswordInput label="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" error={fields.password} />
-            <Button variant={action === 'enable' ? 'primary' : 'danger-ghost'} disabled={!password} loading={send.isPending} onClick={() => send.mutate()} style={{ alignSelf: 'flex-start' }}>
-              {action === 'enable' ? 'Включить: прислать код' : 'Выключить: прислать код'}
-            </Button>
-          </>
-        )}
-      </div>
-    </Panel>
-  );
-}
-
 export function TwoFactorSettings() {
   const me = useMe();
   const [codes, setCodes] = useState<string[] | null>(null);
@@ -223,14 +134,10 @@ export function TwoFactorSettings() {
   const regen = useMutation({ mutationFn: () => api.post<{ recoveryCodes: string[] }>('/security/2fa/recovery-codes', { password }), onSuccess: (r) => (setCodes(r.recoveryCodes), setPassword('')), onError });
 
   return (
-    <SettingsPage title="Двухфакторная защита" subtitle="Второй шаг при входе с нового устройства: даже зная пароль, злоумышленник не войдёт" icon={<ShieldCheck size={22} />}>
-      {me.twoFactorEnabled ? (
-        <Notice kind="success" icon={<CheckCircle2 size={18} />}>
-          Защита включена. Можно использовать оба способа сразу — при входе вы выберете удобный.
-        </Notice>
-      ) : (
-        <Notice kind="warning">Сейчас аккаунт защищён только паролем. Включите хотя бы один способ.</Notice>
-      )}
+    <SettingsPage title="Двухфакторная защита" subtitle="Код при каждом входе плюс, по желанию, приложение-аутентификатор" icon={<ShieldCheck size={22} />}>
+      <Notice kind="success" icon={<CheckCircle2 size={18} />}>
+        Код при входе приходит всегда — на почту и в чат SpaceUp на ваших устройствах. Приложение-аутентификатор добавит ещё один, третий шаг{me.twoFactor.totp ? ' — и он уже включён' : ''}.
+      </Notice>
       {codes && (
         <Panel title="Резервные коды">
           <div style={{ padding: 16 }}>
@@ -239,7 +146,6 @@ export function TwoFactorSettings() {
         </Panel>
       )}
       <TotpSection onCodes={setCodes} />
-      <EmailSection onCodes={setCodes} />
       {me.twoFactorEnabled && (
         <Panel title="Резервные коды" footer="Новые коды заменят старые — старые перестанут работать.">
           <div className="col gap-3" style={{ padding: 16 }}>

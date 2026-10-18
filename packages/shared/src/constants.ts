@@ -7,6 +7,11 @@
 export const APP_NAME = 'SpaceUp';
 export const API_PREFIX = '/api/v1';
 
+/** Служебный аккаунт SpaceUp: системный чат с кодами входа и новостями. */
+export const SYSTEM_USER_ID = '00000000000000000000000SYS';
+/** Почта поддержки */
+export const SUPPORT_EMAIL = 'spaceup.support@gmail.com';
+
 export const LIMITS = {
   usernameMin: 3,
   usernameMax: 32,
@@ -34,6 +39,9 @@ export const LIMITS = {
   pageSizeMax: 100,
   searchQueryMax: 100,
   deviceNameMax: 64,
+  passwordHintMax: 100,
+  /** Регистрация — с 14 лет */
+  minAge: 14,
   emailMax: 254,
   pollQuestionMax: 300,
   pollOptionMax: 100,

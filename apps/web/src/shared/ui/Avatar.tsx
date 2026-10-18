@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { BadgeCheck } from 'lucide-react';
+import { SYSTEM_USER_ID } from '@omni/shared';
 import { cn, hueFor, initials } from '../lib/format';
+import { Logo } from './Brand';
 
 interface AvatarProps {
   src: string | null | undefined;
@@ -21,7 +23,10 @@ export function Avatar({ src, name, id, size = 40, online, ring, className }: Av
       className={cn('avatar', ring && 'avatar--ring', ring === 'seen' && 'avatar--seen', ring === 'close' && 'avatar--close', className)}
       style={{ width: size, height: size }}
     >
-      {src && !broken ? (
+      {id === SYSTEM_USER_ID ? (
+        // Служебный аккаунт SpaceUp — всегда с логотипом
+        <Logo size={size} />
+      ) : src && !broken ? (
         <img className="avatar__img" src={src} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} draggable={false} />
       ) : (
         <span

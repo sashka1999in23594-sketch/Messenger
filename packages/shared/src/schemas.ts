@@ -14,7 +14,7 @@ import {
   USERNAME_RE,
 } from './constants.js';
 import { checkPasswordPolicy } from './password.js';
-import { normalizePhone } from './text.js';
+import { hasEmojiParts, normalizePhone } from './text.js';
 
 // ─── Базовые примитивы ──────────────────────────────────────────────────────
 
@@ -52,12 +52,57 @@ export const slug = z
   .toLowerCase()
   .regex(SLUG_RE, 'От 3 до 40 символов: латинские буквы, цифры и _');
 
-export const displayName = requiredText(LIMITS.displayNameMax);
+/**
+ * Имя: буквы любых алфавитов, цифры, пробелы и одиночные . ' ’ - _ между ними.
+ * Никаких эмодзи, символов и «самодельных» смайликов вроде :) или -_- .
+ */
+export const NAME_CHARS_RE = /^[\p{L}\p{M}\p{N} .'’\-_]*$/u;
+export const displayName = requiredText(LIMITS.displayNameMax).superRefine((v, ctx) => {
+  if (!NAME_CHARS_RE.test(v) || hasEmojiParts(v) || /[.'’\-_]{2,}/.test(v) || !/\p{L}/u.test(v)) {
+    ctx.addIssue({ code: 'custom', message: 'Только буквы, цифры, пробел и дефис — без эмодзи и смайликов' });
+  }
+});
 
 export const password = z
   .string()
   .min(LIMITS.passwordMin, `Минимум ${LIMITS.passwordMin} символов`)
   .max(LIMITS.passwordMax, `Не более ${LIMITS.passwordMax} символов`);
+
+/** Подсказка к паролю: видна только после ввода кода из письма или чата SpaceUp. */
+export const passwordHint = z
+  .string()
+  .trim()
+  .min(2, 'Подсказка — хотя бы 2 символа')
+  .max(LIMITS.passwordHintMax, `Не более ${LIMITS.passwordHintMax} символов`);
+
+/** Подсказка не должна выдавать сам пароль. */
+export function hintLeaksPassword(hint: string, pass: string): boolean {
+  const h = hint.toLowerCase().replace(/\s+/g, '');
+  const p = pass.toLowerCase().replace(/\s+/g, '');
+  return p.length > 0 && (h.includes(p) || (p.length >= 6 && h.includes(p.slice(0, Math.ceil(p.length * 0.7)))));
+}
+
+/** Дата рождения ГГГГ-ММ-ДД: реальная дата, возраст от 14 до 120 лет. */
+export const birthDate = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Укажите дату рождения')
+  .superRefine((v, ctx) => {
+    const [y, m, d] = v.split('-').map(Number) as [number, number, number];
+    const date = new Date(Date.UTC(y, m - 1, d));
+    if (date.getUTCFullYear() !== y || date.getUTCMonth() !== m - 1 || date.getUTCDate() !== d) {
+      ctx.addIssue({ code: 'custom', message: 'Такой даты не бывает' });
+      return;
+    }
+    const now = new Date();
+    let age = now.getUTCFullYear() - y;
+    if (now.getUTCMonth() < m - 1 || (now.getUTCMonth() === m - 1 && now.getUTCDate() < d)) age--;
+    if (date.getTime() > now.getTime()) ctx.addIssue({ code: 'custom', message: 'Дата рождения ещё не наступила' });
+    else if (age < LIMITS.minAge) ctx.addIssue({ code: 'custom', message: `Регистрация доступна с ${LIMITS.minAge} лет` });
+    else if (age > 120) ctx.addIssue({ code: 'custom', message: 'Проверьте год рождения' });
+  });
+
+export const gender = z.enum(['male', 'female', 'unspecified']);
 
 /** Адрес почты: нормализуется (trim, нижний регистр). */
 export const email = z
@@ -132,6 +177,59 @@ export const registerSchema = z
   });
 export type RegisterInput = z.infer<typeof registerSchema>;
 
+// ─── Пошаговый вход и регистрация ───────────────────────────────────────────
+
+/** Первый шаг входа: почта или номер телефона. */
+export const flowStartSchema = z.object({
+  login: z.string().trim().min(3, 'Введите почту или номер телефона').max(LIMITS.emailMax),
+  deviceName: text(LIMITS.deviceNameMax).optional(),
+});
+const flowToken = z.string().min(16).max(128);
+export const flowTokenSchema = z.object({ flow: flowToken });
+export const flowCodeSchema = z.object({ flow: flowToken, code: emailCode });
+/** Повторная отправка: на почту и в чат SpaceUp или только в чат (когда письма исчерпаны) */
+export const flowResendSchema = z.object({ flow: flowToken, to: z.enum(['all', 'account']).default('all') });
+export const flowPasswordSchema = z.object({ flow: flowToken, password: z.string().min(1).max(LIMITS.passwordMax) });
+export const flowTotpSchema = z.object({ flow: flowToken, code: totpCode });
+/** Сброс пароля: код из письма и код из чата SpaceUp */
+export const flowResetCodesSchema = z.object({ flow: flowToken, emailCode, accountCode: emailCode.optional() });
+
+/** Новый пароль: дважды и с подсказкой. */
+function newPasswordRules(v: { password: string; repeat: string; passwordHint: string }, ctx: z.RefinementCtx, personal: string[] = []) {
+  const problem = checkPasswordPolicy(v.password, personal);
+  if (problem) ctx.addIssue({ code: 'custom', path: ['password'], message: problem });
+  if (v.repeat !== v.password) ctx.addIssue({ code: 'custom', path: ['repeat'], message: 'Пароли не совпадают' });
+  if (hintLeaksPassword(v.passwordHint, v.password)) {
+    ctx.addIssue({ code: 'custom', path: ['passwordHint'], message: 'Подсказка не должна содержать сам пароль' });
+  }
+}
+
+export const flowNewPasswordSchema = z
+  .object({ flow: flowToken, password, repeat: z.string().max(LIMITS.passwordMax), passwordHint })
+  .superRefine((v, ctx) => newPasswordRules(v, ctx));
+
+export const qrPollSchema = z.object({ secret: z.string().min(16).max(128) });
+
+export const signupStartSchema = z.object({ email, deviceName: text(LIMITS.deviceNameMax).optional() });
+
+export const signupCompleteSchema = z
+  .object({
+    flow: flowToken,
+    phone,
+    displayName,
+    username,
+    birthDate,
+    gender,
+    password,
+    repeat: z.string().max(LIMITS.passwordMax),
+    passwordHint,
+  })
+  .superRefine((v, ctx) => newPasswordRules(v, ctx, [v.username, v.displayName]));
+export type SignupCompleteInput = z.infer<typeof signupCompleteSchema>;
+
+/** Проверка на лету: свободны ли имя пользователя и номер (для шагов регистрации). */
+export const availabilitySchema = z.object({ username: username.optional(), phone: phone.optional() });
+
 /** Вход по имени пользователя или подтверждённой почте. */
 export const loginSchema = z.object({
   username: z.string().trim().toLowerCase().min(1).max(LIMITS.emailMax),
@@ -184,9 +282,21 @@ export const emailPrefsSchema = z
   })
   .partial();
 
-export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1).max(LIMITS.passwordMax),
-  newPassword: password,
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1).max(LIMITS.passwordMax),
+    newPassword: password,
+    passwordHint: passwordHint.optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.passwordHint && hintLeaksPassword(v.passwordHint, v.newPassword)) {
+      ctx.addIssue({ code: 'custom', path: ['passwordHint'], message: 'Подсказка не должна содержать сам пароль' });
+    }
+  });
+
+export const changePasswordHintSchema = z.object({
+  password: z.string().min(1).max(LIMITS.passwordMax),
+  passwordHint,
 });
 
 export const totpConfirmSchema = z.object({ code: totpCode });
@@ -203,6 +313,8 @@ export const deleteAccountSchema = z.object({
 export const updateProfileSchema = z
   .object({
     displayName,
+    birthDate,
+    gender,
     bio: text(LIMITS.bioMax),
     website: httpUrl,
     location: text(LIMITS.locationMax),

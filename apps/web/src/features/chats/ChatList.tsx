@@ -26,7 +26,7 @@ export const FOLDERS: { id: string; label: string }[] = [
 
 export function previewText(chat: ChatSummary, myId: string): React.ReactNode {
   const m = chat.lastMessage;
-  if (!m) return chat.type === 'secret' ? 'Секретный чат создан' : 'Нет сообщений';
+  if (!m) return chat.system ? 'Коды входа и новости SpaceUp' : chat.type === 'secret' ? 'Секретный чат создан' : 'Нет сообщений';
   const who = chat.type === 'channel' ? null : m.senderId === myId ? 'Вы' : chat.type === 'group' ? m.senderName?.split(' ')[0] : null;
   const body = m.kind === 'system' ? `${m.senderName ?? ''} ${m.text ?? ''}` : messageLabel(m.kind, m.text);
   return (
@@ -127,7 +127,7 @@ function ChatItem({ chat, active, myId, base }: { chat: ChatSummary; active: boo
           },
           { label: 'Добавить в папку…', icon: <FolderPlus size={18} />, onClick: () => setToFolder(true) },
           'separator',
-          { label: chat.type === 'group' || chat.type === 'channel' ? 'Покинуть' : 'Удалить чат', icon: <Trash2 size={18} />, danger: true, onClick: () => void remove() },
+          { label: chat.type === 'group' || chat.type === 'channel' ? 'Покинуть' : 'Удалить чат', icon: <Trash2 size={18} />, danger: true, hidden: chat.system, onClick: () => void remove() },
         ]}
       />
       {toFolder && <AddToFolderDialog chat={chat} onClose={() => setToFolder(false)} />}

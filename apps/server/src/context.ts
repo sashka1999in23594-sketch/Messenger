@@ -8,6 +8,11 @@ import type { Db } from './db/index.js';
 import type { S3Storage } from './lib/s3.js';
 import { AccountExporter } from './modules/account/exporter.js';
 import { AuthService } from './modules/auth/auth.service.js';
+import { FlowStore } from './modules/auth/flow-store.js';
+import { AuthFlowService } from './modules/auth/flow.service.js';
+import { SignupService } from './modules/auth/signup.service.js';
+import { Birthdays } from './modules/system/birthdays.js';
+import { SystemService } from './modules/system/system.service.js';
 import { EmailCodes } from './modules/auth/email-codes.js';
 import { MailService } from './modules/mail/mail.service.js';
 import { SecurityLog } from './modules/auth/security-log.js';
@@ -57,6 +62,12 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub, storage
   const callsRepo = new CallsRepo(db, usersRepo);
   const messagesRepo = new MessagesRepo(db, usersRepo, media, polls, callsRepo);
   const chats = new ChatsService(db, usersRepo, messagesRepo, policy, media, hub, notifications, keys, polls);
+  // Служебный чат SpaceUp, пошаговый вход и регистрация, дни рождения
+  const system = new SystemService(db, chats);
+  const flowStore = new FlowStore(db, config.secret);
+  const authFlow = new AuthFlowService(db, flowStore, usersRepo, auth, sessions, system, mail, securityLog);
+  const signup = new SignupService(db, flowStore, usersRepo, users, auth, system, mail, securityLog, config.publicOrigin);
+  const birthdays = new Birthdays(db, system, notifications, mail, config.publicOrigin);
   const folders = new FoldersService(db);
   const invites = new InvitesService(db, chats, usersRepo, media, config.publicOrigin);
   const scheduled = new ScheduledService(db, chats, media);
@@ -100,6 +111,11 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub, storage
     users,
     keys,
     auth,
+    system,
+    flowStore,
+    authFlow,
+    signup,
+    birthdays,
     chats,
     callsRepo,
     calls,

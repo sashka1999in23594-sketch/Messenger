@@ -97,7 +97,7 @@ export function DraftsPage({ filter }: { filter: 'drafts' | 'scheduled' }) {
                   {d.media.length > 0 && (
                     <div className="draft-card__media">
                       {d.media.slice(0, 4).map((m) => (
-                        <img key={m.id} src={m.kind === 'video' ? (m.posterUrl ?? '') : m.url} alt="" />
+                        <img key={m.id} src={m.kind === 'video' ? (m.posterUrl ?? undefined) : m.url} alt="" />
                       ))}
                     </div>
                   )}

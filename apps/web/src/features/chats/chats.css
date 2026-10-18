@@ -1717,3 +1717,44 @@
   max-height: 140px;
   padding-top: 10px;
 }
+
+/* Служебный чат SpaceUp: код входа крупно, с копированием */
+.system-code {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 2px 0 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--accent-soft);
+}
+.system-code__value {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--accent-fg);
+}
+.system-code__copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+.system-code__copy:hover {
+  background: var(--surface-hover);
+}
+.system-chat__note {
+  max-width: 560px;
+  text-align: center;
+  line-height: 1.45;
+}

@@ -141,7 +141,7 @@ export function AddToHighlightDialog({ story, onClose }: { story: Story; onClose
             return (
               <button key={h.id} type="button" className={cn('pick-row', on && 'pick-row--on')} onClick={() => void toggle(h)} disabled={busy === h.id || !ids.data}>
                 <span className="highlight__cover" style={{ width: 44, height: 44, padding: 2 }}>
-                  {h.cover ? <img src={h.cover.kind === 'video' ? (h.cover.posterUrl ?? '') : h.cover.url} alt="" /> : <span><Star size={16} /></span>}
+                  {h.cover ? <img src={h.cover.kind === 'video' ? (h.cover.posterUrl ?? undefined) : h.cover.url} alt="" /> : <span><Star size={16} /></span>}
                 </span>
                 <span className="grow">
                   <b>{h.title}</b>

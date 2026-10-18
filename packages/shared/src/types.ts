@@ -29,6 +29,8 @@ export interface UserSummary {
   displayName: string;
   avatarUrl: string | null;
   verified: boolean;
+  /** Служебный аккаунт SpaceUp */
+  system?: boolean;
 }
 
 export interface Relationship {
@@ -134,12 +136,81 @@ export interface Me extends UserSummary {
   emailPrefs: EmailPrefs;
   /** Пройдено ли знакомство с приложением после регистрации */
   onboarded: boolean;
+  /** Дата рождения ГГГГ-ММ-ДД (видна только вам) */
+  birthDate: string | null;
+  gender: Gender | null;
+  /** Подсказка к паролю (видна только вам) */
+  passwordHint: string | null;
+  /** Сегодня ваш день рождения */
+  birthdayToday: boolean;
   privacy: PrivacySettings;
   notifications: NotificationSettings;
   counters: Counters;
   status: UserStatus | null;
   links: ProfileLink[];
   pinnedPostId: ID | null;
+}
+
+export type Gender = 'male' | 'female' | 'unspecified';
+
+/** Шаги входа: код → пароль (→ код из приложения), сброс пароля — два кода → новый пароль. */
+export type AuthFlowStep = 'code' | 'password' | 'totp' | 'reset_codes' | 'reset_password';
+
+/** Состояние пошагового входа (ответ на каждый шаг, пока вход не завершён). */
+export interface AuthFlowState {
+  status: 'step';
+  /** Токен попытки входа — передаётся в следующих шагах */
+  flow: string;
+  step: AuthFlowStep;
+  /** Замаскированная почта, куда ушёл код */
+  emailHint: string | null;
+  emailSent: boolean;
+  /** Код отправлен в чат SpaceUp */
+  accountSent: boolean;
+  /** Через сколько секунд можно отправить снова; null — повтор недоступен */
+  resendIn: number | null;
+  /** Лимит кодов на почту исчерпан — можно отправить только в чат SpaceUp */
+  limited: boolean;
+  /** Через сколько секунд снова можно получить код на почту */
+  limitResetIn: number | null;
+  /** Для сброса пароля нужен ещё и код из чата SpaceUp */
+  needsAccountCode: boolean;
+  /** Кто входит — показывается после проверки кода */
+  user: UserSummary | null;
+  hasHint: boolean;
+}
+
+export type AuthFlowResult = AuthFlowState | { status: 'ok'; me: Me };
+
+/** Состояние регистрации: код на почту → данные профиля. */
+export interface SignupState {
+  flow: string;
+  step: 'email_code' | 'details';
+  emailHint: string;
+  resendIn: number | null;
+  limited: boolean;
+  limitResetIn: number | null;
+}
+
+export interface QrLoginStart {
+  /** Токен в QR-коде: ссылка ${origin}/qr/${token} */
+  token: string;
+  /** Секрет только этого устройства — для опроса статуса */
+  secret: string;
+  expiresAt: ISODate;
+}
+
+export type QrLoginPoll =
+  | { status: 'pending' | 'rejected' | 'expired' }
+  | { status: 'approved'; state: AuthFlowState };
+
+/** Что видит вошедшее устройство перед подтверждением входа по QR. */
+export interface QrLoginInfo {
+  device: string;
+  os: string;
+  browser: string;
+  ip: string;
+  createdAt: ISODate;
 }
 
 /** Какие письма присылать на почту. */
@@ -291,6 +362,8 @@ export interface ChatSummary {
   mutedUntil: ISODate | null;
   pinnedMessage: MessagePreview | null;
   secret: SecretChatInfo | null;
+  /** Служебный чат SpaceUp: нельзя удалить, писать в него нельзя */
+  system: boolean;
   createdAt: ISODate;
   updatedAt: ISODate;
 }
@@ -648,7 +721,8 @@ export type NotificationType =
   | 'new_post'
   | 'story_reaction'
   | 'space_invite'
-  | 'security';
+  | 'security'
+  | 'birthday';
 
 export interface AppNotification {
   id: ID;
