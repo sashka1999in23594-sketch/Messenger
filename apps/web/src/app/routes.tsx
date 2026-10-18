@@ -36,6 +36,11 @@ const FoldersPage = lazyNamed(chats, 'FoldersPage');
 const JoinPage = lazyNamed(chats, 'JoinPage');
 const CallsPage = lazyNamed(calls, 'CallsPage');
 const stats = () => import('../features/stats');
+const live = () => import('../features/live');
+const LiveHome = lazyNamed(live, 'LiveHome');
+const GoLivePage = lazyNamed(live, 'GoLivePage');
+const LiveRoom = lazyNamed(live, 'LiveRoom');
+const PremieresPage = lazyNamed(live, 'PremieresPage');
 const StatsPage = lazyNamed(stats, 'StatsPage');
 const ChannelsStatsPage = lazyNamed(stats, 'ChannelsStatsPage');
 const ChannelStatsPage = lazyNamed(stats, 'ChannelStatsPage');
@@ -190,6 +195,10 @@ export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
         <Route path="video/studio/content" element={<StudioPage tab="content" />} />
         <Route path="video/upload" element={<UploadVideoPage />} />
         <Route path="watch/:id" element={<WatchPage />} />
+        <Route path="live" element={<LiveHome />} />
+        <Route path="live/new" element={<GoLivePage />} />
+        <Route path="live/:id" element={<LiveRoom />} />
+        <Route path="premieres" element={<PremieresPage />} />
         <Route path="playlist/:id" element={<PlaylistPage />} />
 
         {/* Кометы — короткие вертикальные видео */}

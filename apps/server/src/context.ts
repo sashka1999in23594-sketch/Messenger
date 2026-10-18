@@ -22,6 +22,7 @@ import { ChatsService } from './modules/chats/chats.service.js';
 import { CommunitiesService } from './modules/communities/communities.service.js';
 import { SpacesService } from './modules/spaces/spaces.service.js';
 import { StatsService } from './modules/stats/stats.service.js';
+import { LiveService } from './modules/live/live.service.js';
 import { KeysService } from './modules/keys/keys.service.js';
 import { MediaService } from './modules/media/media.service.js';
 import { NotificationService } from './modules/notifications/notifications.service.js';
@@ -69,6 +70,7 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub) {
   const communities = new CommunitiesService(db, usersRepo, media, notifications);
   const spaces = new SpacesService(db, usersRepo, media, chats, policy, notifications, hub, config.publicOrigin);
   const stats = new StatsService(db, media);
+  const live = new LiveService(db, usersRepo, policy, hub, notifications);
   const search = new SearchService(db, usersRepo, posts, chats, spaces, policy);
   const reports = new ReportsService(db);
   const exporter = new AccountExporter(db, users);
@@ -113,6 +115,7 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub) {
     communities,
     spaces,
     stats,
+    live,
     search,
     reports,
     exporter,

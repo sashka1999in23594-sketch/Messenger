@@ -3,7 +3,7 @@
  * лёгкие сигналы (набор текста, пинг). Все изменения данных идут через REST,
  * поэтому протокол легко масштабировать (Redis pub/sub, NATS) без изменения клиента.
  */
-import type { AppNotification, CallInfo, Counters, ID, Message } from './types.js';
+import type { AppNotification, CallInfo, Counters, ID, LiveChatMessage, LiveStream, Message } from './types.js';
 
 /** Что делает собеседник: печатает, записывает голосовое или кружок. */
 export type ChatActivity = 'typing' | 'voice' | 'round';
@@ -38,11 +38,20 @@ export type ServerEvent =
   | { t: 'call.incoming'; call: CallInfo }
   | { t: 'call.updated'; call: CallInfo }
   | { t: 'call.signal'; callId: ID; signal: CallSignal }
+  /** Прямой эфир: зритель подключился или ушёл (ведущему) */
+  | { t: 'live.viewer'; streamId: ID; peer: string; joined: boolean }
+  /** Сигнал WebRTC эфира: ведущему — от зрителя peer, зрителю — от ведущего */
+  | { t: 'live.signal'; streamId: ID; peer: string; signal: CallSignal }
+  /** Изменился эфир (зрители, завершён) */
+  | { t: 'live.updated'; stream: LiveStream }
+  /** Сообщение в чате эфира или премьеры */
+  | { t: 'live.chat'; room: string; message: LiveChatMessage }
   | { t: 'pong' };
 
 export type ClientEvent =
   | { t: 'typing'; chatId: ID; activity?: ChatActivity }
   | { t: 'call.signal'; callId: ID; signal: CallSignal }
+  | { t: 'live.signal'; streamId: ID; peer: string; signal: CallSignal }
   | { t: 'ping' }
   | { t: 'presence.subscribe'; userIds: ID[] };
 

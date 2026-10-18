@@ -99,6 +99,13 @@ export class Policy {
     return true;
   }
 
+  /** Прямой эфир смотрят все, кроме тех, кто в чёрном списке у ведущего (или сам его заблокировал) */
+  canWatchLive(viewerId: string, owner: UserRow): boolean {
+    if (viewerId === owner.id) return true;
+    if (this.blockedEitherWay(viewerId, owner.id)) return false;
+    return this.canViewContent(viewerId, owner);
+  }
+
   /** viewer в списке «Близкие друзья» у owner */
   isCloseFriend(ownerId: string, viewerId: string): boolean {
     return !!this.db.get('SELECT 1 FROM close_friends WHERE owner_id = :o AND friend_id = :v', { o: ownerId, v: viewerId });

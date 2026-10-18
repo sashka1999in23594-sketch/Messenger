@@ -12,6 +12,7 @@ import { desktopNotify, playSound } from '../shared/lib/sounds';
 import { isQuietNow, usePrefs } from '../shared/stores/prefs';
 import { activeChat, forgetChat, onIncomingMessage, patchChat, patchMessage, removeMessage } from '../features/chats/cache';
 import { onCommentDeleted, onIncomingComment } from '../features/chats/channel';
+import { handleLiveEvent } from '../features/live/bus';
 
 type Navigate = (to: string) => void;
 let navigateFn: Navigate = (to) => window.location.assign(to);
@@ -66,6 +67,12 @@ function handle(event: ServerEvent): void {
       void queryClient.invalidateQueries({ queryKey: qk.chat(event.chatId) });
       void queryClient.invalidateQueries({ queryKey: qk.chatsAll });
       void queryClient.invalidateQueries({ queryKey: qk.members(event.chatId) });
+      break;
+    case 'live.viewer':
+    case 'live.signal':
+    case 'live.updated':
+    case 'live.chat':
+      handleLiveEvent(event);
       break;
     case 'space.changed':
       void queryClient.invalidateQueries({ queryKey: ['space', event.spaceId] });

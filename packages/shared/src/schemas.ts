@@ -431,8 +431,17 @@ export const createPostSchema = z
     communityId: id.optional(),
     repostOfId: id.optional(),
     commentsDisabled: z.boolean().default(false),
+    /** Премьера видео: время, когда оно откроется всем одновременно (от 5 минут до 30 дней вперёд) */
+    premiereAt: z.iso.datetime({ offset: true }).optional(),
   })
   .superRefine((v, ctx) => {
+    if (v.premiereAt) {
+      const at = Date.parse(v.premiereAt);
+      if (v.kind !== 'video') ctx.addIssue({ code: 'custom', path: ['premiereAt'], message: 'Премьера бывает только у видео' });
+      else if (!(at > Date.now() + 4 * 60_000) || at > Date.now() + 30 * 86_400_000) {
+        ctx.addIssue({ code: 'custom', path: ['premiereAt'], message: 'Премьеру можно назначить от 5 минут до 30 дней вперёд' });
+      }
+    }
     if (v.repostOfId) return;
     if (v.kind === 'note' && !v.text && v.mediaIds.length === 0) {
       ctx.addIssue({ code: 'custom', path: ['text'], message: 'Напишите что-нибудь' });
@@ -557,6 +566,15 @@ export const createCommunitySchema = z.object({
   description: text(LIMITS.descriptionMax).default(''),
   visibility: z.enum(['public', 'private']).default('public'),
 });
+
+// ─── Прямые эфиры ───────────────────────────────────────────────────────────
+
+export const startLiveSchema = z.object({
+  title: requiredText(LIMITS.titleMax),
+  description: text(LIMITS.chatDescriptionMax).default(''),
+});
+export const liveChatSchema = z.object({ text: requiredText(500) });
+export const endLiveSchema = z.object({ recordingPostId: id.nullable().optional() });
 
 // ─── Компании и сообщества ──────────────────────────────────────────────────
 

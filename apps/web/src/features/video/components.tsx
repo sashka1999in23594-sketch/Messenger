@@ -7,7 +7,7 @@ import { api, ApiError, errorMessage } from '../../shared/api/client';
 import { queryClient } from '../../shared/api/query';
 import { uploadAny } from '../../shared/lib/media';
 import { toast } from '../../shared/stores/ui';
-import { cn, duration, timeAgo, views } from '../../shared/lib/format';
+import { cn, duration, fullDate, timeAgo, views } from '../../shared/lib/format';
 import { Avatar, Button, Input, Textarea, Verified } from '../../shared/ui';
 import './video.css';
 
@@ -18,7 +18,11 @@ export function VideoCard({ post, row, progressSec }: { post: Post; row?: boolea
     <Link to={href} className={cn('video-card', row && 'video-card--row')}>
       <div className="video-thumb" style={post.kind === 'short' && !row ? { aspectRatio: '9 / 16' } : undefined}>
         {m?.posterUrl && <img src={m.posterUrl} alt="" loading="lazy" decoding="async" />}
-        {m?.durationSec ? <span className="video-thumb__dur">{duration(m.durationSec)}</span> : null}
+        {post.premiereAt && Date.parse(post.premiereAt) > Date.now() ? (
+          <span className="video-thumb__dur video-thumb__premiere">Премьера</span>
+        ) : m?.durationSec ? (
+          <span className="video-thumb__dur">{duration(m.durationSec)}</span>
+        ) : null}
         {progressSec !== undefined && m?.durationSec ? (
           <span className="video-thumb__progress">
             <span style={{ width: `${Math.min(100, (progressSec / m.durationSec) * 100)}%` }} />
@@ -33,7 +37,7 @@ export function VideoCard({ post, row, progressSec }: { post: Post; row?: boolea
             {post.author.displayName} {post.author.verified && <Verified size={13} />}
           </span>
           <span className="video-card__meta">
-            {views(post.stats.views)} · {timeAgo(post.createdAt)}
+            {post.premiereAt && Date.parse(post.premiereAt) > Date.now() ? `Премьера ${fullDate(post.premiereAt)}` : `${views(post.stats.views)} · ${timeAgo(post.createdAt)}`}
           </span>
         </div>
       </div>
@@ -51,6 +55,9 @@ export function UploadVideoForm({ kind, onDone }: { kind: 'video' | 'short'; onD
   const [text, setText] = useState('');
   const [over, setOver] = useState(false);
   const [commentsDisabled, setCommentsDisabled] = useState(false);
+  /** Премьера: видео откроется всем одновременно в выбранное время */
+  const [premiere, setPremiere] = useState(false);
+  const [premiereAt, setPremiereAt] = useState(() => localInput(Date.now() + 3600_000));
   const input = useRef<HTMLInputElement>(null);
 
   const pick = (f: File) => {
@@ -69,9 +76,18 @@ export function UploadVideoForm({ kind, onDone }: { kind: 'video' | 'short'; onD
   };
 
   const publish = useMutation({
-    mutationFn: () => api.post<Post>('/posts', { kind, title: kind === 'video' ? title : undefined, text, mediaIds: [media!.id], visibility: 'public', commentsDisabled }),
+    mutationFn: () =>
+      api.post<Post>('/posts', {
+        kind,
+        title: kind === 'video' ? title : undefined,
+        text,
+        mediaIds: [media!.id],
+        visibility: 'public',
+        commentsDisabled,
+        premiereAt: kind === 'video' && premiere ? new Date(premiereAt).toISOString() : undefined,
+      }),
     onSuccess: (p) => {
-      toast({ text: kind === 'video' ? 'Видео опубликовано' : 'Комета запущена', kind: 'success' });
+      toast({ text: p.premiereAt ? 'Премьера назначена — подписчики смогут поставить напоминание' : kind === 'video' ? 'Видео опубликовано' : 'Комета запущена', kind: 'success' });
       void queryClient.invalidateQueries({ queryKey: ['feed'] });
       onDone(p);
     },
@@ -126,9 +142,33 @@ export function UploadVideoForm({ kind, onDone }: { kind: 'video' | 'short'; onD
       <label className="row" style={{ gap: 10 }}>
         <input type="checkbox" checked={commentsDisabled} onChange={(e) => setCommentsDisabled(e.target.checked)} /> Отключить комментарии
       </label>
+      {kind === 'video' && (
+        <div className="card premiere-pick">
+          <label className="row" style={{ gap: 10 }}>
+            <input type="checkbox" checked={premiere} onChange={(e) => setPremiere(e.target.checked)} />
+            <span className="col" style={{ gap: 0 }}>
+              <b>Премьера</b>
+              <span className="xs muted">Видео откроется всем одновременно, зрители смотрят вместе с общим чатом</span>
+            </span>
+          </label>
+          {premiere && (
+            <label className="field">
+              <span className="field__label">Начало премьеры</span>
+              <input
+                className="input"
+                type="datetime-local"
+                value={premiereAt}
+                min={localInput(Date.now() + 5 * 60_000)}
+                max={localInput(Date.now() + 30 * 86_400_000)}
+                onChange={(e) => setPremiereAt(e.target.value)}
+              />
+            </label>
+          )}
+        </div>
+      )}
       <div className="row">
         <Button disabled={!media || (kind === 'video' && !title.trim())} loading={publish.isPending} onClick={() => publish.mutate()}>
-          Опубликовать
+          {premiere && kind === 'video' ? 'Назначить премьеру' : 'Опубликовать'}
         </Button>
         <Button
           variant="ghost"
@@ -142,4 +182,10 @@ export function UploadVideoForm({ kind, onDone }: { kind: 'video' | 'short'; onD
       </div>
     </div>
   );
+}
+
+/** Значение для <input type="datetime-local"> в местном времени. */
+function localInput(ms: number): string {
+  const d = new Date(ms - new Date().getTimezoneOffset() * 60_000);
+  return d.toISOString().slice(0, 16);
 }

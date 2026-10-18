@@ -1,0 +1,416 @@
+/* ─── Прямые эфиры и премьеры ───────────────────────────────────────────── */
+.live-section {
+  margin: 18px 0 10px 4px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+}
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--danger);
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  width: max-content;
+}
+.live-badge::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: live-pulse 1.4s ease-in-out infinite;
+}
+.live-badge--sm {
+  padding: 2px 7px;
+  font-size: 10px;
+}
+@keyframes live-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+.stream-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.stream-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: inherit;
+}
+.stream-card:hover {
+  text-decoration: none;
+}
+.stream-card__thumb {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  background: var(--grad);
+  overflow: hidden;
+}
+.stream-card__thumb .live-badge,
+.stream-card__ended {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+}
+.stream-card__ended {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated-solid);
+  font-size: var(--fs-xs);
+  font-weight: 650;
+}
+.stream-card__viewers {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated-solid);
+  font-size: var(--fs-xs);
+  font-weight: 650;
+}
+.stream-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Подготовка к эфиру */
+.live-source {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.live-preview {
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  text-align: center;
+  padding: 12px;
+}
+.live-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--chart-surface);
+}
+
+/* Комната эфира: видео и чат справа */
+.live-room {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 16px;
+  padding: 16px;
+  max-width: 1500px;
+  margin: 0 auto;
+  min-height: 100%;
+}
+.live-room__main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.live-stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-xl);
+  background: var(--chart-surface);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.live-stage__video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.live-stage__note {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  text-align: center;
+  color: var(--text-2);
+}
+.live-stage__top {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.live-stage__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  backdrop-filter: blur(var(--blur));
+  font-size: var(--fs-xs);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.live-stage__sound {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius-full);
+  background: var(--bg-elevated);
+  backdrop-filter: blur(var(--blur));
+  font-weight: 650;
+  font-size: var(--fs-sm);
+}
+.live-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.live-recording {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+}
+
+/* Чат эфира и премьеры */
+.live-chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100dvh - 140px);
+  border-radius: var(--radius-xl);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  overflow: hidden;
+}
+.live-room > .live-chat {
+  position: sticky;
+  top: 0;
+  height: min(720px, calc(100dvh - 140px));
+}
+.watch__side .live-chat {
+  height: 420px;
+}
+.live-chat__head {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 700;
+}
+.live-chat__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.live-chat__msg {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.live-chat__msg b {
+  color: var(--text-2);
+  font-weight: 650;
+}
+.live-chat__empty {
+  padding: 12px 14px;
+  margin: 0;
+}
+.live-chat__form {
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  border-top: 1px solid var(--border);
+}
+.live-chat__form .input {
+  flex: 1;
+  min-width: 0;
+}
+@media (max-width: 1000px) {
+  .live-room {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0 0 16px;
+  }
+  .live-stage {
+    border-radius: 0;
+  }
+  .live-room__main > :not(.live-stage) {
+    padding-inline: 16px;
+  }
+  .live-room > .live-chat {
+    position: static;
+    height: 420px;
+    margin: 0 16px;
+  }
+}
+
+/* Премьеры */
+.premiere-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  width: max-content;
+}
+.premiere-badge--live {
+  background: var(--danger);
+}
+.premiere-wait {
+  position: relative;
+  display: grid;
+  place-items: center;
+  background-size: cover;
+  background-position: center;
+}
+.premiere-wait::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--chart-surface);
+  opacity: 0.72;
+}
+.premiere-wait__inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 16px;
+}
+.premiere-wait__count {
+  font-size: clamp(36px, 7vw, 64px);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.premiere-live {
+  position: relative;
+}
+.premiere-live .premiere-badge {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+}
+.premiere-sync {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 650;
+  font-size: var(--fs-sm);
+}
+.premiere-row {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.premiere-row__thumb {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-lg);
+  background: var(--grad);
+  background-size: cover;
+  background-position: center;
+}
+.premiere-row__thumb .premiere-badge {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+}
+.premiere-row__info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  min-width: 0;
+}
+@media (max-width: 560px) {
+  .premiere-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.premiere-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+}
+
+/* Полоса «Сейчас в эфире» над видео */
+.live-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+  padding-bottom: 4px;
+}
+.live-strip__item {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 260px;
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  color: inherit;
+}
+.live-strip__item:hover {
+  text-decoration: none;
+  border-color: var(--danger);
+}
+.video-thumb__premiere {
+  background: var(--accent) !important;
+  color: var(--accent-text) !important;
+}

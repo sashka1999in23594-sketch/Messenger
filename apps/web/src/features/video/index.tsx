@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ChartColumn, Clapperboard, Clock, Eye, Heart, History, ListPlus, ListVideo, Plus, Share2, ThumbsUp, Trash2, Upload, Users } from 'lucide-react';
-import type { HistoryEntry, Playlist, Post, PostKind, UserProfile } from '@omni/shared';
+import { ChartColumn, Clapperboard, Clock, Eye, Heart, History, ListPlus, ListVideo, Plus, Radio, Share2, ThumbsUp, Trash2, Upload, Users } from 'lucide-react';
+import type { HistoryEntry, LiveStream, Playlist, Post, PostKind, UserProfile } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { flatPages, qk, queryClient, useCursorList } from '../../shared/api/query';
 import { useMe } from '../../shared/stores/session';
@@ -12,6 +12,7 @@ import { Avatar, Button, ButtonLink, confirm, EmptyState, ErrorState, Input, Loa
 import { CommentsSection } from '../posts/Comments';
 import { shareLink, usePostActions } from '../posts/actions';
 import { FollowButton } from '../feed';
+import { PremiereChat, PremiereStage, usePremierePhase } from '../live/premiere';
 import { UploadVideoForm, VideoCard } from './components';
 import './video.css';
 
@@ -46,6 +47,9 @@ function VideoGrid({ queryKey, path, empty }: { queryKey: readonly unknown[]; pa
 
 export function VideoHome({ mode }: { mode: 'for-you' | 'following' | 'trending' }) {
   const tags = useQuery({ queryKey: ['trends'], queryFn: () => api.get<{ items: { tag: string }[] }>('/hashtags/trending?days=30') });
+  // Кто сейчас в прямом эфире — полоса над видео
+  const live = useQuery({ queryKey: ['live-list'], queryFn: () => api.get<{ live: LiveStream[]; recent: LiveStream[] }>('/live'), refetchInterval: 30_000 });
+  const liveNow = live.data?.live.length ?? 0;
   return (
     <div className="scroll">
       <div className="page page--wide">
@@ -60,16 +64,41 @@ export function VideoHome({ mode }: { mode: 'for-you' | 'following' | 'trending'
             <Link to="/video/trending" className={cn('chip', mode === 'trending' && 'chip--active')}>
               В тренде
             </Link>
+            <Link to="/live" className="chip">
+              <Radio size={14} /> Эфиры{liveNow ? ` · ${liveNow}` : ''}
+            </Link>
+            <Link to="/premieres" className="chip">
+              <Clapperboard size={14} /> Премьеры
+            </Link>
             {tags.data?.items.slice(0, 8).map((t) => (
               <Link key={t.tag} to={`/tag/${encodeURIComponent(t.tag)}`} className="chip">
                 #{t.tag}
               </Link>
             ))}
           </div>
+          <ButtonLink to="/live/new" size="sm" variant="secondary" icon={<Radio size={16} />}>
+            В эфир
+          </ButtonLink>
           <ButtonLink to="/video/upload" size="sm" icon={<Upload size={16} />}>
             Загрузить
           </ButtonLink>
         </div>
+        {(live.data?.live.length ?? 0) > 0 && (
+          <div className="live-strip">
+            {live.data!.live.slice(0, 6).map((st) => (
+              <Link key={st.id} to={`/live/${st.id}`} className="live-strip__item">
+                <Avatar src={st.owner.avatarUrl} name={st.owner.displayName} id={st.owner.id} size={44} />
+                <span className="col" style={{ gap: 0, minWidth: 0 }}>
+                  <span className="live-badge live-badge--sm">В эфире</span>
+                  <b className="ellipsis small">{st.title}</b>
+                  <span className="xs muted ellipsis">
+                    {st.owner.displayName} · {st.viewers} зрит.
+                  </span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
         <VideoGrid
           queryKey={qk.feed(mode, 'video')}
           path={`/feed/${mode === 'following' ? 'following' : mode}?kind=video`}
@@ -191,6 +220,7 @@ function WatchContent({
 }) {
   const { like, watchLater } = usePostActions(post);
   const m = post.media[0];
+  const premiere = usePremierePhase(post);
   return (
     <div className="scroll">
       <div className="watch">
@@ -198,7 +228,11 @@ function WatchContent({
           <div className="player-wrap">
             {/* «Атмосферная подсветка» как в YouTube: размытая обложка за плеером */}
             {m?.posterUrl && <div className="player-ambient" style={{ backgroundImage: `url("${m.posterUrl}")` }} aria-hidden />}
-            <div className="player">{m && <video ref={video} src={m.url} poster={m.posterUrl ?? undefined} controls autoPlay playsInline preload="metadata" />}</div>
+            {premiere.phase ? (
+              <PremiereStage post={post} phase={premiere.phase} left={premiere.left} elapsed={premiere.elapsed} video={video} />
+            ) : (
+              <div className="player">{m && <video ref={video} src={m.url} poster={m.posterUrl ?? undefined} controls autoPlay playsInline preload="metadata" />}</div>
+            )}
           </div>
           <h1 className="watch__title">{post.title}</h1>
           <div className="watch__bar">
@@ -230,7 +264,7 @@ function WatchContent({
           </div>
           <div className="watch__desc">
             <div className="bold small">
-              {views(post.stats.views)} · {timeAgo(post.createdAt)}
+              {premiere.phase === 'before' ? `Премьера ${fullDate(post.premiereAt!)}` : `${views(post.stats.views)} · ${timeAgo(post.createdAt)}`}
             </div>
             <div className={descOpen ? '' : 'clamp-3'}>
               <RichText text={post.text || 'Без описания'} />
@@ -249,6 +283,7 @@ function WatchContent({
           </div>
         </div>
         <aside className="watch__side">
+          {premiere.phase && <PremiereChat post={post} />}
           <div className="bold">Похожие видео</div>
           {related.map((r) => (
             <VideoCard key={r.id} post={r} row />

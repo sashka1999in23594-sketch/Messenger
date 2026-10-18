@@ -22,6 +22,7 @@ import { miscRoutes } from './modules/misc.routes.js';
 import { socialRoutes } from './modules/social/social.routes.js';
 import { spacesRoutes } from './modules/spaces/spaces.routes.js';
 import { statsRoutes } from './modules/stats/stats.routes.js';
+import { liveRoutes } from './modules/live/live.routes.js';
 import { postsRoutes } from './modules/posts/posts.routes.js';
 import { RealtimeHub } from './modules/realtime/hub.js';
 import { wsRoutes } from './modules/realtime/ws.routes.js';
@@ -82,6 +83,7 @@ export async function buildApp(config: Config, opts: { db?: Db } = {}): Promise<
       await api.register(socialRoutes);
       await api.register(spacesRoutes);
       await api.register(statsRoutes);
+      await api.register(liveRoutes);
       await api.register(wsRoutes);
     },
     { prefix: API_PREFIX },

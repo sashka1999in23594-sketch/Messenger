@@ -483,6 +483,10 @@ export interface Post {
   viewer: PostViewerState;
   /** Закреплён в профиле автора (только во вкладке профиля) */
   pinned?: boolean;
+  /** Премьера: видео откроется всем одновременно в это время */
+  premiereAt: ISODate | null;
+  /** Вы просили напомнить о премьере */
+  premiereReminder?: boolean;
   createdAt: ISODate;
   editedAt: ISODate | null;
 }
@@ -787,4 +791,29 @@ export interface StatsOverview {
 export interface ChannelStatsDetails extends ChannelStats {
   days: string[];
   topPosts: ChannelPostStat[];
+}
+
+// ─── Прямые эфиры и премьеры ────────────────────────────────────────────────
+
+export interface LiveStream {
+  id: ID;
+  owner: UserSummary;
+  title: string;
+  description: string;
+  status: 'live' | 'ended';
+  /** Зрителей сейчас */
+  viewers: number;
+  peakViewers: number;
+  totalViewers: number;
+  /** Запись эфира, опубликованная как видео */
+  recordingPostId: ID | null;
+  startedAt: ISODate;
+  endedAt: ISODate | null;
+}
+
+export interface LiveChatMessage {
+  id: ID;
+  user: UserSummary;
+  text: string;
+  createdAt: ISODate;
 }

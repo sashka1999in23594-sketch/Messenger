@@ -32,6 +32,7 @@ export interface PostRow {
   comment_count: number;
   repost_count: number;
   view_count: number;
+  premiere_at: number | null;
   created_at: number;
   edited_at: number | null;
   deleted_at: number | null;
@@ -91,8 +92,8 @@ export class PostsService {
     const id = newId(now);
     this.db.tx(() => {
       this.db.run(
-        `INSERT INTO posts (id, author_id, kind, title, text, visibility, community_id, comments_disabled, created_at)
-         VALUES (:id, :author, :kind, :title, :text, :vis, :community, :cd, :now)`,
+        `INSERT INTO posts (id, author_id, kind, title, text, visibility, community_id, comments_disabled, premiere_at, created_at)
+         VALUES (:id, :author, :kind, :title, :text, :vis, :community, :cd, :premiere, :now)`,
         {
           id,
           author: userId,
@@ -102,6 +103,7 @@ export class PostsService {
           vis: input.communityId ? 'public' : input.visibility,
           community: input.communityId ?? null,
           cd: input.commentsDisabled,
+          premiere: input.premiereAt ? Date.parse(input.premiereAt) : null,
           now,
         },
       );
@@ -112,8 +114,44 @@ export class PostsService {
       if (input.communityId) this.db.run('UPDATE communities SET post_count = post_count + 1 WHERE id = :c', { c: input.communityId });
     });
     this.notifyMentions(userId, id, input.text);
-    this.notifySubscribers(userId, id, input.title || input.text);
+    this.notifySubscribers(userId, id, input.premiereAt ? `назначил(а) премьеру: ${input.title}` : input.title || input.text);
     return this.get(userId, id);
+  }
+
+  // ─── Премьеры ─────────────────────────────────────────────────────────────
+
+  /** Премьеры: ближайшие и идущие сейчас (видео ещё не закончилось — смотрим вместе). */
+  premieres(viewerId: string): Post[] {
+    const rows = this.db.all<PostRow>(
+      `SELECT p.* ${BASE_FROM}
+       WHERE p.premiere_at IS NOT NULL AND p.premiere_at > :since AND p.kind = 'video' AND ${Policy.visiblePostsSql()}
+       ORDER BY p.premiere_at ASC LIMIT 50`,
+      { viewer: viewerId, since: Date.now() - 6 * 3600_000 },
+    );
+    return this.toDto(rows, viewerId);
+  }
+
+  /** «Напомнить»: уведомление придёт, когда премьера начнётся. */
+  remindPremiere(viewerId: string, postId: string, on: boolean): void {
+    this.viewable(viewerId, postId);
+    const post = this.row(postId)!;
+    if (!post.premiere_at || post.premiere_at <= Date.now()) throw badRequest('Премьера уже началась');
+    if (on) this.db.run('INSERT OR IGNORE INTO premiere_reminders (post_id, user_id) VALUES (:p, :u)', { p: postId, u: viewerId });
+    else this.db.run('DELETE FROM premiere_reminders WHERE post_id = :p AND user_id = :u', { p: postId, u: viewerId });
+  }
+
+  /** Фоновая задача: премьера началась — напоминаем тем, кто просил. */
+  firePremiereReminders(): number {
+    const due = this.db.all<{ post_id: string; user_id: string; author_id: string; title: string | null }>(
+      `SELECT r.post_id, r.user_id, p.author_id, p.title FROM premiere_reminders r JOIN posts p ON p.id = r.post_id
+       WHERE p.premiere_at <= :now AND p.deleted_at IS NULL LIMIT 500`,
+      { now: Date.now() },
+    );
+    for (const d of due) {
+      this.notifications.notify({ userId: d.user_id, type: 'new_post', actorId: d.author_id, entityType: 'post', entityId: d.post_id, link: `/watch/${d.post_id}`, preview: `премьера начинается: ${d.title ?? 'видео'}` });
+      this.db.run('DELETE FROM premiere_reminders WHERE post_id = :p AND user_id = :u', { p: d.post_id, u: d.user_id });
+    }
+    return due.length;
   }
 
   /** «Колокольчик»: подписчикам на уведомления — о новой публикации (если она им видна) */
@@ -295,6 +333,7 @@ export class PostsService {
     const liked = set(`SELECT post_id AS id FROM post_likes WHERE user_id = :v AND post_id IN (${list.sql})`);
     const bookmarked = set(`SELECT post_id AS id FROM bookmarks WHERE user_id = :v AND post_id IN (${list.sql})`);
     const later = set(`SELECT post_id AS id FROM watch_later WHERE user_id = :v AND post_id IN (${list.sql})`);
+    const reminded = set(`SELECT post_id AS id FROM premiere_reminders WHERE user_id = :v AND post_id IN (${list.sql})`);
     const reposted = set(
       `SELECT repost_of_id AS id FROM posts WHERE author_id = :v AND text = '' AND deleted_at IS NULL AND repost_of_id IN (${list.sql})`,
     );
@@ -326,7 +365,11 @@ export class PostsService {
       author: authors.get(r.author_id)!,
       title: r.title,
       text: r.text,
-      media: (mediaBy.get(r.id) ?? []).map((id) => mediaItems.get(id)).filter((m) => !!m),
+      // До премьеры видео недоступно никому, кроме автора: остаётся только обложка
+      media: (mediaBy.get(r.id) ?? [])
+        .map((id) => mediaItems.get(id))
+        .filter((m) => !!m)
+        .map((m) => (r.premiere_at && r.premiere_at > Date.now() && r.author_id !== viewerId ? { ...m, url: '' } : m)),
       hashtags: tags.get(r.id) ?? [],
       visibility: r.visibility,
       community: r.community_id ? (communities.get(r.community_id) ?? null) : null,
@@ -334,6 +377,8 @@ export class PostsService {
       commentsDisabled: bool(r.comments_disabled),
       stats: { likes: r.like_count, comments: r.comment_count, reposts: r.repost_count, views: r.view_count },
       viewer: { liked: liked.has(r.id), bookmarked: bookmarked.has(r.id), reposted: reposted.has(r.id), watchLater: later.has(r.id) },
+      premiereAt: r.premiere_at ? iso(r.premiere_at) : null,
+      premiereReminder: reminded.has(r.id),
       createdAt: iso(r.created_at),
       editedAt: isoOrNull(r.edited_at),
     }));

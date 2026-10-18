@@ -816,4 +816,43 @@ ALTER TABLE chats ADD COLUMN space_position INTEGER NOT NULL DEFAULT 0;
 CREATE INDEX chats_space ON chats(space_id, space_position) WHERE space_id IS NOT NULL;
 `,
   },
+  {
+    version: '008_live',
+    sql: /* sql */ `
+-- ── Прямые эфиры, чат эфиров и премьер, премьеры видео ─────────────────────
+CREATE TABLE live_streams (
+  id                TEXT PRIMARY KEY,
+  owner_id          TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title             TEXT NOT NULL,
+  description       TEXT NOT NULL DEFAULT '',
+  status            TEXT NOT NULL CHECK (status IN ('live', 'ended')),
+  peak_viewers      INTEGER NOT NULL DEFAULT 0,
+  total_viewers     INTEGER NOT NULL DEFAULT 0,
+  recording_post_id TEXT REFERENCES posts(id) ON DELETE SET NULL,
+  started_at        INTEGER NOT NULL,
+  ended_at          INTEGER
+);
+CREATE INDEX live_streams_status ON live_streams(status, started_at DESC);
+CREATE INDEX live_streams_owner ON live_streams(owner_id, started_at DESC);
+
+-- Комната: «stream:<id>» или «premiere:<postId>»
+CREATE TABLE live_chat (
+  id         TEXT PRIMARY KEY,
+  room       TEXT NOT NULL,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  text       TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX live_chat_room ON live_chat(room, created_at);
+
+ALTER TABLE posts ADD COLUMN premiere_at INTEGER;
+CREATE INDEX posts_premiere ON posts(premiere_at) WHERE premiere_at IS NOT NULL;
+
+CREATE TABLE premiere_reminders (
+  post_id TEXT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (post_id, user_id)
+);
+`,
+  },
 ];
