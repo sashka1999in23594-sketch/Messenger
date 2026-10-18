@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
+import { regionFromEndpoint, type S3Options } from './lib/s3.js';
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -42,6 +43,20 @@ const envSchema = z.object({
   CF_TURN_API_TOKEN: z.string().default(''),
   /** TURN от Metered: полная ссылка вида https://<app>.metered.live/api/v1/turn/credentials?apiKey=… */
   METERED_TURN_URL: z.string().default(''),
+  /**
+   * Внешнее S3-совместимое хранилище (Backblaze B2, Cloudflare R2, Yandex Object Storage…):
+   * копия базы и загруженные файлы переживают перезапуск на хостинге с временным диском.
+   */
+  S3_ENDPOINT: z.string().default(''),
+  S3_BUCKET: z.string().default(''),
+  S3_ACCESS_KEY_ID: z.string().default(''),
+  S3_SECRET_ACCESS_KEY: z.string().default(''),
+  /** Регион; если не задан — определяется по адресу хранилища */
+  S3_REGION: z.string().default(''),
+  /** Папка внутри бакета */
+  S3_PREFIX: z.string().default('spaceup'),
+  /** Как часто проверять изменения базы и отправлять копию (секунды) */
+  BACKUP_INTERVAL_SEC: z.coerce.number().int().min(5).max(3600).default(60),
 });
 
 export type Config = ReturnType<typeof loadConfig>;
@@ -87,6 +102,22 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
     .map((o) => o.trim().replace(/\/$/, ''))
     .filter(Boolean);
   const isProd = env.NODE_ENV === 'production';
+  const s3Vars = [env.S3_ENDPOINT, env.S3_BUCKET, env.S3_ACCESS_KEY_ID, env.S3_SECRET_ACCESS_KEY];
+  // Наполовину заполненные настройки — почти наверняка опечатка: молча работать без копии нельзя
+  if (s3Vars.some(Boolean) && !s3Vars.every(Boolean)) {
+    throw new Error('Хранилище: задайте все четыре переменные — S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY');
+  }
+  const endpoint = env.S3_ENDPOINT.trim().replace(/\/+$/, '');
+  const storage: S3Options | null = s3Vars.every(Boolean)
+    ? {
+        endpoint: /^https?:\/\//.test(endpoint) ? endpoint : `https://${endpoint}`,
+        region: env.S3_REGION || regionFromEndpoint(endpoint),
+        bucket: env.S3_BUCKET.trim(),
+        accessKeyId: env.S3_ACCESS_KEY_ID.trim(),
+        secretAccessKey: env.S3_SECRET_ACCESS_KEY.trim(),
+        prefix: env.S3_PREFIX.trim().replace(/^\/+|\/+$/g, ''),
+      }
+    : null;
   const from = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(env.MAIL_FROM);
   const mail = {
     fromName: from?.[1] || 'SpaceUp',
@@ -133,5 +164,7 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
       cloudflare: env.CF_TURN_KEY_ID && env.CF_TURN_API_TOKEN ? { keyId: env.CF_TURN_KEY_ID, token: env.CF_TURN_API_TOKEN } : null,
       meteredUrl: env.METERED_TURN_URL || null,
     },
+    storage,
+    backupIntervalMs: env.BACKUP_INTERVAL_SEC * 1000,
   };
 }

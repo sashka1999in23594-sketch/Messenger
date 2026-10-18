@@ -855,4 +855,12 @@ CREATE TABLE premiere_reminders (
 );
 `,
   },
+  {
+    version: '009_storage',
+    sql: `
+-- Копия файла во внешнем хранилище: время отправки; NULL — ещё не отправлен, 0 — файла нет ни на диске, ни в хранилище
+ALTER TABLE media ADD COLUMN remote_at INTEGER;
+CREATE INDEX media_remote_pending ON media(created_at) WHERE remote_at IS NULL;
+`,
+  },
 ];

@@ -128,5 +128,10 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // ─── Служебное ────────────────────────────────────────────────────────────
-  app.get('/health', { config: { rateLimit: false } }, async () => ({ ok: true, time: new Date().toISOString() }));
+  app.get('/health', { config: { rateLimit: false } }, async () => ({
+    ok: true,
+    time: new Date().toISOString(),
+    /** Где живут данные: «external» — с копией во внешнем хранилище, «local» — только на диске сервера */
+    storage: app.ctx.storage ? 'external' : 'local',
+  }));
 }

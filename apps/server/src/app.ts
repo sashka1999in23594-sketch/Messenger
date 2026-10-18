@@ -11,6 +11,7 @@ import type { Config } from './config.js';
 import { createServices, type Ctx } from './context.js';
 import { Db } from './db/index.js';
 import { migrate } from './db/migrate.js';
+import { S3Storage } from './lib/s3.js';
 import { registerSecurity } from './http/security.js';
 import './http/types.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
@@ -28,8 +29,9 @@ import { RealtimeHub } from './modules/realtime/hub.js';
 import { wsRoutes } from './modules/realtime/ws.routes.js';
 import { usersRoutes } from './modules/users/users.routes.js';
 
-export async function buildApp(config: Config, opts: { db?: Db } = {}): Promise<FastifyInstance> {
+export async function buildApp(config: Config, opts: { db?: Db; storage?: S3Storage | null } = {}): Promise<FastifyInstance> {
   const db = opts.db ?? new Db(config.dbFile);
+  const storage = opts.storage !== undefined ? opts.storage : config.storage ? new S3Storage(config.storage) : null;
   const app = Fastify({
     logger: config.isTest
       ? false
@@ -46,8 +48,8 @@ export async function buildApp(config: Config, opts: { db?: Db } = {}): Promise<
 
   migrate(db, (m) => app.log.info(m));
   const hub = new RealtimeHub();
-  const ctx: Ctx = { config, db, hub, services: createServices(db, config, hub) };
-  ctx.services.mail.logger = {
+  const ctx: Ctx = { config, db, hub, storage, services: createServices(db, config, hub, storage) };
+  ctx.services.mail.logger = ctx.services.media.logger = {
     info: (obj: unknown, msg?: string) => app.log.info(obj, msg),
     warn: (obj: unknown, msg?: string) => app.log.warn(obj, msg),
     error: (obj: unknown, msg?: string) => app.log.error(obj, msg),

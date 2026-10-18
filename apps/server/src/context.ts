@@ -5,6 +5,7 @@
  */
 import type { Config } from './config.js';
 import type { Db } from './db/index.js';
+import type { S3Storage } from './lib/s3.js';
 import { AccountExporter } from './modules/account/exporter.js';
 import { AuthService } from './modules/auth/auth.service.js';
 import { EmailCodes } from './modules/auth/email-codes.js';
@@ -40,8 +41,8 @@ import { DraftsService } from './modules/social/drafts.service.js';
 import { ListsService } from './modules/social/lists.service.js';
 import { MutedWordsService } from './modules/social/muted-words.js';
 
-export function createServices(db: Db, config: Config, hub: RealtimeHub) {
-  const media = new MediaService(db, config);
+export function createServices(db: Db, config: Config, hub: RealtimeHub, storage: S3Storage | null = null) {
+  const media = new MediaService(db, config, storage);
   const usersRepo = new UsersRepo(db, media);
   const policy = new Policy(db);
   const sessions = new SessionService(db, config.sessionTtlMs);
@@ -128,5 +129,7 @@ export interface Ctx {
   config: Config;
   db: Db;
   hub: RealtimeHub;
+  /** Внешнее хранилище для копии базы и файлов (null — всё только на локальном диске) */
+  storage: S3Storage | null;
   services: Services;
 }

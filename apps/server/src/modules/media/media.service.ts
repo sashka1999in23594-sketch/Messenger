@@ -2,9 +2,13 @@
  * Хранилище медиафайлов. Файлы лежат на диске под случайными именами,
  * тип определяется по содержимому, ссылки подписаны HMAC и истекают —
  * это позволяет позже вынести раздачу на CDN/S3 без изменения клиента.
+ *
+ * Если подключено внешнее хранилище (S3_*), каждый файл после загрузки
+ * копируется туда, а после перезапуска на чистом диске скачивается обратно
+ * при первом обращении — диск сервера работает как кэш.
  */
 import { createHash } from 'node:crypto';
-import { createWriteStream } from 'node:fs';
+import { createWriteStream, existsSync } from 'node:fs';
 import { mkdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import type { Readable } from 'node:stream';
@@ -16,6 +20,7 @@ import type { Db } from '../../db/index.js';
 import { AppError, badRequest, forbidden } from '../../lib/errors.js';
 import { deriveKey, hmac, safeEqual } from '../../lib/crypto.js';
 import { newId } from '../../lib/ids.js';
+import type { S3Storage } from '../../lib/s3.js';
 import { imageSize, sniff, type Sniffed } from './sniff.js';
 
 export interface MediaRow {
@@ -34,7 +39,10 @@ export interface MediaRow {
   created_at: number;
   deleted_at: number | null;
   waveform: string | null;
+  remote_at: number | null;
 }
+
+type Logger = Pick<Console, 'info' | 'warn' | 'error'>;
 
 /** Волна голосового: base64url из байтов 0–255 (до 100 значений). */
 function decodeWaveform(v: string | null): number[] | null {
@@ -53,10 +61,15 @@ const HEAD_BYTES = 256 * 1024;
 
 export class MediaService {
   private readonly signKey: Buffer;
+  logger: Logger = console;
+  /** Файлы, которые прямо сейчас отправляются в хранилище или скачиваются из него */
+  private readonly uploading = new Map<string, Promise<unknown>>();
+  private readonly downloading = new Map<string, Promise<boolean>>();
 
   constructor(
     private readonly db: Db,
     private readonly config: Config,
+    private readonly remote: S3Storage | null = null,
   ) {
     this.signKey = deriveKey(config.secret, 'media-url');
   }
@@ -84,6 +97,69 @@ export class MediaService {
 
   filePath(row: MediaRow): string {
     return path.join(this.config.uploadsDir, row.storage_key);
+  }
+
+  /**
+   * Гарантирует, что файл есть на диске: после перезапуска на чистом диске
+   * скачивает его из хранилища (один раз, даже при параллельных запросах).
+   */
+  async ensureLocal(row: MediaRow): Promise<boolean> {
+    const file = this.filePath(row);
+    if (existsSync(file)) return true;
+    if (!this.remote) return false;
+    let job = this.downloading.get(row.id);
+    if (!job) {
+      job = mkdir(path.dirname(file), { recursive: true })
+        .then(() => this.remote!.download(`media/${row.storage_key}`, file))
+        .finally(() => this.downloading.delete(row.id));
+      this.downloading.set(row.id, job);
+    }
+    return job;
+  }
+
+  /** Отправляет файл в хранилище в фоне; при сбое его подберёт syncPending(). */
+  private mirror(row: MediaRow): void {
+    if (!this.remote || this.uploading.has(row.id)) return;
+    const job = this.remote
+      .put(`media/${row.storage_key}`, { file: this.filePath(row), sha256: row.sha256 }, row.mime)
+      .then(() => this.db.run('UPDATE media SET remote_at = :now WHERE id = :id', { id: row.id, now: Date.now() }))
+      .catch((err: unknown) => this.logger.warn({ media: row.id, err: String(err) }, 'Файл не отправлен в хранилище — повторим позже'))
+      .finally(() => this.uploading.delete(row.id));
+    this.uploading.set(row.id, job);
+  }
+
+  /** Остановка сервиса: дожидаемся файлов, которые отправляются прямо сейчас. */
+  async flush(): Promise<void> {
+    await Promise.allSettled([...this.uploading.values()]);
+  }
+
+  /**
+   * Фоновая задача: досылает файлы, которые не удалось отправить сразу
+   * (или все старые файлы — при первом подключении хранилища).
+   */
+  async syncPending(limit = 20): Promise<number> {
+    if (!this.remote) return 0;
+    const rows = this.db.all<MediaRow>('SELECT * FROM media WHERE remote_at IS NULL ORDER BY created_at LIMIT :limit', { limit });
+    let done = 0;
+    for (const row of rows) {
+      if (this.uploading.has(row.id)) continue;
+      if (existsSync(this.filePath(row))) {
+        const job = this.remote.put(`media/${row.storage_key}`, { file: this.filePath(row), sha256: row.sha256 }, row.mime);
+        this.uploading.set(row.id, job);
+        try {
+          await job;
+        } finally {
+          this.uploading.delete(row.id);
+        }
+        this.db.run('UPDATE media SET remote_at = :now WHERE id = :id', { id: row.id, now: Date.now() });
+      } else {
+        // Файла нет на диске: обычно он уже в хранилище, а отметка не попала в копию базы
+        const there = await this.remote.exists(`media/${row.storage_key}`);
+        this.db.run('UPDATE media SET remote_at = :at WHERE id = :id', { id: row.id, at: there ? Date.now() : 0 });
+      }
+      done++;
+    }
+    return done;
   }
 
   toItem(row: MediaRow): MediaItem {
@@ -227,6 +303,8 @@ export class MediaService {
         now: now.getTime(),
       },
     );
-    return this.toItem(this.get(id)!);
+    const row = this.get(id)!;
+    this.mirror(row);
+    return this.toItem(row);
   }
 }

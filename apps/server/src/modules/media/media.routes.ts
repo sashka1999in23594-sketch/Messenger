@@ -44,7 +44,7 @@ export async function mediaRoutes(app: FastifyInstance): Promise<void> {
     const q = parse(serveQuery, req.query);
     if (!media.verify(req.params.id, q.e, q.s)) throw notFound('Файл не найден или ссылка устарела');
     const row = media.get(req.params.id);
-    if (!row) throw notFound('Файл не найден');
+    if (!row || !(await media.ensureLocal(row))) throw notFound('Файл не найден');
     reply.header('X-Content-Type-Options', 'nosniff');
     reply.header('Content-Security-Policy', "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'; sandbox");
     reply.header('Cross-Origin-Resource-Policy', 'same-origin');
