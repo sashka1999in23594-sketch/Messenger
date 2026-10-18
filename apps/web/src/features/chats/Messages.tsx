@@ -1,4 +1,5 @@
 import { createContext, memo, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertCircle, BellOff, Check, CheckCheck, ChevronRight, Clock, Copy, Ellipsis, Eye, Flag, Forward, Lock, MessageSquare, Pencil, Pin, Plus, Reply, RotateCcw, SmilePlus, Trash2 } from 'lucide-react';
 import { REACTIONS, type ChatSummary } from '@omni/shared';
 import { Avatar, EmojiPicker, Menu, MediaGrid, RichText, useMenu, type MenuEntry } from '../../shared/ui';
@@ -249,20 +250,23 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
           ) : null
         }
       />
-      {picker && (
-        <div className="reaction-picker-layer" onPointerDown={(e) => e.target === e.currentTarget && setPicker(null)}>
-          <div className="reaction-picker" style={{ left: Math.max(8, Math.min(picker.x - 160, window.innerWidth - 348)), top: Math.max(8, Math.min(picker.y + 6, window.innerHeight - 370)) }}>
-            <EmojiPicker
-              autoFocus
-              onClose={() => setPicker(null)}
-              onPick={(e) => {
-                setPicker(null);
-                actions.react(msg, e);
-              }}
-            />
-          </div>
-        </div>
-      )}
+      {/* В портале: у панели переписки есть backdrop-filter, и position: fixed внутри неё считался бы от панели */}
+      {picker &&
+        createPortal(
+          <div className="reaction-picker-layer" onPointerDown={(e) => e.target === e.currentTarget && setPicker(null)}>
+            <div className="reaction-picker" style={{ left: Math.max(8, Math.min(picker.x - 160, window.innerWidth - 348)), top: Math.max(8, Math.min(picker.y + 6, window.innerHeight - 370)) }}>
+              <EmojiPicker
+                autoFocus
+                onClose={() => setPicker(null)}
+                onPick={(e) => {
+                  setPicker(null);
+                  actions.react(msg, e);
+                }}
+              />
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 });

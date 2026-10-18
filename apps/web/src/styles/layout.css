@@ -938,3 +938,25 @@
     display: none;
   }
 }
+
+/* Невысокие экраны (ноутбуки 1440×900): рельс плотнее, чтобы все разделы и профиль помещались без прокрутки */
+@media (min-width: 768px) and (max-height: 960px) {
+  .rail {
+    padding: 10px 0 10px;
+    gap: 0;
+  }
+  .rail__logo {
+    width: 42px;
+    height: 42px;
+    margin-bottom: 4px;
+  }
+  .rail__icon {
+    height: 30px;
+  }
+  .rail__item {
+    padding: 2px 0 3px;
+  }
+  .rail__tool {
+    height: 32px;
+  }
+}

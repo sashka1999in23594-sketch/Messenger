@@ -329,3 +329,23 @@
     flex: 0 0 auto;
   }
 }
+
+/* Боковая панель пространства уже списка чатов — с 1200 px участники
+   и информация о чате помещаются третьей колонкой, а не поверх переписки */
+@media (min-width: 1200px) {
+  .chats.space {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+  .chats.space.chats--info {
+    grid-template-columns: 280px minmax(0, 1fr) 300px;
+  }
+  .chats.space.chats--info .chats__info {
+    position: static;
+    inset: auto;
+    width: auto;
+    z-index: auto;
+    background: var(--panel);
+    box-shadow: var(--panel-highlight), var(--shadow-panel);
+    animation: none;
+  }
+}

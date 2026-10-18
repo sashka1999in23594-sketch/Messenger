@@ -55,10 +55,10 @@ export function NotFound() {
         title="Здесь ничего нет"
         text={
           <>
-            Похоже, вы забрели в неизведанную часть лабиринта. Нажмите <span className="kbd">Ctrl K</span>, чтобы быстро найти нужный раздел.
+            Такой страницы нет — возможно, ссылка устарела. Нажмите <span className="kbd">Ctrl K</span>, чтобы быстро найти нужный раздел.
           </>
         }
-        action={<Link to="/chats" className="btn btn--primary">К чатам</Link>}
+        action={<Link to="/home" className="btn btn--primary">На главную</Link>}
       />
     </div>
   );

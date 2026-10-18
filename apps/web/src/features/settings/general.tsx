@@ -231,12 +231,9 @@ export function DataSettings() {
 export function LanguageSettings() {
   return (
     <SettingsPage title="Язык" icon={<Languages size={22} />}>
-      <Panel footer="Английский и другие языки появятся вместе с системой локализации (в плане развития).">
+      <Panel footer="Интерфейс SpaceUp — на русском языке.">
         <label className="list-item audience__option">
           <input type="radio" checked readOnly /> <span className="list-item__body">Русский</span>
-        </label>
-        <label className="list-item audience__option" style={{ opacity: 0.5 }}>
-          <input type="radio" disabled /> <span className="list-item__body">English — скоро</span>
         </label>
       </Panel>
     </SettingsPage>
