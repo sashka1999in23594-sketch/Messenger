@@ -31,7 +31,13 @@ services:
         value: "false"
       - key: APP_SECRET
         generateValue: true
-      # Почта: письма с кодами при регистрации, входе и восстановлении пароля.
+      # Почта со своего Gmail (без телефона и домена): Google Apps Script из docs/gmail-mailer.gs,
+      # развёрнутый как веб-приложение. Адрес …/exec и пароль из строки SECRET в скрипте.
+      - key: MAIL_SCRIPT_URL
+        sync: false
+      - key: MAIL_SCRIPT_SECRET
+        sync: false
+      # Или почта через Brevo: письма с кодами при регистрации, входе и восстановлении пароля.
       # На бесплатном Render SMTP-порты закрыты — используйте HTTPS-API Brevo (300 писем/день бесплатно).
       # MAIL_FROM — адрес, подтверждённый в Brevo как отправитель, например: SpaceUp <you@gmail.com>
       - key: BREVO_API_KEY

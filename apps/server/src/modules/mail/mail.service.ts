@@ -1,6 +1,7 @@
 /**
  * Отправка писем. Способ доставки выбирается настройками окружения:
  *   BREVO_API_KEY / RESEND_API_KEY — HTTPS-API (работает там, где закрыты SMTP-порты);
+ *   MAIL_SCRIPT_URL — свой Gmail через Google Apps Script (docs/gmail-mailer.gs), тоже HTTPS;
  *   SMTP_URL — любой SMTP-сервер;
  *   в разработке и тестах — тестовый ящик в памяти (письма видно в интерфейсе входа);
  *   в production без настроек — письма не отправляются (функции почты недоступны).
@@ -34,12 +35,18 @@ type Logger = Pick<Console, 'info' | 'warn' | 'error'>;
  * Состояние почты для /health: off — не настроена; ok — ключ принят и отправитель
  * подтверждён; bad_key — провайдер не принял ключ; sender_not_verified — адрес из
  * MAIL_FROM не подтверждён у провайдера; ip_blocked — Brevo пускает только с разрешённых
- * IP (у хостинга адрес меняется); on — настроена, но проверить нельзя (SMTP).
+ * IP (у хостинга адрес меняется); script_access — скрипт Gmail не открыт для всех;
+ * on — настроена, но проверить нельзя (SMTP).
  */
-export type MailHealth = 'off' | 'dev' | 'checking' | 'ok' | 'on' | 'bad_key' | 'ip_blocked' | 'sender_not_verified' | 'unreachable';
+export type MailHealth = 'off' | 'dev' | 'checking' | 'ok' | 'on' | 'bad_key' | 'ip_blocked' | 'sender_not_verified' | 'script_access' | 'unreachable';
 
 const OUTBOX_MAX = 100;
 const SEND_TIMEOUT_MS = 15_000;
+/** Скрипт Google при первом обращении «просыпается» несколько секунд */
+const SCRIPT_TIMEOUT_MS = 30_000;
+
+/** Ответ скрипта Gmail не JSON — значит, Google показал страницу входа: доступ не «Anyone». */
+class ScriptAccessError extends Error {}
 
 export class MailService {
   readonly provider: MailProvider;
@@ -52,7 +59,8 @@ export class MailService {
 
   constructor(private readonly config: Config) {
     this.provider = config.mail.provider;
-    this.health = this.provider === 'disabled' ? 'off' : this.provider === 'dev' ? 'dev' : this.provider === 'brevo' ? 'checking' : 'on';
+    this.health =
+      this.provider === 'disabled' ? 'off' : this.provider === 'dev' ? 'dev' : this.provider === 'brevo' || this.provider === 'gmail' ? 'checking' : 'on';
   }
 
   /**
@@ -60,6 +68,7 @@ export class MailService {
    * Без подтверждённого отправителя Brevo письма не отправит — об этом лучше узнать сразу.
    */
   async verify(): Promise<MailHealth> {
+    if (this.provider === 'gmail') return this.verifyScript();
     if (this.provider !== 'brevo') return this.health;
     const get = (path: string) =>
       fetch(`https://api.brevo.com/v3/${path}`, {
@@ -90,6 +99,44 @@ export class MailService {
     };
     (this.health === 'ok' ? this.logger.info : this.logger.warn).call(this.logger, hints[this.health]);
     return this.health;
+  }
+
+  /** Gmail через Apps Script: скрипт отвечает, секрет совпадает, сколько писем осталось на сегодня. */
+  private async verifyScript(): Promise<MailHealth> {
+    let hint: string;
+    try {
+      const r = await this.script({ ping: true });
+      this.health = r.ok ? 'ok' : 'bad_key';
+      hint = r.ok
+        ? `Gmail: скрипт отвечает, на сегодня осталось писем: ${r.quota ?? '?'}`
+        : 'Gmail: MAIL_SCRIPT_SECRET не совпадает с SECRET в скрипте';
+    } catch (err) {
+      this.health = err instanceof ScriptAccessError ? 'script_access' : 'unreachable';
+      hint =
+        this.health === 'script_access'
+          ? 'Gmail: скрипт недоступен — в Apps Script: Deploy → Manage deployments → Who has access: Anyone'
+          : 'Gmail: скрипт не отвечает — проверим при отправке письма';
+    }
+    (this.health === 'ok' ? this.logger.info : this.logger.warn).call(this.logger, hint);
+    return this.health;
+  }
+
+  private async script(body: Record<string, unknown>): Promise<{ ok: boolean; error?: string; quota?: number }> {
+    const { url, secret } = this.config.mail.script!;
+    // POST → 302 → GET с результатом: fetch проходит перенаправление сам
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ secret, ...body }),
+      redirect: 'follow',
+      signal: AbortSignal.timeout(SCRIPT_TIMEOUT_MS),
+    });
+    const text = await res.text();
+    try {
+      return JSON.parse(text) as { ok: boolean; error?: string; quota?: number };
+    } catch {
+      throw new ScriptAccessError(`HTTP ${res.status}: скрипт ответил не JSON — откройте доступ «Anyone»`);
+    }
   }
 
   /** Письма реально уходят адресату (или в тестовый ящик в разработке). */
@@ -150,6 +197,11 @@ export class MailService {
           html: mail.html,
           text: mail.text,
         });
+      case 'gmail': {
+        const r = await this.script({ to: mail.to, subject: mail.subject, html: mail.html, text: mail.text, name: fromName });
+        if (!r.ok) throw new Error(`Gmail-скрипт: ${r.error ?? 'ошибка'}`);
+        return;
+      }
       case 'smtp': {
         this.smtp ??= import('nodemailer').then((m) => m.default.createTransport(this.config.mail.smtpUrl!));
         const transport = await this.smtp;

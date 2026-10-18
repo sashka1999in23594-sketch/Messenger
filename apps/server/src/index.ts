@@ -66,9 +66,10 @@ app.log.info(`SpaceUp API: http://${config.host}:${config.port}/api/v1 (web orig
 const mailModes = {
   brevo: 'Brevo API',
   resend: 'Resend API',
+  gmail: 'Gmail через Google Apps Script',
   smtp: 'SMTP',
   dev: 'тестовый ящик (режим разработки)',
-  disabled: 'выключены — задайте BREVO_API_KEY, RESEND_API_KEY или SMTP_URL',
+  disabled: 'выключены — задайте MAIL_SCRIPT_URL (свой Gmail), BREVO_API_KEY, RESEND_API_KEY или SMTP_URL',
 } as const;
 app.log.info(`Письма: ${mailModes[config.mail.provider]}`);
 void app.ctx.services.mail.verify();

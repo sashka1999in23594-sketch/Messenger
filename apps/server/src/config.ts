@@ -31,6 +31,12 @@ const envSchema = z.object({
   /** Почта через HTTPS-API (работает и там, где SMTP-порты закрыты, например на бесплатном Render) */
   BREVO_API_KEY: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
+  /**
+   * Или через свой Gmail без сторонних сервисов: Google Apps Script (docs/gmail-mailer.gs),
+   * развёрнутый как веб-приложение. Адрес /exec и общий секрет из скрипта.
+   */
+  MAIL_SCRIPT_URL: z.string().default(''),
+  MAIL_SCRIPT_SECRET: z.string().default(''),
   /** Или через SMTP: smtps://логин:пароль@smtp.example.com:465 */
   SMTP_URL: z.string().optional(),
   /** Звонки: STUN-серверы (через запятую) и TURN для сложных сетей (мобильный интернет, корпоративный NAT) */
@@ -65,7 +71,7 @@ export type Config = ReturnType<typeof loadConfig>;
  * Способ доставки писем: HTTPS-API (Brevo/Resend), SMTP, тестовый ящик в разработке
  * или «выключено» (production без настроек — письма не отправляются).
  */
-export type MailProvider = 'brevo' | 'resend' | 'smtp' | 'dev' | 'disabled';
+export type MailProvider = 'brevo' | 'resend' | 'gmail' | 'smtp' | 'dev' | 'disabled';
 
 function loadDotEnv(file: string) {
   if (!existsSync(file)) return;
@@ -125,14 +131,32 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
   if (storage?.endpoint.includes('backblazeb2.com') && (/^[0-9a-f]{12}$/.test(storage.accessKeyId) || /^[0-9a-f]{40,}$/.test(storage.secretAccessKey))) {
     throw new Error('S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY: это главный ключ Backblaze (Master Application Key), по S3 он не работает. Создайте ключ: Application Keys → Add a New Application Key (keyID — около 25 символов, applicationKey начинается с K00)');
   }
+  const scriptUrl = env.MAIL_SCRIPT_URL.trim();
+  if (scriptUrl && !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(scriptUrl)) {
+    throw new Error('MAIL_SCRIPT_URL: нужен адрес веб-приложения Google Apps Script вида https://script.google.com/macros/s/…/exec');
+  }
+  if (scriptUrl && env.MAIL_SCRIPT_SECRET.trim().length < 16) {
+    throw new Error('MAIL_SCRIPT_SECRET: задайте тот же секрет, что в скрипте (не короче 16 символов)');
+  }
   const from = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(env.MAIL_FROM);
   const mail = {
     fromName: from?.[1] || 'SpaceUp',
     fromEmail: (from?.[2] ?? env.MAIL_FROM).trim(),
-    provider: (env.BREVO_API_KEY ? 'brevo' : env.RESEND_API_KEY ? 'resend' : env.SMTP_URL ? 'smtp' : isProd ? 'disabled' : 'dev') as MailProvider,
+    provider: (env.BREVO_API_KEY
+      ? 'brevo'
+      : env.RESEND_API_KEY
+        ? 'resend'
+        : scriptUrl
+          ? 'gmail'
+          : env.SMTP_URL
+            ? 'smtp'
+            : isProd
+              ? 'disabled'
+              : 'dev') as MailProvider,
     brevoApiKey: env.BREVO_API_KEY ?? null,
     resendApiKey: env.RESEND_API_KEY ?? null,
     smtpUrl: env.SMTP_URL ?? null,
+    script: scriptUrl ? { url: scriptUrl, secret: env.MAIL_SCRIPT_SECRET.trim() } : null,
   };
 
   return {

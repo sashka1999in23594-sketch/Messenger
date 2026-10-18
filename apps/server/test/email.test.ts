@@ -232,3 +232,54 @@ describe('самопроверка Brevo при запуске', () => {
     expect(await brevo(new Response('{"code":"unauthorized","message":"We have detected you are using an unrecognised IP address"}', { status: 401 }), {})).toBe('ip_blocked');
   });
 });
+
+describe('письма через свой Gmail (Apps Script)', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const URL_OK = 'https://script.google.com/macros/s/AKfycbx-test_123/exec';
+  const gmailApp = async (reply: (body: Record<string, unknown>) => Response, sent: Record<string, unknown>[] = []) => {
+    vi.stubGlobal('fetch', async (_url: string, init: { body: string }) => {
+      const body = JSON.parse(init.body) as Record<string, unknown>;
+      sent.push(body);
+      return reply(body);
+    });
+    const dir = mkdtempSync(path.join(tmpdir(), 'omni-gmail-'));
+    const config = loadConfig({
+      NODE_ENV: 'test',
+      DATA_DIR: dir,
+      APP_SECRET: 'test-secret-test-secret-test-secret-0123456789',
+      MAIL_SCRIPT_URL: URL_OK,
+      MAIL_SCRIPT_SECRET: 'shared-secret-0123456789',
+    });
+    const a = await buildApp(config);
+    a.ctx.services.mail.logger = { info: () => undefined, warn: () => undefined, error: () => undefined };
+    return a;
+  };
+
+  it('самопроверка: ok, неверный секрет, закрытый доступ', async () => {
+    const cases: [(b: Record<string, unknown>) => Response, string][] = [
+      [() => Response.json({ ok: true, quota: 99 }), 'ok'],
+      [() => Response.json({ ok: false, error: 'secret' }), 'bad_key'],
+      [() => new Response('<html>Sign in</html>', { headers: { 'content-type': 'text/html' } }), 'script_access'],
+    ];
+    for (const [reply, health] of cases) {
+      const a = await gmailApp(reply);
+      expect(a.ctx.services.mail.provider).toBe('gmail');
+      expect(await a.ctx.services.mail.verify()).toBe(health);
+      await a.close();
+    }
+  });
+
+  it('письмо с кодом уходит в скрипт вместе с секретом', async () => {
+    const sent: Record<string, unknown>[] = [];
+    const a = await gmailApp(() => Response.json({ ok: true }), sent);
+    await a.ctx.services.mail.send({ to: 'friend@example.com', subject: 'Код подтверждения', text: 'Код: 123456', html: '<b>123456</b>', tag: 'test' });
+    expect(sent.at(-1)).toMatchObject({ secret: 'shared-secret-0123456789', to: 'friend@example.com', subject: 'Код подтверждения', name: 'SpaceUp' });
+    await a.close();
+  });
+
+  it('неверный адрес скрипта или короткий секрет — ошибка настройки', () => {
+    const base = { NODE_ENV: 'test', APP_SECRET: 'test-secret-test-secret-test-secret-0123456789', DATA_DIR: mkdtempSync(path.join(tmpdir(), 'omni-gmail-')) } as const;
+    expect(() => loadConfig({ ...base, MAIL_SCRIPT_URL: 'https://example.com/exec', MAIL_SCRIPT_SECRET: 'shared-secret-0123456789' })).toThrow(/MAIL_SCRIPT_URL/);
+    expect(() => loadConfig({ ...base, MAIL_SCRIPT_URL: URL_OK, MAIL_SCRIPT_SECRET: 'short' })).toThrow(/MAIL_SCRIPT_SECRET/);
+  });
+});
