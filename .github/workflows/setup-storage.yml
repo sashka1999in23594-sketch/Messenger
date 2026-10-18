@@ -1,0 +1,101 @@
+# Разовая настройка хранилища: создаёт бакет и ключ в Backblaze B2,
+# прописывает S3_* в Render, запускает деплой и проверяет /api/v1/health.
+# Ключи берутся из секретов репозитория и в логах скрыты. После успешного
+# запуска файл и секреты удаляются.
+name: Настройка хранилища (разово)
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/setup-storage.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      B2_KEY_ID: ${{ secrets.B2_KEY_ID }}
+      B2_APP_KEY: ${{ secrets.B2_APP_KEY }}
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      BUCKET: spaceup-a456fb99b83e
+      SITE: https://omni-w0fb.onrender.com
+    steps:
+      - name: Backblaze, Render, деплой и проверка
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+
+          # --- Backblaze B2 ---
+          auth=$(curl -sS --fail-with-body -u "$B2_KEY_ID:$B2_APP_KEY" https://api.backblazeb2.com/b2api/v2/b2_authorize_account) \
+            || fail "Backblaze не принял главный ключ: $(jq -r '.message // .' <<<"$auth" 2>/dev/null || echo '?')"
+          token=$(jq -r .authorizationToken <<<"$auth"); echo "::add-mask::$token"
+          api=$(jq -r .apiUrl <<<"$auth")
+          account=$(jq -r .accountId <<<"$auth")
+          endpoint=$(jq -r .s3ApiUrl <<<"$auth" | sed 's#^https://##')
+          b2() {
+            local out
+            out=$(curl -sS --fail-with-body -H "Authorization: $token" "$api/b2api/v2/$1" -d "$2") \
+              || { echo "::error::Backblaze $1: $(jq -r '.message // .code // .' <<<"$out" 2>/dev/null || echo "$out")" >&2; return 1; }
+            printf '%s' "$out"
+          }
+
+          bucket_id=$(b2 b2_list_buckets "{\"accountId\":\"$account\",\"bucketName\":\"$BUCKET\"}" | jq -r '.buckets[0].bucketId // empty')
+          if [ -z "$bucket_id" ]; then
+            bucket_id=$(b2 b2_create_bucket "{\"accountId\":\"$account\",\"bucketName\":\"$BUCKET\",\"bucketType\":\"allPrivate\",\"defaultServerSideEncryption\":{\"mode\":\"SSE-B2\",\"algorithm\":\"AES256\"}}" | jq -r .bucketId)
+            echo "Создан приватный бакет $BUCKET"
+          else
+            echo "Бакет $BUCKET уже есть"
+          fi
+
+          key=$(b2 b2_create_key "{\"accountId\":\"$account\",\"keyName\":\"spaceup-render\",\"bucketId\":\"$bucket_id\",\"capabilities\":[\"listBuckets\",\"listFiles\",\"readFiles\",\"writeFiles\",\"deleteFiles\"]}")
+          key_id=$(jq -r .applicationKeyId <<<"$key"); app_key=$(jq -r .applicationKey <<<"$key")
+          echo "::add-mask::$key_id"; echo "::add-mask::$app_key"
+          [ -n "$app_key" ] && [ "$app_key" != null ] || fail "Backblaze не создал ключ"
+          echo "Создан ключ для сайта (Read and Write, только к $BUCKET), адрес хранилища $endpoint"
+
+          # --- Render ---
+          r() {
+            local out
+            out=$(curl -sS --fail-with-body -H "Authorization: Bearer $RENDER_API_KEY" -H 'accept: application/json' -H 'content-type: application/json' "$@") \
+              || { echo "::error::Render: $(jq -r '.message // .' <<<"$out" 2>/dev/null || echo "$out")" >&2; return 1; }
+            printf '%s' "$out"
+          }
+          service=$(r "https://api.render.com/v1/services?limit=100" \
+            | jq -r --arg site "$SITE" '[.[].service | select(.serviceDetails.url == $site or .name == "omni")][0].id // empty')
+          [ -n "$service" ] || fail "Сервис $SITE не найден в Render"
+          echo "Сервис Render: $service"
+          for pair in "S3_ENDPOINT=$endpoint" "S3_BUCKET=$BUCKET" "S3_ACCESS_KEY_ID=$key_id" "S3_SECRET_ACCESS_KEY=$app_key"; do
+            name=${pair%%=*}; value=${pair#*=}
+            r -X PUT "https://api.render.com/v1/services/$service/env-vars/$name" -d "$(jq -n --arg v "$value" '{value: $v}')" > /dev/null
+            echo "В Render записано: $name"
+          done
+
+          deploy=$(r -X POST "https://api.render.com/v1/services/$service/deploys" -d '{"clearCache":"do_not_clear"}' | jq -r .id)
+          echo "Запущен деплой $deploy"
+          status=created
+          for i in $(seq 1 90); do
+            sleep 10
+            status=$(r "https://api.render.com/v1/services/$service/deploys/$deploy" | jq -r .status)
+            echo "Деплой: $status"
+            case "$status" in
+              live) break ;;
+              build_failed|update_failed|canceled|pre_deploy_failed|deactivated) fail "Деплой завершился со статусом $status — смотрите Logs в Render" ;;
+            esac
+          done
+          [ "$status" = live ] || fail "Деплой не завершился за 15 минут"
+
+          # --- Проверка сайта ---
+          for i in $(seq 1 12); do
+            health=$(curl -sS --max-time 60 "$SITE/api/v1/health" || true)
+            echo "health: $health"
+            if jq -e '.storage == "external"' <<<"$health" > /dev/null 2>&1; then
+              echo "Готово: данные сайта сохраняются в Backblaze"
+              exit 0
+            fi
+            sleep 10
+          done
+          fail "Сайт отвечает без внешнего хранилища"
