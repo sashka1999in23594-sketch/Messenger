@@ -184,6 +184,11 @@
 .rail__me:hover {
   transform: scale(1.06);
 }
+.rail__me--active {
+  box-shadow:
+    0 0 0 2px var(--accent),
+    var(--glow);
+}
 .rail__me .avatar__img,
 .rail__me .avatar__fallback {
   border: 2px solid var(--panel-solid);

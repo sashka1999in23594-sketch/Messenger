@@ -4,6 +4,7 @@ import { queryClient } from '../shared/api/query';
 import { registerDevice } from '../shared/crypto/e2e';
 import { useSession } from '../shared/stores/session';
 import { toast } from '../shared/stores/ui';
+import { confirm } from '../shared/ui/Modal';
 import { sessionEvents, startRealtime, stopRealtime } from './realtime';
 
 /** Вызывается после успешного входа/регистрации и при старте с живым сеансом. */
@@ -37,6 +38,17 @@ export async function logout(): Promise<void> {
   } finally {
     leaveSession();
   }
+}
+
+/** Выход по кнопке «Выйти»: сначала спрашиваем, чтобы не выйти случайным нажатием. */
+export async function confirmLogout(): Promise<void> {
+  const ok = await confirm({
+    title: 'Выйти из аккаунта?',
+    text: 'Чтобы войти снова, понадобятся код из письма или чата SpaceUp и пароль.',
+    confirmLabel: 'Выйти',
+    danger: true,
+  });
+  if (ok) await logout();
 }
 
 onUnauthorized(() => {

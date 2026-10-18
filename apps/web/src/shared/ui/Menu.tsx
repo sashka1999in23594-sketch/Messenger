@@ -29,11 +29,12 @@ export function Menu({ anchor, items, onClose, header }: MenuProps) {
 
   useLayoutEffect(() => {
     if (!anchor || !ref.current) return;
-    const r = ref.current.getBoundingClientRect();
+    // Размер без учёта анимации появления (scale), иначе у края экрана меню обрезается
+    const { offsetWidth: width, offsetHeight: height } = ref.current;
     const pad = 8;
     setPos({
-      left: Math.max(pad, Math.min(anchor.x, window.innerWidth - r.width - pad)),
-      top: Math.max(pad, Math.min(anchor.y, window.innerHeight - r.height - pad)),
+      left: Math.max(pad, Math.min(anchor.x, window.innerWidth - width - pad)),
+      top: Math.max(pad, Math.min(anchor.y, window.innerHeight - height - pad)),
     });
     ref.current.querySelector<HTMLElement>('button')?.focus();
   }, [anchor]);

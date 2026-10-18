@@ -7,7 +7,7 @@ import { useUi } from '../../shared/stores/ui';
 import { useEscape } from '../../shared/hooks';
 import { Avatar, Button, Logo } from '../../shared/ui';
 import { cn } from '../../shared/lib/format';
-import { logout } from '../session';
+import { confirmLogout } from '../session';
 import { NavTreeView } from './NavTree';
 import { RailItem, useBadge } from './Rail';
 
@@ -94,7 +94,7 @@ export function MobileDrawer() {
           <NavTreeView section={section} onNavigate={close} />
         </div>
         <div style={{ padding: 12, borderTop: '1px solid var(--border)' }}>
-          <Button variant="danger-ghost" block icon={<LogOut size={18} />} onClick={() => void logout()}>
+          <Button variant="danger-ghost" block icon={<LogOut size={18} />} onClick={() => void confirmLogout()}>
             Выйти
           </Button>
         </div>

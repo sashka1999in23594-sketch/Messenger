@@ -858,6 +858,14 @@ a.list-item:hover {
 .menu__item--danger svg {
   color: var(--danger);
 }
+.menu__me {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 8px 10px 12px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
 .menu__sep {
   height: 1px;
   background: var(--border);
