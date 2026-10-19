@@ -68,7 +68,7 @@ export function QuietSettings() {
           </label>
         </div>
       </Panel>
-      <Panel title="Системные уведомления" footer="Показываются, когда вкладка SpaceUp в фоне.">
+      <Panel title="Системные уведомления" footer="Показываются, когда вкладка Sunnet в фоне.">
         <SettingRow
           title="Уведомления на рабочем столе"
           description={perm === 'denied' ? 'Запрещено в настройках браузера — разрешите вручную' : 'Новые сообщения и события в углу экрана'}
@@ -146,7 +146,7 @@ const START: { id: StartPage; label: string }[] = [
   { id: '/home', label: 'Главная — лента' },
   { id: '/chats', label: 'Чаты' },
   { id: '/channels', label: 'Каналы' },
-  { id: '/comets', label: 'Кометы' },
+  { id: '/reels', label: 'Reels' },
 ];
 
 export function BehaviorSettings() {
@@ -158,7 +158,7 @@ export function BehaviorSettings() {
           icon={<Home size={18} />}
           tile="tile-violet"
           title="Стартовая страница"
-          description="Что открывается при входе в SpaceUp"
+          description="Что открывается при входе в Sunnet"
           control={
             <select className="select" style={{ width: 'auto' }} value={START.some((x) => x.id === prefs.startPage) ? prefs.startPage : '/home'} onChange={(e) => prefs.set({ startPage: e.target.value as StartPage })} aria-label="Стартовая страница">
               {START.map((s) => (
@@ -176,7 +176,7 @@ export function BehaviorSettings() {
       </Panel>
       <Panel title="Сообщения">
         <SettingRow title="Крупные эмодзи" description="Сообщение из 1–3 эмодзи показывается без пузыря и крупно" control={<Switch checked={prefs.jumboEmoji ?? true} onChange={(v) => prefs.set({ jumboEmoji: v })} label="Крупные эмодзи" />} />
-        <SettingRow title="Автовоспроизведение видео" description="Кометы, кружки и истории запускаются сами" control={<Switch checked={prefs.autoplayVideo} onChange={(v) => prefs.set({ autoplayVideo: v })} label="Автовоспроизведение" />} />
+        <SettingRow title="Автовоспроизведение видео" description="Reels, кружки и истории запускаются сами" control={<Switch checked={prefs.autoplayVideo} onChange={(v) => prefs.set({ autoplayVideo: v })} label="Автовоспроизведение" />} />
       </Panel>
     </SettingsPage>
   );

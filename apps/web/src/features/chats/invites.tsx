@@ -30,7 +30,7 @@ async function copy(url: string) {
 }
 
 async function share(invite: ChatInvite, title: string) {
-  if (navigator.share) await navigator.share({ title, text: `Присоединяйтесь к «${title}» в SpaceUp`, url: invite.url }).catch(() => undefined);
+  if (navigator.share) await navigator.share({ title, text: `Присоединяйтесь к «${title}» в Sunnet`, url: invite.url }).catch(() => undefined);
   else await copy(invite.url);
 }
 

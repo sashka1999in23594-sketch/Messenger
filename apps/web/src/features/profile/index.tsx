@@ -23,7 +23,7 @@ const TABS = [
   { id: 'posts', label: 'Публикации' },
   { id: 'photos', label: 'Фото' },
   { id: 'videos', label: 'Видео' },
-  { id: 'shorts', label: 'Кометы' },
+  { id: 'shorts', label: 'Reels' },
   { id: 'likes', label: 'Лайки' },
 ] as const;
 

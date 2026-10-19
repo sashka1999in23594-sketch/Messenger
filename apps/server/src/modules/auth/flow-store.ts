@@ -105,7 +105,7 @@ export class FlowStore {
   }
 
   /**
-   * Новый код (и, при сбросе пароля, второй — для чата SpaceUp). Прежние коды
+   * Новый код (и, при сбросе пароля, второй — для чата Sunnet). Прежние коды
    * этой попытки перестают действовать, счётчик ошибок обнуляется.
    */
   issue(row: FlowRow, withAccountCode = false): { code: string; accountCode: string | null } {

@@ -1,6 +1,6 @@
 /**
  * Вход по шагам, по одному полю на экран: почта или телефон → код (письмо и чат
- * SpaceUp) → пароль с подсказкой. «Забыли пароль?» — два кода → новый пароль.
+ * Sunnet) → пароль с подсказкой. «Забыли пароль?» — два кода → новый пароль.
  * Отдельно — вход по QR-коду с другого устройства, где вы уже вошли.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
@@ -125,7 +125,7 @@ function Identify({
   };
   return (
     <form className="auth__form" onSubmit={submit} noValidate>
-      <StepTitle title="Вход в SpaceUp" text="Введите почту или номер телефона — пришлём код для входа" />
+      <StepTitle title="Вход в Sunnet" text="Введите почту или номер телефона — пришлём код для входа" />
       {notice && <Notice kind="warning">{notice}</Notice>}
       <Input
         value={login}
@@ -163,10 +163,10 @@ function Identify({
 /** Куда ушёл код — понятным языком. */
 function deliveryText(s: AuthFlowState): string {
   const email = s.emailHint ?? 'почту';
-  if (s.emailSent && s.accountSent) return `Мы отправили код на ${email} и в чат SpaceUp на устройствах, где вы уже вошли.`;
+  if (s.emailSent && s.accountSent) return `Мы отправили код на ${email} и в чат Sunnet на устройствах, где вы уже вошли.`;
   if (s.emailSent) return `Мы отправили код на ${email}. Если письма нет — загляните в «Спам».`;
-  if (s.accountSent) return 'Код отправлен в чат SpaceUp на устройствах, где вы уже вошли.';
-  if (s.limited) return 'Коды на почту можно получить 2 раза за 30 минут — этот лимит исчерпан. Отправьте код в чат SpaceUp на ваших устройствах.';
+  if (s.accountSent) return 'Код отправлен в чат Sunnet на устройствах, где вы уже вошли.';
+  if (s.limited) return 'Коды на почту можно получить 2 раза за 30 минут — этот лимит исчерпан. Отправьте код в чат Sunnet на ваших устройствах.';
   return 'Не получилось отправить письмо. Попробуйте отправить код снова.';
 }
 
@@ -397,7 +397,7 @@ function ResetCodesStep({ s, onState, onError }: StepProps) {
         title="Сброс пароля"
         text={
           s.needsAccountCode
-            ? `Мы отправили два разных кода: один на ${s.emailHint}, другой — в чат SpaceUp на устройствах, где вы вошли. Введите оба.`
+            ? `Мы отправили два разных кода: один на ${s.emailHint}, другой — в чат Sunnet на устройствах, где вы вошли. Введите оба.`
             : `Мы отправили код на ${s.emailHint}. Других устройств со входом нет, поэтому хватит кода из письма.`
         }
       />
@@ -407,8 +407,8 @@ function ResetCodesStep({ s, onState, onError }: StepProps) {
       </div>
       {s.needsAccountCode && (
         <div className="auth__code-field">
-          <span className="auth__label">Код из чата SpaceUp</span>
-          <CodeInput value={accountCode} onChange={setAccountCode} onComplete={() => undefined} error={errors.accountCode} label="Код из чата SpaceUp" />
+          <span className="auth__label">Код из чата Sunnet</span>
+          <CodeInput value={accountCode} onChange={setAccountCode} onComplete={() => undefined} error={errors.accountCode} label="Код из чата Sunnet" />
         </div>
       )}
       {errors.common && <Notice kind="danger">{errors.common}</Notice>}
@@ -520,7 +520,7 @@ function QrLogin({ onApproved }: { onApproved: (s: AuthFlowState) => void }) {
   const url = qr ? `${location.origin}/qr/${qr.token}` : '';
   return (
     <div className="auth__form">
-      <StepTitle title="Вход по QR-коду" text="Отсканируйте код устройством, на котором вы уже вошли в SpaceUp" />
+      <StepTitle title="Вход по QR-коду" text="Отсканируйте код устройством, на котором вы уже вошли в Sunnet" />
       <div className="auth__qr">
         {qr ? <QrCode value={url} size={212} /> : <div className="qr qr--loading" style={{ width: 212, height: 212 }} />}
         {status !== 'pending' && (
@@ -533,7 +533,7 @@ function QrLogin({ onApproved }: { onApproved: (s: AuthFlowState) => void }) {
         )}
       </div>
       <ol className="auth__steps">
-        <li>Откройте камеру на телефоне, где вы уже вошли в SpaceUp</li>
+        <li>Откройте камеру на телефоне, где вы уже вошли в Sunnet</li>
         <li>Наведите её на QR-код и откройте ссылку</li>
         <li>Нажмите «Разрешить вход» — останется ввести пароль</li>
       </ol>

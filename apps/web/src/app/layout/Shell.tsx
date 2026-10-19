@@ -30,7 +30,7 @@ export function Shell() {
     const node = exactNode(pathname);
     if (node) {
       pushRecent(node.node.id);
-      document.title = `${node.node.label} · SpaceUp`;
+      document.title = `${node.node.label} · Sunnet`;
     }
     setNavOpen(false);
   }, [pathname, pushRecent, setNavOpen]);
@@ -65,7 +65,7 @@ export function Shell() {
   );
 }
 
-/** Страница, которой нужен весь экран на телефоне (переписка, кометы). */
+/** Страница, которой нужен весь экран на телефоне (переписка, Reels). */
 export function useImmersive(on = true) {
   const set = useUi((s) => s.setImmersive);
   useEffect(() => {

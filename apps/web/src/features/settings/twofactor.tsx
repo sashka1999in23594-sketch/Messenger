@@ -25,7 +25,7 @@ function RecoveryCodes({ codes }: { codes: string[] }) {
         <Button variant="secondary" icon={<Copy size={16} />} onClick={() => void navigator.clipboard.writeText(codes.join('\n')).then(() => toast('Коды скопированы'))}>
           Скопировать
         </Button>
-        <a className="btn btn--secondary" download="spaceup-recovery-codes.txt" href={`data:text/plain;charset=utf-8,${encodeURIComponent(`Резервные коды SpaceUp\n\n${codes.join('\n')}\n`)}`}>
+        <a className="btn btn--secondary" download="sunnet-recovery-codes.txt" href={`data:text/plain;charset=utf-8,${encodeURIComponent(`Резервные коды Sunnet\n\n${codes.join('\n')}\n`)}`}>
           <Download size={16} /> Скачать .txt
         </a>
       </div>
@@ -136,7 +136,7 @@ export function TwoFactorSettings() {
   return (
     <SettingsPage title="Двухфакторная защита" subtitle="Код при каждом входе плюс, по желанию, приложение-аутентификатор" icon={<ShieldCheck size={22} />}>
       <Notice kind="success" icon={<CheckCircle2 size={18} />}>
-        Код при входе приходит всегда — на почту и в чат SpaceUp на ваших устройствах. Приложение-аутентификатор добавит ещё один, третий шаг{me.twoFactor.totp ? ' — и он уже включён' : ''}.
+        Код при входе приходит всегда — на почту и в чат Sunnet на ваших устройствах. Приложение-аутентификатор добавит ещё один, третий шаг{me.twoFactor.totp ? ' — и он уже включён' : ''}.
       </Notice>
       {codes && (
         <Panel title="Резервные коды">

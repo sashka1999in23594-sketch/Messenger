@@ -198,7 +198,7 @@
 .logo {
   display: block;
   flex: 0 0 auto;
-  filter: drop-shadow(0 8px 18px color-mix(in oklab, var(--accent) 55%, transparent));
+  filter: drop-shadow(0 8px 18px color-mix(in oklab, var(--brand-ray-2) 40%, transparent));
 }
 .wordmark {
   font-family: var(--font-display);

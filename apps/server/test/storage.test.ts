@@ -203,7 +203,7 @@ describe('файлы во внешнем хранилище', () => {
   it('частично заданные настройки хранилища — ошибка, а не тихая работа без копии', async () => {
     await expect(createTestApp({ S3_BUCKET: 'bucket' })).rejects.toThrow(/S3_ENDPOINT/);
     const b2 = { S3_ENDPOINT: 's3.eu-central-003.backblazeb2.com', S3_BUCKET: 'spaceup-data', S3_ACCESS_KEY_ID: '003a456fb99b83e0000000001', S3_SECRET_ACCESS_KEY: 'K003abcdefghijklmnopqrstuvwxyz0' };
-    await expect(createTestApp({ ...b2, S3_BUCKET: 'SpaceUp' })).rejects.toThrow(/строчные/);
+    await expect(createTestApp({ ...b2, S3_BUCKET: 'Sunnet' })).rejects.toThrow(/строчные/);
     await expect(createTestApp({ ...b2, S3_ACCESS_KEY_ID: 'a456fb99b83e' })).rejects.toThrow(/главный ключ/);
   });
 });

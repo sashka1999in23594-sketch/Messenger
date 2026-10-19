@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ComponentType, type ReactElement } from 'react';
-import { Navigate, Route, Routes } from 'react-router';
+import { Navigate, Route, Routes, useLocation } from 'react-router';
 import { Shell } from './layout/Shell';
 import { ComingSoon } from '../features/misc/ComingSoon';
 import { START_PAGES, usePrefs } from '../shared/stores/prefs';
@@ -136,6 +136,12 @@ function StartRedirect() {
 }
 
 /** Все экраны приложения. layout — оболочка: обычная (Shell) или окно «Пространства». */
+/** «Кометы» переименованы в Reels: старые ссылки ведут на новые адреса. */
+function LegacyReelsRedirect() {
+  const { pathname, search } = useLocation();
+  return <Navigate to={pathname.replace(/^\/comets/, '/reels') + search} replace />;
+}
+
 export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
   return (
     <Routes>
@@ -226,13 +232,15 @@ export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
         <Route path="premieres" element={<PremieresPage />} />
         <Route path="playlist/:id" element={<PlaylistPage />} />
 
-        {/* Кометы — короткие вертикальные видео */}
-        <Route path="comets" element={<ShortsFeed mode="for-you" />} />
-        <Route path="comets/following" element={<ShortsFeed mode="following" />} />
-        <Route path="comets/popular" element={<ShortsFeed mode="trending" />} />
-        <Route path="comets/new" element={<CreateShortPage />} />
-        <Route path="comets/mine" element={<MyShortsPage />} />
-        <Route path="shorts" element={<Navigate to="/comets" replace />} />
+        {/* Reels — короткие вертикальные видео */}
+        <Route path="reels" element={<ShortsFeed mode="for-you" />} />
+        <Route path="reels/following" element={<ShortsFeed mode="following" />} />
+        <Route path="reels/popular" element={<ShortsFeed mode="trending" />} />
+        <Route path="reels/new" element={<CreateShortPage />} />
+        <Route path="reels/mine" element={<MyShortsPage />} />
+        {/* Старые адреса: «Кометы» и shorts */}
+        <Route path="comets/*" element={<LegacyReelsRedirect />} />
+        <Route path="shorts" element={<Navigate to="/reels" replace />} />
 
         {/* Истории */}
         <Route path="stories" element={<StoriesPage />} />

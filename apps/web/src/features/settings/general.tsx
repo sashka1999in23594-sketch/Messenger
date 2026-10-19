@@ -29,7 +29,7 @@ export function SettingsHome() {
   return (
     <div className="scroll">
       <div className="page page--wide">
-        <PageHeader title="Настройки" subtitle="Всё, что можно настроить в SpaceUp — более 70 параметров" icon={<Settings size={22} />} />
+        <PageHeader title="Настройки" subtitle="Всё, что можно настроить в Sunnet — более 70 параметров" icon={<Settings size={22} />} />
         <SettingsSearch onActive={setSearching} />
         {!searching && (
           <div className="settings-quick">
@@ -188,7 +188,7 @@ export function ChatSettings({ section }: { section: 'input' | 'media' | 'wallpa
   ) : (
     <SettingsPage title="Медиа и трафик" icon={<MessageCircle size={22} />}>
       <Panel>
-        <SettingRow title="Автовоспроизведение видео" description="Кометы и истории запускаются сами" control={<Switch checked={prefs.autoplayVideo} onChange={(v) => prefs.set({ autoplayVideo: v })} label="Автовоспроизведение" />} />
+        <SettingRow title="Автовоспроизведение видео" description="Reels и истории запускаются сами" control={<Switch checked={prefs.autoplayVideo} onChange={(v) => prefs.set({ autoplayVideo: v })} label="Автовоспроизведение" />} />
         <SettingRow title="Экономия трафика" description="Не загружать видео заранее" control={<Switch checked={prefs.dataSaver} onChange={(v) => prefs.set({ dataSaver: v })} label="Экономия трафика" />} />
       </Panel>
     </SettingsPage>
@@ -231,7 +231,7 @@ export function DataSettings() {
 export function LanguageSettings() {
   return (
     <SettingsPage title="Язык" icon={<Languages size={22} />}>
-      <Panel footer="Интерфейс SpaceUp — на русском языке.">
+      <Panel footer="Интерфейс Sunnet — на русском языке.">
         <label className="list-item audience__option">
           <input type="radio" checked readOnly /> <span className="list-item__body">Русский</span>
         </label>
@@ -261,7 +261,7 @@ const SHORTCUTS: [string, string][] = [
   ['↑ в пустом поле', 'Редактировать последнее своё сообщение'],
   ['Esc', 'Закрыть окно, отменить ответ или редактирование'],
   ['Двойной клик по сообщению', 'Ответить'],
-  ['↑ / ↓ в кометах', 'Предыдущая / следующая комета'],
+  ['↑ / ↓ в Reels', 'Предыдущее / следующее видео'],
   ['← / → / пробел в историях', 'Навигация и пауза'],
   ['Ctrl + Enter', 'Опубликовать пост'],
 ];
@@ -287,7 +287,7 @@ export function AboutSettings() {
       <Panel>
         <div className="col gap-3" style={{ padding: 16 }}>
           <p>
-            <b>{APP_NAME}</b> — всё общение на одной орбите: чаты и звонки, каналы, лента, кометы, видео, компании и сообщества.
+            <b>{APP_NAME}</b> — всё общение под одним солнцем: чаты и звонки, каналы, лента, Reels, видео, компании и сообщества.
           </p>
           <p className="muted small">Версия 0.1.0 · React 19 + Fastify 5 + SQLite · PWA</p>
         </div>

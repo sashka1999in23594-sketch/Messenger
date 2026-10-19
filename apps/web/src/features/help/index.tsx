@@ -78,14 +78,14 @@ export function HelpSite() {
             <div className="help-header__top">
               <Link to={HELP_PATHS.faq} className="help-brand">
                 <Logo size={32} />
-                <span className="help-brand__name">SpaceUp</span>
+                <span className="help-brand__name">Sunnet</span>
                 <span className="help-brand__sep" aria-hidden>
                   ·
                 </span>
                 <span className="help-brand__section">Помощь</span>
               </Link>
               <Link to="/" className="help-open">
-                Открыть SpaceUp <ArrowUpRight size={16} aria-hidden />
+                Открыть Sunnet <ArrowUpRight size={16} aria-hidden />
               </Link>
             </div>
           </div>
@@ -120,9 +120,9 @@ export function HelpSite() {
             <div className="help-footer__top">
               <Link to={HELP_PATHS.faq} className="help-footer__brand">
                 <Logo size={24} />
-                <span>SpaceUp</span>
+                <span>Sunnet</span>
               </Link>
-              <a className="help-footer__mail" href={mailto('Вопрос в поддержку SpaceUp')}>
+              <a className="help-footer__mail" href={mailto('Вопрос в поддержку Sunnet')}>
                 {SUPPORT_EMAIL}
               </a>
             </div>
@@ -137,13 +137,13 @@ export function HelpSite() {
                 ))}
                 <li>
                   <Link to="/" className="help-footer__link">
-                    Открыть SpaceUp
+                    Открыть Sunnet
                   </Link>
                 </li>
               </ul>
             </nav>
             <p className="help-footer__copy">
-              © {new Date().getFullYear()} SpaceUp. Мессенджер и социальная платформа.
+              © {new Date().getFullYear()} Sunnet. Мессенджер и социальная платформа.
             </p>
           </div>
         </footer>
@@ -153,7 +153,7 @@ export function HelpSite() {
 }
 
 function NotFound() {
-  useDocumentTitle('Страница не найдена — SpaceUp');
+  useDocumentTitle('Страница не найдена — Sunnet');
   return (
     <div className="help-head help-notfound">
       <p className="help-eyebrow">Ошибка 404</p>

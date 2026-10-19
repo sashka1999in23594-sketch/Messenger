@@ -2,7 +2,7 @@
  * «Пространство» — режим рабочего стола: бесконечное поле с точками, которое
  * приближается и отдаляется колесом мыши или щипком, и окна разделов на нём.
  * Окно можно двигать за заголовок, тянуть за край, свернуть в док, развернуть
- * на весь экран и закрыть. В каждом окне — полноценный раздел SpaceUp со своей
+ * на весь экран и закрыть. В каждом окне — полноценный раздел Sunnet со своей
  * историей переходов (отдельный MemoryRouter), поэтому окна независимы.
  */
 import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
@@ -20,7 +20,7 @@ import { Loading, Logo } from '../../shared/ui';
 import { DOCK_W, useDesktop, ZOOM_MAX, ZOOM_MIN, type View, type Win } from './store';
 import './desktop.css';
 
-const DOCK_APPS = ['home', 'messenger', 'channels', 'comets', 'video', 'companies', 'communities', 'search', 'notifications', 'stats', 'profile', 'settings'];
+const DOCK_APPS = ['home', 'messenger', 'channels', 'reels', 'video', 'companies', 'communities', 'search', 'notifications', 'stats', 'profile', 'settings'];
 const MIN_W = 360;
 const MIN_H = 280;
 const clampZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
@@ -174,7 +174,7 @@ function Dock({ zoomBy, resetZoom, field }: { zoomBy: (f: number) => void; reset
   const apps = DOCK_APPS.map((id) => sections.find((s) => s.id === id)).filter((s): s is NavSection => !!s);
   return (
     <nav className="dock" aria-label="Разделы" style={{ width: DOCK_W }}>
-      <span className="dock__logo" title="SpaceUp — Пространство">
+      <span className="dock__logo" title="Sunnet — Пространство">
         <Logo size={34} />
       </span>
       <div className="dock__apps">
@@ -232,7 +232,7 @@ export function Desktop() {
   // Уведомления и звонки открывают нужный раздел в окне
   useEffect(() => {
     setRealtimeNavigate((to) => void useDesktop.getState().open(to));
-    document.title = 'SpaceUp · Пространство';
+    document.title = 'Sunnet · Пространство';
   }, []);
 
   /** Масштаб вокруг точки (координаты внутри поля): точка под курсором остаётся на месте. */

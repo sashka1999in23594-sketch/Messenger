@@ -15,7 +15,7 @@ afterAll(async () => {
 const codeOf = (text: string) => /(\d{6})/.exec(text)?.[1] ?? '';
 /** Последнее письмо адресату из тестового ящика. */
 const lastMail = (to: string) => app.ctx.services.mail.outbox.find((m) => m.to === to)?.text ?? '';
-/** Последнее сообщение SpaceUp в служебном чате пользователя. */
+/** Последнее сообщение Sunnet в служебном чате пользователя. */
 const lastSystem = (userId: string) =>
   app.ctx.db.value<string>(
     'SELECT text FROM messages WHERE chat_id = :c AND sender_id = :s ORDER BY seq DESC LIMIT 1',
@@ -37,7 +37,7 @@ describe('пошаговый вход', () => {
     expect(r.body.error.message).toBe('Аккаунт не найден');
   });
 
-  it('почта → код (в письмо и в чат SpaceUp) → пароль с подсказкой → вход', async () => {
+  it('почта → код (в письмо и в чат Sunnet) → пароль с подсказкой → вход', async () => {
     const { user, email, password } = await userWithEmail();
     app.ctx.db.run("UPDATE users SET password_hint = 'любимая книга' WHERE id = :id", { id: user.id });
     const c = new Client(app);
@@ -97,7 +97,7 @@ describe('пошаговый вход', () => {
     expect(next.body).toMatchObject({ emailSent: false, limited: true });
     expect(next.body.limitResetIn).toBeGreaterThan(0);
 
-    // «Отправить только в аккаунт» — код приходит в чат SpaceUp, письма нет
+    // «Отправить только в аккаунт» — код приходит в чат Sunnet, письма нет
     const onlyAccount = await new Client(app).post('/auth/flow/resend', { flow: next.body.flow, to: 'account' });
     expect(onlyAccount.body).toMatchObject({ accountSent: true, emailSent: false });
     expect(app.ctx.services.mail.outbox.filter((m) => m.to === email).length).toBe(mailsBefore);
@@ -105,7 +105,7 @@ describe('пошаговый вход', () => {
     expect((await new Client(app).post('/auth/flow/code', { flow: next.body.flow, code })).body.step).toBe('password');
   });
 
-  it('«Забыли пароль?»: два кода (почта + чат SpaceUp) → новый пароль, повтор и подсказка', async () => {
+  it('«Забыли пароль?»: два кода (почта + чат Sunnet) → новый пароль, повтор и подсказка', async () => {
     const { user, email, client: oldDevice } = await userWithEmail();
     const c = new Client(app);
     const start = await c.post('/auth/flow/start', { login: email });
@@ -193,7 +193,7 @@ describe('вход по QR-коду', () => {
 });
 
 describe('пошаговая регистрация', () => {
-  it('почта с кодом → данные → аккаунт с подтверждённой почтой и чатом SpaceUp', async () => {
+  it('почта с кодом → данные → аккаунт с подтверждённой почтой и чатом Sunnet', async () => {
     const email = `new${Date.now()}@example.com`;
     const c = new Client(app);
     const start = await c.post('/auth/signup/start', { email });
@@ -231,8 +231,8 @@ describe('пошаговая регистрация', () => {
   });
 });
 
-describe('служебный чат SpaceUp', () => {
-  it('нельзя писать, удалять, покидать и блокировать SpaceUp', async () => {
+describe('служебный чат Sunnet', () => {
+  it('нельзя писать, удалять, покидать и блокировать Sunnet', async () => {
     const { user, client } = await registerUser(app);
     const chatId = app.ctx.services.system.chatId(user.id);
     const send = await client.post(`/chats/${chatId}/messages`, { clientId: `cid${Date.now()}x`, text: 'привет' });
@@ -240,7 +240,7 @@ describe('служебный чат SpaceUp', () => {
     expect((await client.del(`/chats/${chatId}`)).status).toBe(403);
     expect((await client.post(`/users/${SYSTEM_USER_ID}/block`)).status).toBe(400);
     const summary = await client.get(`/chats/${chatId}`);
-    expect(summary.body).toMatchObject({ system: true, peer: { system: true, displayName: 'SpaceUp' } });
+    expect(summary.body).toMatchObject({ system: true, peer: { system: true, displayName: 'Sunnet' } });
   });
 
   it('эмодзи в имени профиля запрещены', async () => {
@@ -251,7 +251,7 @@ describe('служебный чат SpaceUp', () => {
 });
 
 describe('дни рождения', () => {
-  it('поздравление в чате SpaceUp и уведомления подписчикам — раз в год', async () => {
+  it('поздравление в чате Sunnet и уведомления подписчикам — раз в год', async () => {
     const hero = await registerUser(app);
     const fan = await registerUser(app);
     await fan.client.post(`/users/${hero.user.id}/follow`);

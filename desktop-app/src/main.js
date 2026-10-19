@@ -1,5 +1,5 @@
 'use strict';
-// SpaceUp для компьютера: одно окно, в котором открыт сайт SpaceUp.
+// Sunnet для компьютера: одно окно, в котором открыт сайт Sunnet.
 // Вся логика мессенджера живёт на сайте; здесь — окно, разрешения, ссылки и экран «нет сети».
 
 const path = require('node:path');
@@ -31,7 +31,7 @@ if (!app.requestSingleInstanceLock()) {
 
 function start() {
   Menu.setApplicationMenu(buildAppMenu({ isDev: !app.isPackaged }));
-  app.setAboutPanelOptions({ applicationName: 'SpaceUp', copyright: '© SpaceUp' });
+  app.setAboutPanelOptions({ applicationName: 'Sunnet', copyright: '© Sunnet' });
 
   const ses = session.defaultSession;
   // На macOS проверка орфографии системная и язык выбирает сама.
@@ -51,7 +51,7 @@ function start() {
 function createWindow() {
   const state = windowState.load();
   mainWindow = new BrowserWindow({
-    title: 'SpaceUp',
+    title: 'Sunnet',
     ...state.bounds,
     minWidth: windowState.MIN_SIZE.width,
     minHeight: windowState.MIN_SIZE.height,

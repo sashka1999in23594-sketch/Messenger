@@ -464,7 +464,7 @@ export function ChatView() {
               </Button>
             ) : chat.system ? (
               <span className="muted small system-chat__note">
-                Служебный чат SpaceUp: сюда приходят коды входа и новости. Отвечать сюда нельзя — сотрудники SpaceUp никогда не спрашивают коды и пароли.
+                Служебный чат Sunnet: сюда приходят коды входа и новости. Отвечать сюда нельзя — сотрудники Sunnet никогда не спрашивают коды и пароли.
               </span>
             ) : (
               <span className="muted small">Отправка недоступна на этом устройстве</span>

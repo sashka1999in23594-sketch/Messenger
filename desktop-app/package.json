@@ -1,17 +1,17 @@
 {
-  "name": "spaceup-desktop",
-  "productName": "SpaceUp",
-  "version": "1.0.0",
+  "name": "sunnet-desktop",
+  "productName": "Sunnet",
+  "version": "1.1.0",
   "private": true,
-  "description": "SpaceUp для компьютера — приложение-обёртка над веб-версией мессенджера",
+  "description": "Sunnet для компьютера — приложение-обёртка над веб-версией мессенджера",
   "author": {
-    "name": "SpaceUp",
+    "name": "Sunnet",
     "email": "spaceup.support@gmail.com"
   },
   "homepage": "https://omni-w0fb.onrender.com",
   "license": "UNLICENSED",
   "main": "src/main.js",
-  "desktopName": "spaceup.desktop",
+  "desktopName": "sunnet.desktop",
   "scripts": {
     "start": "electron .",
     "config": "node scripts/write-config.js",
@@ -23,8 +23,8 @@
   },
   "build": {
     "appId": "app.spaceup.desktop",
-    "productName": "SpaceUp",
-    "copyright": "© SpaceUp",
+    "productName": "Sunnet",
+    "copyright": "© Sunnet",
     "publish": null,
     "directories": {
       "output": "dist",
@@ -55,15 +55,15 @@
       "identity": "-",
       "hardenedRuntime": false,
       "darkModeSupport": true,
-      "artifactName": "SpaceUp-mac-${arch}.${ext}",
+      "artifactName": "Sunnet-mac-${arch}.${ext}",
       "extendInfo": {
-        "NSCameraUsageDescription": "SpaceUp использует камеру для видеозвонков и видеосообщений.",
-        "NSMicrophoneUsageDescription": "SpaceUp использует микрофон для звонков и голосовых сообщений."
+        "NSCameraUsageDescription": "Sunnet использует камеру для видеозвонков и видеосообщений.",
+        "NSMicrophoneUsageDescription": "Sunnet использует микрофон для звонков и голосовых сообщений."
       }
     },
     "dmg": {
-      "title": "SpaceUp",
-      "artifactName": "SpaceUp-mac-${arch}.${ext}",
+      "title": "Sunnet",
+      "artifactName": "Sunnet-mac-${arch}.${ext}",
       "writeUpdateInfo": false
     },
     "win": {
@@ -76,18 +76,18 @@
         }
       ],
       "icon": "build/icon.png",
-      "artifactName": "SpaceUp-Setup.${ext}"
+      "artifactName": "Sunnet-Setup.${ext}"
     },
     "nsis": {
       "oneClick": true,
       "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "SpaceUp",
+      "shortcutName": "Sunnet",
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false,
       "differentialPackage": false,
-      "artifactName": "SpaceUp-Setup.${ext}"
+      "artifactName": "Sunnet-Setup.${ext}"
     },
     "linux": {
       "target": [
@@ -105,20 +105,20 @@
         }
       ],
       "icon": "build/icons",
-      "executableName": "spaceup",
+      "executableName": "sunnet",
       "syncDesktopName": true,
       "category": "Network;InstantMessaging",
-      "maintainer": "SpaceUp <spaceup.support@gmail.com>",
-      "vendor": "SpaceUp",
-      "synopsis": "Мессенджер SpaceUp"
+      "maintainer": "Sunnet <spaceup.support@gmail.com>",
+      "vendor": "Sunnet",
+      "synopsis": "Мессенджер Sunnet"
     },
     "appImage": {
-      "artifactName": "SpaceUp.${ext}"
+      "artifactName": "Sunnet.${ext}"
     },
     "deb": {
-      "packageName": "spaceup",
+      "packageName": "sunnet",
       "packageCategory": "net",
-      "artifactName": "spaceup_amd64.${ext}"
+      "artifactName": "sunnet_amd64.${ext}"
     }
   }
 }

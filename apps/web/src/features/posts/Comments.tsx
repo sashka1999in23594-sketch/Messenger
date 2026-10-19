@@ -1,4 +1,4 @@
-/** Ветки комментариев — общие для постов, фото, видео и комет. */
+/** Ветки комментариев — общие для постов, фото, видео и Reels. */
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';

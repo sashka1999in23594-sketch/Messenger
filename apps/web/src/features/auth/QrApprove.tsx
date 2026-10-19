@@ -39,7 +39,7 @@ export function QrApprovePage() {
         icon={done === 'approved' ? <CheckCircle2 size={30} /> : <XCircle size={30} />}
         title={done === 'approved' ? 'Вход разрешён' : 'Вход отклонён'}
         text={done === 'approved' ? 'На новом устройстве осталось ввести пароль.' : 'Новое устройство не получит доступ к аккаунту.'}
-        action={<ButtonLink to="/">Вернуться в SpaceUp</ButtonLink>}
+        action={<ButtonLink to="/">Вернуться в Sunnet</ButtonLink>}
       />
     );
   } else if (q.isLoading) {
@@ -50,7 +50,7 @@ export function QrApprovePage() {
         icon={<ShieldAlert size={30} />}
         title="QR-код устарел"
         text="Код действует 2 минуты. Попросите показать новый QR-код на устройстве, где вы входите."
-        action={<ButtonLink to="/">Вернуться в SpaceUp</ButtonLink>}
+        action={<ButtonLink to="/">Вернуться в Sunnet</ButtonLink>}
       />
     );
   } else {

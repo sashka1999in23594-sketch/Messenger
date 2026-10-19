@@ -44,7 +44,7 @@ export async function logout(): Promise<void> {
 export async function confirmLogout(): Promise<void> {
   const ok = await confirm({
     title: 'Выйти из аккаунта?',
-    text: 'Чтобы войти снова, понадобятся код из письма или чата SpaceUp и пароль.',
+    text: 'Чтобы войти снова, понадобятся код из письма или чата Sunnet и пароль.',
     confirmLabel: 'Выйти',
     danger: true,
   });

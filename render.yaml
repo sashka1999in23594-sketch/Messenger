@@ -1,4 +1,4 @@
-# Render Blueprint: SpaceUp в один клик.
+# Render Blueprint: Sunnet в один клик.
 # Кнопка «Deploy to Render» в README создаёт сервис по этому файлу.
 # ВНИМАНИЕ: на бесплатном тарифе диск временный — при засыпании, перезапуске
 # и деплое файлы сервера стираются. Чтобы данные не пропадали, задайте S3_*
@@ -39,7 +39,7 @@ services:
         sync: false
       # Или почта через Brevo: письма с кодами при регистрации, входе и восстановлении пароля.
       # На бесплатном Render SMTP-порты закрыты — используйте HTTPS-API Brevo (300 писем/день бесплатно).
-      # MAIL_FROM — адрес, подтверждённый в Brevo как отправитель, например: SpaceUp <you@gmail.com>
+      # MAIL_FROM — адрес, подтверждённый в Brevo как отправитель, например: Sunnet <you@gmail.com>
       - key: BREVO_API_KEY
         sync: false
       - key: MAIL_FROM

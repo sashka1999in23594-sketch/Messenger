@@ -4,7 +4,7 @@ import { Check, Copy, Mail, ShieldAlert } from 'lucide-react';
 import { HELP_PATHS, SUPPORT_EMAIL, mailto } from './links';
 import { PageHead, useDocumentTitle } from './ui';
 
-const SUBJECT = 'Вопрос в поддержку SpaceUp';
+const SUBJECT = 'Вопрос в поддержку Sunnet';
 
 /** Заготовка письма: те же пункты, что и в списке «Что указать в письме». */
 const LETTER = `Здравствуйте!
@@ -23,13 +23,13 @@ const LETTER = `Здравствуйте!
 const TOPICS = [
   { label: 'Не могу войти', subject: 'Не могу войти в аккаунт' },
   { label: 'Не работает звонок', subject: 'Проблема со звонком' },
-  { label: 'Ошибка или сбой', subject: 'Ошибка в SpaceUp' },
+  { label: 'Ошибка или сбой', subject: 'Ошибка в Sunnet' },
   { label: 'Жалоба', subject: 'Жалоба на пользователя или контент' },
   { label: 'Данные и конфиденциальность', subject: 'Персональные данные' },
 ];
 
 export function ContactsPage() {
-  useDocumentTitle('Связаться с нами — SpaceUp');
+  useDocumentTitle('Связаться с нами — Sunnet');
   return (
     <>
       <PageHead
@@ -37,7 +37,7 @@ export function ContactsPage() {
         title="Связаться с нами"
         lead={
           <>
-            Напишите на почту — ответит человек из команды SpaceUp. Возможно, ответ уже есть в{' '}
+            Напишите на почту — ответит человек из команды Sunnet. Возможно, ответ уже есть в{' '}
             <Link to={HELP_PATHS.faq}>вопросах и ответах</Link>.
           </>
         }
@@ -125,8 +125,8 @@ export function ContactsPage() {
         <div>
           <h2 id="contacts-never">Никогда не присылайте пароли и коды</h2>
           <p>
-            Нам не нужны ваш пароль, коды из писем и чата «SpaceUp» или подтверждение входа по
-            QR-коду — сотрудники SpaceUp никогда их не спрашивают. Если кто-то просит их от нашего
+            Нам не нужны ваш пароль, коды из писем и чата «Sunnet» или подтверждение входа по
+            QR-коду — сотрудники Sunnet никогда их не спрашивают. Если кто-то просит их от нашего
             имени, это мошенник. Перед отправкой скриншота проверьте, что на нём не видно кодов.
           </p>
         </div>

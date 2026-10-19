@@ -19,11 +19,11 @@ interface Build {
 }
 
 const BUILDS: Build[] = [
-  { os: 'windows', title: 'Windows', note: 'Windows 10 и 11 · установщик .exe', file: 'SpaceUp-Setup.exe' },
-  { os: 'mac', title: 'macOS — Apple Silicon', note: 'Mac на M1, M2, M3, M4 · .dmg', file: 'SpaceUp-mac-arm64.dmg' },
-  { os: 'mac', title: 'macOS — Intel', note: 'Mac с процессором Intel · .dmg', file: 'SpaceUp-mac-x64.dmg' },
-  { os: 'linux', title: 'Linux — AppImage', note: 'Любой дистрибутив, без установки', file: 'SpaceUp.AppImage' },
-  { os: 'linux', title: 'Linux — .deb', note: 'Ubuntu, Debian, Mint', file: 'spaceup_amd64.deb' },
+  { os: 'windows', title: 'Windows', note: 'Windows 10 и 11 · установщик .exe', file: 'Sunnet-Setup.exe' },
+  { os: 'mac', title: 'macOS — Apple Silicon', note: 'Mac на M1, M2, M3, M4 · .dmg', file: 'Sunnet-mac-arm64.dmg' },
+  { os: 'mac', title: 'macOS — Intel', note: 'Mac с процессором Intel · .dmg', file: 'Sunnet-mac-x64.dmg' },
+  { os: 'linux', title: 'Linux — AppImage', note: 'Любой дистрибутив, без установки', file: 'Sunnet.AppImage' },
+  { os: 'linux', title: 'Linux — .deb', note: 'Ubuntu, Debian, Mint', file: 'sunnet_amd64.deb' },
 ];
 
 const ICONS: Record<Os, typeof Monitor> = { windows: Monitor, mac: Apple, linux: Terminal };
@@ -69,7 +69,7 @@ export function DownloadPage() {
       links={
         <AuthLinks
           items={[
-            authed ? { label: 'Открыть SpaceUp', to: '/' } : { label: 'Войти', to: '/login' },
+            authed ? { label: 'Открыть Sunnet', to: '/' } : { label: 'Войти', to: '/login' },
             !authed && { label: 'Создать аккаунт', to: '/signup' },
             PARTNERS_LINK,
             HELP_LINK,
@@ -78,7 +78,7 @@ export function DownloadPage() {
       }
     >
       <div className="auth__form auth__step">
-        <StepTitle title="Скачать SpaceUp" text="Отдельное окно, уведомления, звонки и демонстрация экрана — как в настоящем мессенджере" />
+        <StepTitle title="Скачать Sunnet" text="Отдельное окно, уведомления, звонки и демонстрация экрана — как в настоящем мессенджере" />
         {primary ? (
           <a className="dl__primary" href={`${RELEASES}/${primary.file}`} download>
             <PrimaryIcon size={26} />
@@ -92,7 +92,7 @@ export function DownloadPage() {
           <div className="auth__hint">
             <MonitorSmartphone size={18} />
             <span>
-              Приложения для телефона пока нет — но SpaceUp можно поставить на экран «Домой»: в Safari нажмите «Поделиться» → «На экран Домой», в Chrome — меню ⋮ →
+              Приложения для телефона пока нет — но Sunnet можно поставить на экран «Домой»: в Safari нажмите «Поделиться» → «На экран Домой», в Chrome — меню ⋮ →
               «Установить приложение».
             </span>
           </div>

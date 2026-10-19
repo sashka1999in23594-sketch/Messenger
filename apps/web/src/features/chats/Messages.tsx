@@ -341,7 +341,7 @@ export function MessageList({ messages, chat, myId, secret, actions, hasOlder, l
   );
 }
 
-/** Код из сообщения SpaceUp — крупно и с кнопкой «Скопировать». */
+/** Код из сообщения Sunnet — крупно и с кнопкой «Скопировать». */
 function SystemCode({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const code = /^Код[^:\n]*:\s*(\d{6})/.exec(text)?.[1];

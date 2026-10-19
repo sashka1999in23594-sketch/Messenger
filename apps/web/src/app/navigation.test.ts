@@ -67,7 +67,7 @@ describe('реестр навигации', () => {
     expect(findByPath('/chats/folder/groups')?.node.id).toBe('messenger.folders.groups');
     expect(sectionFor('/channels/01ABC').id).toBe('channels');
     expect(findByPath('/channels/discover')?.node.id).toBe('channels.discover');
-    expect(sectionFor('/comets/mine').id).toBe('comets');
+    expect(sectionFor('/reels/mine').id).toBe('reels');
     expect(sectionFor('/home/popular').id).toBe('home');
   });
 });

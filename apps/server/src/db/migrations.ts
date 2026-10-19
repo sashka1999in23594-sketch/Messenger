@@ -866,7 +866,7 @@ CREATE INDEX media_remote_pending ON media(created_at) WHERE remote_at IS NULL;
   {
     version: '010_auth_flow',
     sql: `
--- Профиль: дата рождения (ГГГГ-ММ-ДД), пол, подсказка к паролю; служебный аккаунт SpaceUp
+-- Профиль: дата рождения (ГГГГ-ММ-ДД), пол, подсказка к паролю; служебный аккаунт Sunnet
 ALTER TABLE users ADD COLUMN birth_date TEXT;
 ALTER TABLE users ADD COLUMN gender TEXT;
 ALTER TABLE users ADD COLUMN password_hint TEXT;
@@ -887,7 +887,7 @@ CREATE TABLE auth_flows (
   code_hash      TEXT,
   code_expires_at INTEGER,
   code_attempts  INTEGER NOT NULL DEFAULT 0,
-  -- Второй код при сбросе пароля: тот, что пришёл в чат SpaceUp
+  -- Второй код при сбросе пароля: тот, что пришёл в чат Sunnet
   account_code_hash TEXT,
   sent_at        INTEGER,
   resent         INTEGER NOT NULL DEFAULT 0,
@@ -917,6 +917,21 @@ CREATE TABLE qr_logins (
   expires_at  INTEGER NOT NULL,
   created_at  INTEGER NOT NULL
 );
+`,
+  },
+  {
+    version: '011_sunnet',
+    sql: `
+-- Переименование SpaceUp → Sunnet: служебный аккаунт с кодами входа и новостями.
+-- Имя @sunnet берём, только если оно свободно; иначе — @sunnet_official.
+UPDATE users SET
+  display_name = 'Sunnet',
+  bio = 'Служебный чат: коды входа и новости Sunnet',
+  username = CASE
+    WHEN EXISTS (SELECT 1 FROM users WHERE username = 'sunnet' AND id <> '00000000000000000000000SYS') THEN 'sunnet_official'
+    ELSE 'sunnet'
+  END
+WHERE id = '00000000000000000000000SYS';
 `,
   },
 ];

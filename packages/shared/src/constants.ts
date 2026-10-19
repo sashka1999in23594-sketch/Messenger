@@ -4,10 +4,10 @@
  * подсказок и ранней валидации форм.
  */
 
-export const APP_NAME = 'SpaceUp';
+export const APP_NAME = 'Sunnet';
 export const API_PREFIX = '/api/v1';
 
-/** Служебный аккаунт SpaceUp: системный чат с кодами входа и новостями. */
+/** Служебный аккаунт Sunnet: системный чат с кодами входа и новостями. */
 export const SYSTEM_USER_ID = '00000000000000000000000SYS';
 /** Почта поддержки */
 export const SUPPORT_EMAIL = 'spaceup.support@gmail.com';

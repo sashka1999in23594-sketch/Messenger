@@ -26,7 +26,7 @@ export const FOLDERS: { id: string; label: string }[] = [
 
 export function previewText(chat: ChatSummary, myId: string): React.ReactNode {
   const m = chat.lastMessage;
-  if (!m) return chat.system ? 'Коды входа и новости SpaceUp' : chat.type === 'secret' ? 'Секретный чат создан' : 'Нет сообщений';
+  if (!m) return chat.system ? 'Коды входа и новости Sunnet' : chat.type === 'secret' ? 'Секретный чат создан' : 'Нет сообщений';
   const who = chat.type === 'channel' ? null : m.senderId === myId ? 'Вы' : chat.type === 'group' ? m.senderName?.split(' ')[0] : null;
   const body = m.kind === 'system' ? `${m.senderName ?? ''} ${m.text ?? ''}` : messageLabel(m.kind, m.text);
   return (

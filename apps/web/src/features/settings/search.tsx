@@ -34,7 +34,7 @@ const ITEMS: [title: string, path: string, where: string, keywords?: string][] =
   ['Проверка орфографии', '/settings/behavior', 'Поведение', 'ошибки подчёркивание'],
   ['Крупные эмодзи', '/settings/behavior', 'Поведение', 'смайлики большие'],
   ['Стартовая страница', '/settings/behavior', 'Поведение', 'главная при запуске открывать'],
-  ['Автовоспроизведение видео', '/settings/chats/media', 'Чаты', 'автозапуск кометы'],
+  ['Автовоспроизведение видео', '/settings/chats/media', 'Чаты', 'автозапуск reels'],
   ['Экономия трафика', '/settings/chats/media', 'Чаты', 'мобильный интернет'],
   ['Громкость звуков', '/settings/notifications/sounds', 'Уведомления', 'тише громче'],
   ['Звук отправки сообщения', '/settings/notifications/sounds', 'Уведомления', 'щелчок'],

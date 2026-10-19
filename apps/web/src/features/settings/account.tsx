@@ -106,7 +106,7 @@ export function ProfileSettings() {
       </Panel>
       <Panel
         title="День рождения"
-        footer="Дату никто не видит. В ваш день рождения подписчики, контакты и те, с кем вы переписывались, получат напоминание поздравить вас, а мы пришлём письмо и поздравим в чате SpaceUp."
+        footer="Дату никто не видит. В ваш день рождения подписчики, контакты и те, с кем вы переписывались, получат напоминание поздравить вас, а мы пришлём письмо и поздравим в чате Sunnet."
       >
         <div className="col gap-3" style={{ padding: '0 16px 16px' }}>
           <Input label="Дата рождения" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} min="1906-01-01" error={fields.birthDate} />
@@ -169,7 +169,7 @@ export function UsernameSettings() {
     },
   });
   return (
-    <SettingsPage title="Имя пользователя" subtitle="Ваш уникальный адрес в SpaceUp" icon={<AtSign size={22} />}>
+    <SettingsPage title="Имя пользователя" subtitle="Ваш уникальный адрес в Sunnet" icon={<AtSign size={22} />}>
       <Panel footer="Старые ссылки на профиль перестанут работать. Для подтверждения нужен пароль.">
         <div className="col gap-3" style={{ padding: 16 }}>
           <Input label="Имя пользователя" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} error={fields.username} hint={`${location.host}/u/${username}`} />
@@ -223,7 +223,7 @@ export function ExportSettings() {
       <Panel footer="Содержимое секретных чатов не экспортируется: сервер его не знает. Файл содержит личные данные — храните его бережно.">
         <div className="col gap-3" style={{ padding: 16 }}>
           <p>Вы получите JSON-файл с профилем, публикациями, комментариями, подписками, сообщениями из обычных чатов и журналом безопасности.</p>
-          <a className="btn btn--primary" href="/api/v1/account/export" download="spaceup-export.json" style={{ alignSelf: 'flex-start' }}>
+          <a className="btn btn--primary" href="/api/v1/account/export" download="sunnet-export.json" style={{ alignSelf: 'flex-start' }}>
             <Download size={18} /> Скачать архив
           </a>
         </div>

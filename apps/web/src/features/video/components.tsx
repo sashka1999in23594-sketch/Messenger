@@ -13,7 +13,7 @@ import './video.css';
 
 export function VideoCard({ post, row, progressSec }: { post: Post; row?: boolean; progressSec?: number }) {
   const m = post.media[0];
-  const href = post.kind === 'short' ? `/comets?start=${post.id}` : `/watch/${post.id}`;
+  const href = post.kind === 'short' ? `/reels?start=${post.id}` : `/watch/${post.id}`;
   return (
     <Link to={href} className={cn('video-card', row && 'video-card--row')}>
       <div className="video-thumb" style={post.kind === 'short' && !row ? { aspectRatio: '9 / 16' } : undefined}>
@@ -45,7 +45,7 @@ export function VideoCard({ post, row, progressSec }: { post: Post; row?: boolea
   );
 }
 
-/** Загрузка видео или кометы: выбор файла, обложка кадром, название, описание. */
+/** Загрузка видео или Reels: выбор файла, обложка кадром, название, описание. */
 export function UploadVideoForm({ kind, onDone }: { kind: 'video' | 'short'; onDone: (p: Post) => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -87,7 +87,7 @@ export function UploadVideoForm({ kind, onDone }: { kind: 'video' | 'short'; onD
         premiereAt: kind === 'video' && premiere ? new Date(premiereAt).toISOString() : undefined,
       }),
     onSuccess: (p) => {
-      toast({ text: p.premiereAt ? 'Премьера назначена — подписчики смогут поставить напоминание' : kind === 'video' ? 'Видео опубликовано' : 'Комета запущена', kind: 'success' });
+      toast({ text: p.premiereAt ? 'Премьера назначена — подписчики смогут поставить напоминание' : kind === 'video' ? 'Видео опубликовано' : 'Видео опубликовано в Reels', kind: 'success' });
       void queryClient.invalidateQueries({ queryKey: ['feed'] });
       onDone(p);
     },

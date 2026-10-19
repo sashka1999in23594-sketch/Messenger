@@ -17,7 +17,7 @@ const INDEX = FAQ.flatMap((t) =>
 );
 
 export function FaqPage() {
-  useDocumentTitle('Помощь — SpaceUp');
+  useDocumentTitle('Помощь — Sunnet');
   const location = useLocation();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
@@ -154,11 +154,11 @@ export function FaqPage() {
       <section className="help-callout" aria-labelledby="help-ask-title">
         <h2 id="help-ask-title">Не нашли ответ?</h2>
         <p>
-          Напишите нам на почту — ответит человек из команды SpaceUp, обычно в течение 1–2 рабочих
+          Напишите нам на почту — ответит человек из команды Sunnet, обычно в течение 1–2 рабочих
           дней. Расскажите, что случилось, и укажите имя пользователя, устройство и браузер.
         </p>
         <div className="help-actions">
-          <a className="help-btn help-btn--primary" href={mailto('Вопрос в поддержку SpaceUp')}>
+          <a className="help-btn help-btn--primary" href={mailto('Вопрос в поддержку Sunnet')}>
             <Mail size={18} aria-hidden /> Написать в поддержку
           </a>
           <Link className="help-btn" to={HELP_PATHS.contacts}>

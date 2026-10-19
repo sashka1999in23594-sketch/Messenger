@@ -413,7 +413,7 @@ export class UsersService {
 
   block(userId: string, targetId: string): void {
     if (userId === targetId) throw badRequest('Нельзя заблокировать себя');
-    if (targetId === SYSTEM_USER_ID) throw badRequest('Служебный аккаунт SpaceUp заблокировать нельзя');
+    if (targetId === SYSTEM_USER_ID) throw badRequest('Служебный аккаунт Sunnet заблокировать нельзя');
     this.requireUser(targetId);
     this.db.tx(() => {
       this.db.run('INSERT OR IGNORE INTO blocks (blocker_id, blocked_id, created_at) VALUES (:a, :b, :now)', {

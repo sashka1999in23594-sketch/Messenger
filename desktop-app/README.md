@@ -1,6 +1,6 @@
-# SpaceUp для компьютера
+# Sunnet для компьютера
 
-Приложение для Windows, macOS и Linux — тонкая обёртка на Electron над сайтом SpaceUp
+Приложение для Windows, macOS и Linux — тонкая обёртка на Electron над сайтом Sunnet
 (`https://omni-w0fb.onrender.com`). Вся логика мессенджера живёт на сайте: обновили сайт — обновилось
 и приложение, пересобирать ничего не нужно.
 
@@ -10,10 +10,10 @@
 ## Что умеет
 
 - одно окно (повторный запуск показывает уже открытое), запоминает размер, положение и развёрнутость;
-- камера, микрофон, уведомления, буфер обмена и полноэкранный режим — только для сайта SpaceUp,
+- камера, микрофон, уведомления, буфер обмена и полноэкранный режим — только для сайта Sunnet,
   остальные разрешения запрещены; демонстрация экрана отдаёт основной монитор;
 - ссылки на другие сайты и `mailto:` открываются в браузере и почтовой программе;
-- без сети показывает экран «Нет соединения с SpaceUp» и сам возвращается на сайт, когда связь появится
+- без сети показывает экран «Нет соединения с Sunnet» и сам возвращается на сайт, когда связь появится
   (проверка каждые 10 секунд);
 - проверка орфографии (русский и английский), меню по правому клику, русское меню приложения.
 
@@ -35,9 +35,9 @@ SPACEUP_URL=http://localhost:5173 npm start   # открыть локальну�
 Локально (собирается только под текущую систему; macOS-версию можно собрать только на Mac):
 
 ```bash
-npm run dist -- --linux   # SpaceUp.AppImage и spaceup_amd64.deb
-npm run dist -- --win     # SpaceUp-Setup.exe
-npm run dist -- --mac     # SpaceUp-mac-arm64.dmg и SpaceUp-mac-x64.dmg
+npm run dist -- --linux   # Sunnet.AppImage и sunnet_amd64.deb
+npm run dist -- --win     # Sunnet-Setup.exe
+npm run dist -- --mac     # Sunnet-mac-arm64.dmg и Sunnet-mac-x64.dmg
 ```
 
 `npm run dist` сначала записывает `src/config.json` с адресом сайта (`SPACEUP_URL` или адрес по умолчанию).
@@ -51,15 +51,15 @@ npm run dist -- --mac     # SpaceUp-mac-arm64.dmg и SpaceUp-mac-x64.dmg
 
 Ссылки на скачивание постоянные — без версии в имени файла:
 
-- `https://github.com/sashka1999in23594-sketch/Messenger/releases/latest/download/SpaceUp-Setup.exe`
-- `https://github.com/sashka1999in23594-sketch/Messenger/releases/latest/download/SpaceUp-mac-arm64.dmg`
-- `https://github.com/sashka1999in23594-sketch/Messenger/releases/latest/download/SpaceUp-mac-x64.dmg`
-- `https://github.com/sashka1999in23594-sketch/Messenger/releases/latest/download/SpaceUp.AppImage`
-- `https://github.com/sashka1999in23594-sketch/Messenger/releases/latest/download/spaceup_amd64.deb`
+- `https://github.com/sashka1999in23594-sketch/Messenger/releases/latest/download/Sunnet-Setup.exe`
+- `https://github.com/sashka1999in23594-sketch/Messenger/releases/latest/download/Sunnet-mac-arm64.dmg`
+- `https://github.com/sashka1999in23594-sketch/Messenger/releases/latest/download/Sunnet-mac-x64.dmg`
+- `https://github.com/sashka1999in23594-sketch/Messenger/releases/latest/download/Sunnet.AppImage`
+- `https://github.com/sashka1999in23594-sketch/Messenger/releases/latest/download/sunnet_amd64.deb`
 
 ## Подпись и предупреждения
 
 Сертификатов разработчика нет, поэтому при первом запуске система переспрашивает:
 Windows SmartScreen — «Подробнее» → «Выполнить в любом случае»; macOS — «Системные настройки» →
 «Конфиденциальность и безопасность» → «Всё равно открыть» (сборка для macOS подписана ad-hoc,
-без сертификата Apple). Для демонстрации экрана на macOS нужно разрешить SpaceUp «Запись экрана».
+без сертификата Apple). Для демонстрации экрана на macOS нужно разрешить Sunnet «Запись экрана».

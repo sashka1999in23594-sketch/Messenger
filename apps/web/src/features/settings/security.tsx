@@ -162,7 +162,7 @@ function PasswordHintPanel() {
   return (
     <Panel
       title="Подсказка к паролю"
-      footer="Подсказку видите только вы — на входе, после ввода кода из письма или чата SpaceUp. Не пишите в ней сам пароль."
+      footer="Подсказку видите только вы — на входе, после ввода кода из письма или чата Sunnet. Не пишите в ней сам пароль."
     >
       <form
         className="col gap-3"
@@ -290,7 +290,7 @@ export function PasscodeSettings() {
   const [timeout, setTimeoutMin] = useState(passcode?.timeoutMin ?? 5);
   const valid = /^\d{4,6}$/.test(code) && code === repeat;
   return (
-    <SettingsPage title="Код-пароль" subtitle="Блокирует SpaceUp на этом устройстве, если вы отошли" icon={<Lock size={22} />}>
+    <SettingsPage title="Код-пароль" subtitle="Блокирует Sunnet на этом устройстве, если вы отошли" icon={<Lock size={22} />}>
       <Panel footer="Код хранится только на этом устройстве в виде PBKDF2-хэша (600 000 итераций). Если забудете код — придётся выйти и войти снова.">
         <div className="col gap-3" style={{ padding: 16 }}>
           {passcode && <Notice kind="success">Код-пароль установлен. Автоблокировка через {passcode.timeoutMin} мин бездействия.</Notice>}

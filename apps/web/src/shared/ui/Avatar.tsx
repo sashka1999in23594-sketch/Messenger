@@ -24,7 +24,7 @@ export function Avatar({ src, name, id, size = 40, online, ring, className }: Av
       style={{ width: size, height: size }}
     >
       {id === SYSTEM_USER_ID ? (
-        // Служебный аккаунт SpaceUp — всегда с логотипом
+        // Служебный аккаунт Sunnet — всегда с логотипом
         <Logo size={size} />
       ) : src && !broken ? (
         <img className="avatar__img" src={src} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} draggable={false} />

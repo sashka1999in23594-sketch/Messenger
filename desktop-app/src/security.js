@@ -1,10 +1,10 @@
 'use strict';
 // Разрешения сайта, демонстрация экрана и правила навигации.
-// Всё, что не относится к адресу SpaceUp, запрещено или открывается в обычном браузере.
+// Всё, что не относится к адресу Sunnet, запрещено или открывается в обычном браузере.
 
 const { desktopCapturer, screen, shell, systemPreferences } = require('electron');
 
-// Что сайту SpaceUp можно: камера и микрофон (звонки, голосовые), уведомления,
+// Что сайту Sunnet можно: камера и микрофон (звонки, голосовые), уведомления,
 // запись в буфер обмена, полноэкранное видео. display-capture — демонстрация экрана:
 // сам источник выбирает setDisplayMediaRequestHandler ниже.
 const ALLOWED_PERMISSIONS = new Set([
@@ -98,7 +98,7 @@ function setupPermissions(ses, appOrigin) {
   });
 }
 
-// Ссылки внутри SpaceUp остаются в приложении, всё остальное — в браузере по умолчанию.
+// Ссылки внутри Sunnet остаются в приложении, всё остальное — в браузере по умолчанию.
 function setupNavigation(webContents, appOrigin) {
   webContents.setWindowOpenHandler(({ url }) => {
     if (originOf(url) === appOrigin) webContents.loadURL(url).catch(() => {});

@@ -81,7 +81,6 @@ import {
   Users,
   UsersRound,
   VolumeX,
-  Zap,
 } from 'lucide-react';
 
 export interface NavNode {
@@ -213,18 +212,18 @@ export const sections: NavSection[] = [
     ],
   },
   {
-    id: 'comets',
-    label: 'Кометы',
-    short: 'Кометы',
-    icon: Zap,
-    path: '/comets',
+    id: 'reels',
+    label: 'Reels',
+    short: 'Reels',
+    icon: Clapperboard,
+    path: '/reels',
     description: 'Короткие вертикальные видео: листайте вверх',
     children: [
-      { id: 'comets.foryou', label: 'Для вас', icon: Sparkles, path: '/comets', keywords: ['короткие видео', 'клипы', 'shorts'] },
-      { id: 'comets.following', label: 'Подписки', icon: UserCheck, path: '/comets/following' },
-      { id: 'comets.popular', label: 'Популярные', icon: Flame, path: '/comets/popular' },
-      { id: 'comets.new', label: 'Запустить комету', icon: Plus, path: '/comets/new', keywords: ['загрузить', 'снять'] },
-      { id: 'comets.mine', label: 'Мои кометы', icon: User, path: '/comets/mine' },
+      { id: 'reels.foryou', label: 'Для вас', icon: Sparkles, path: '/reels', keywords: ['короткие видео', 'клипы', 'shorts', 'рилсы', 'кометы'] },
+      { id: 'reels.following', label: 'Подписки', icon: UserCheck, path: '/reels/following' },
+      { id: 'reels.popular', label: 'Популярные', icon: Flame, path: '/reels/popular' },
+      { id: 'reels.new', label: 'Загрузить в Reels', icon: Plus, path: '/reels/new', keywords: ['загрузить', 'снять', 'рилс'] },
+      { id: 'reels.mine', label: 'Мои Reels', icon: User, path: '/reels/mine' },
     ],
   },
   {
@@ -362,7 +361,7 @@ export const sections: NavSection[] = [
           { id: 'profile.content.posts', label: 'Посты', icon: Newspaper, path: '/profile/posts' },
           { id: 'profile.content.photos', label: 'Фото', icon: Image, path: '/profile/photos' },
           { id: 'profile.content.videos', label: 'Видео', icon: SquarePlay, path: '/profile/videos' },
-          { id: 'profile.content.shorts', label: 'Кометы', icon: Zap, path: '/profile/shorts' },
+          { id: 'profile.content.shorts', label: 'Reels', icon: Clapperboard, path: '/profile/shorts' },
           { id: 'profile.content.likes', label: 'Лайки', icon: Heart, path: '/profile/likes' },
         ],
       },
@@ -512,7 +511,7 @@ const SECTION_PREFIXES: [string, string][] = [
   ['/contacts', 'messenger'],
   ['/join', 'messenger'],
   ['/channels', 'channels'],
-  ['/comets', 'comets'],
+  ['/reels', 'reels'],
   ['/video', 'video'],
   ['/watch', 'video'],
   ['/playlist', 'video'],
@@ -536,4 +535,4 @@ export function sectionFor(pathname: string): NavSection {
   return sections.find((s) => s.id === hit?.[1]) ?? sections[0]!;
 }
 
-export const mobileTabs = ['home', 'messenger', 'channels', 'comets'] as const;
+export const mobileTabs = ['home', 'messenger', 'channels', 'reels'] as const;

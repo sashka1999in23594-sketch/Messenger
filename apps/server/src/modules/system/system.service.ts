@@ -1,7 +1,7 @@
 /**
- * Служебный аккаунт SpaceUp и его чат у каждого пользователя. Сюда приходят
+ * Служебный аккаунт Sunnet и его чат у каждого пользователя. Сюда приходят
  * коды входа (с устройством и IP), поздравления и новости об обновлениях.
- * Чат нельзя удалить или покинуть, писать в него может только сам SpaceUp
+ * Чат нельзя удалить или покинуть, писать в него может только сам Sunnet
  * (ограничения — в ChatsService и UsersService).
  */
 import { SYSTEM_USER_ID } from '@omni/shared';
@@ -24,16 +24,16 @@ export class SystemService {
   private ensureUser(): void {
     if (this.db.get('SELECT 1 FROM users WHERE id = :id', { id: SYSTEM_USER_ID })) return;
     const now = Date.now();
-    // Имя «spaceup» могли занять до появления служебного аккаунта — тогда берём запасное
-    const taken = this.db.get('SELECT 1 FROM users WHERE username = :u', { u: 'spaceup' });
+    // Имя «sunnet» могли занять до появления служебного аккаунта — тогда берём запасное
+    const taken = this.db.get('SELECT 1 FROM users WHERE username = :u', { u: 'sunnet' });
     this.db.run(
       `INSERT INTO users (id, username, display_name, password_hash, verified, is_system, searchable, bio, created_at, updated_at, onboarded_at)
-       VALUES (:id, :username, 'SpaceUp', '!', 1, 1, 0, 'Служебный чат: коды входа и новости SpaceUp', :now, :now, :now)`,
-      { id: SYSTEM_USER_ID, username: taken ? 'spaceup_official' : 'spaceup', now },
+       VALUES (:id, :username, 'Sunnet', '!', 1, 1, 0, 'Служебный чат: коды входа и новости Sunnet', :now, :now, :now)`,
+      { id: SYSTEM_USER_ID, username: taken ? 'sunnet_official' : 'sunnet', now },
     );
   }
 
-  /** Чат пользователя со SpaceUp (создаётся при первом обращении). */
+  /** Чат пользователя со Sunnet (создаётся при первом обращении). */
   chatId(userId: string): string {
     const key = [SYSTEM_USER_ID, userId].sort().join(':');
     const existing = this.db.get<{ id: string }>('SELECT id FROM chats WHERE direct_key = :k', { k: key });
@@ -63,12 +63,12 @@ export class SystemService {
     return chatId;
   }
 
-  /** Сообщение от SpaceUp в чат пользователя. */
+  /** Сообщение от Sunnet в чат пользователя. */
   post(userId: string, text: string): void {
     this.chats.send(SYSTEM_USER_ID, this.chatId(userId), { clientId: newId(), text, mediaIds: [], silent: false });
   }
 
-  /** Есть ли у пользователя активные сеансы — значит, код из чата SpaceUp ему доступен. */
+  /** Есть ли у пользователя активные сеансы — значит, код из чата Sunnet ему доступен. */
   hasActiveSessions(userId: string): boolean {
     return !!this.db.get('SELECT 1 FROM sessions WHERE user_id = :u AND revoked_at IS NULL AND expires_at > :now LIMIT 1', {
       u: userId,

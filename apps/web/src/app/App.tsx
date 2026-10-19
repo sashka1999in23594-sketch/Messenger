@@ -38,13 +38,13 @@ const Desktop = lazy(() => import('../features/desktop/Desktop').then((m) => ({ 
 
 function Gate() {
   const status = useSession((s) => s.status);
-  // «Пространство» — только на экранах, где помещаются окна (планшет и компьютер)
-  const spaceMode = usePrefs((s) => s.spaceMode ?? false);
-  const wide = useMediaQuery('(min-width: 900px)');
+  // На компьютере (широкий экран, мышь) Sunnet — это окна на рабочем столе;
+  // на телефоне и планшете — привычное мобильное оформление
+  const desktop = useMediaQuery('(min-width: 1024px) and (hover: hover) and (pointer: fine)');
   useEffect(() => {
     void bootstrapSession();
   }, []);
-  if (status === 'loading') return <Loading label="SpaceUp загружается…" />;
+  if (status === 'loading') return <Loading label="Sunnet загружается…" />;
   if (status === 'guest')
     return (
       <BrowserRouter>
@@ -52,9 +52,9 @@ function Gate() {
       </BrowserRouter>
     );
   // У каждого окна свой роутер, поэтому рабочий стол живёт вне общего BrowserRouter
-  if (spaceMode && wide)
+  if (desktop)
     return (
-      <Suspense fallback={<Loading label="Открываем Пространство…" />}>
+      <Suspense fallback={<Loading label="Открываем рабочий стол…" />}>
         <Desktop />
       </Suspense>
     );

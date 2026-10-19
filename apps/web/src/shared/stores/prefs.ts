@@ -12,8 +12,8 @@ export type AuroraMode = 'animated' | 'static' | 'off';
 export type Wallpaper = 'aurora' | 'plain' | 'mesh' | 'sunset' | 'ocean' | 'forest' | 'night' | 'candy' | 'grid' | 'waves';
 export type FontFamily = 'inter' | 'system' | 'rounded' | 'serif' | 'mono';
 export type Corners = 'sharp' | 'normal' | 'round';
-export type StartPage = '/home' | '/chats' | '/channels' | '/comets';
-export const START_PAGES: readonly StartPage[] = ['/home', '/chats', '/channels', '/comets'];
+export type StartPage = '/home' | '/chats' | '/channels' | '/reels';
+export const START_PAGES: readonly StartPage[] = ['/home', '/chats', '/channels', '/reels'];
 
 export interface SoundPrefs {
   /** Входящие сообщения и уведомления */
@@ -129,8 +129,9 @@ export const usePrefs = create<PrefsState>()(
     }),
     {
       name: 'omni.prefs',
-      version: 2,
+      version: 3,
       // v1 → v2: появились палитры; старый акцент «teal» стал «cyan», тема по умолчанию — тёмная «Аврора»
+      // v2 → v3: «Кометы» стали Reels
       migrate: (persisted, version) => {
         const p = (persisted ?? {}) as Record<string, unknown>;
         if (version < 2) {
@@ -140,6 +141,7 @@ export const usePrefs = create<PrefsState>()(
           p.glass = true;
           p.aurora = 'animated';
         }
+        if (version < 3 && p.startPage === '/comets') p.startPage = '/reels';
         return p as unknown as PrefsState;
       },
     },

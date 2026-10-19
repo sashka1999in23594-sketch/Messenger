@@ -1,5 +1,5 @@
 /**
- * SpaceUp: письма с кодами через ваш Gmail.
+ * Sunnet: письма с кодами через ваш Gmail.
  * script.google.com → Новый проект → вставьте этот код целиком → придумайте SECRET
  * (тот же впишите в MAIL_SCRIPT_SECRET) → Развернуть → Новое развёртывание →
  * Веб-приложение: «Запуск от имени: я», «Доступ: все» → скопируйте адрес …/exec
@@ -17,6 +17,6 @@ function doPost(e) {
   }
   if (!req || req.secret !== SECRET) return reply({ ok: false, error: 'secret' });
   if (req.ping) return reply({ ok: true, quota: MailApp.getRemainingDailyQuota() });
-  MailApp.sendEmail({ to: req.to, subject: req.subject, body: req.text, htmlBody: req.html, name: req.name || 'SpaceUp' });
+  MailApp.sendEmail({ to: req.to, subject: req.subject, body: req.text, htmlBody: req.html, name: req.name || 'Sunnet' });
   return reply({ ok: true });
 }

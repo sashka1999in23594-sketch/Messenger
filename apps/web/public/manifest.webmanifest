@@ -1,7 +1,7 @@
 {
-  "name": "SpaceUp — все на одной орбите",
-  "short_name": "SpaceUp",
-  "description": "Чаты и звонки, каналы, компании и сообщества, кометы и истории.",
+  "name": "Sunnet — все под одним солнцем",
+  "short_name": "Sunnet",
+  "description": "Чаты и звонки, каналы, компании и сообщества, Reels и истории.",
   "lang": "ru",
   "start_url": "/",
   "scope": "/",
@@ -18,6 +18,6 @@
   "shortcuts": [
     { "name": "Чаты", "url": "/chats" },
     { "name": "Каналы", "url": "/channels" },
-    { "name": "Кометы", "url": "/comets" }
+    { "name": "Reels", "url": "/reels" }
   ]
 }

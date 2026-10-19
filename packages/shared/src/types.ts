@@ -29,7 +29,7 @@ export interface UserSummary {
   displayName: string;
   avatarUrl: string | null;
   verified: boolean;
-  /** Служебный аккаунт SpaceUp */
+  /** Служебный аккаунт Sunnet */
   system?: boolean;
 }
 
@@ -165,15 +165,15 @@ export interface AuthFlowState {
   /** Замаскированная почта, куда ушёл код */
   emailHint: string | null;
   emailSent: boolean;
-  /** Код отправлен в чат SpaceUp */
+  /** Код отправлен в чат Sunnet */
   accountSent: boolean;
   /** Через сколько секунд можно отправить снова; null — повтор недоступен */
   resendIn: number | null;
-  /** Лимит кодов на почту исчерпан — можно отправить только в чат SpaceUp */
+  /** Лимит кодов на почту исчерпан — можно отправить только в чат Sunnet */
   limited: boolean;
   /** Через сколько секунд снова можно получить код на почту */
   limitResetIn: number | null;
-  /** Для сброса пароля нужен ещё и код из чата SpaceUp */
+  /** Для сброса пароля нужен ещё и код из чата Sunnet */
   needsAccountCode: boolean;
   /** Кто входит — показывается после проверки кода */
   user: UserSummary | null;
@@ -362,7 +362,7 @@ export interface ChatSummary {
   mutedUntil: ISODate | null;
   pinnedMessage: MessagePreview | null;
   secret: SecretChatInfo | null;
-  /** Служебный чат SpaceUp: нельзя удалить, писать в него нельзя */
+  /** Служебный чат Sunnet: нельзя удалить, писать в него нельзя */
   system: boolean;
   createdAt: ISODate;
   updatedAt: ISODate;

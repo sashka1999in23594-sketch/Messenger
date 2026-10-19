@@ -49,7 +49,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.get('/auth/session', async (req, reply) => {
     noStore(reply);
     app.issueCsrf(reply, req.auth?.sessionId ?? null);
-    // У каждого есть служебный чат SpaceUp (у старых аккаунтов он появится при первом заходе)
+    // У каждого есть служебный чат Sunnet (у старых аккаунтов он появится при первом заходе)
     if (req.auth) services.system.chatId(req.auth.userId);
     return { me: req.auth ? services.users.me(req.auth.userId) : null };
   });

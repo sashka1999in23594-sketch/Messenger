@@ -62,7 +62,7 @@ process.on('SIGINT', () => void shutdown('SIGINT'));
 process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
 await app.listen({ host: config.host, port: config.port });
-app.log.info(`SpaceUp API: http://${config.host}:${config.port}/api/v1 (web origin ${config.publicOrigin})`);
+app.log.info(`Sunnet API: http://${config.host}:${config.port}/api/v1 (web origin ${config.publicOrigin})`);
 const mailModes = {
   brevo: 'Brevo API',
   resend: 'Resend API',

@@ -18,7 +18,7 @@ describe('прямые эфиры', () => {
     const fan = await registerUser(app);
     const hater = await registerUser(app);
     await host.client.post(`/users/${hater.user.id}/block`);
-    const s = await host.client.post('/live', { title: 'Собираем SpaceUp', description: 'Отвечаю на вопросы' });
+    const s = await host.client.post('/live', { title: 'Собираем Sunnet', description: 'Отвечаю на вопросы' });
     expect(s.status).toBe(201);
     expect(s.body.status).toBe('live');
     expect((await fan.client.get('/live')).body.live.map((x: { id: string }) => x.id)).toContain(s.body.id);

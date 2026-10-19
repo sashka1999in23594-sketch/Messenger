@@ -34,7 +34,7 @@ export const DOCK_W = 76;
 /** Размер окна по умолчанию — под характер раздела. */
 function sizeFor(path: string): { w: number; h: number } {
   const s = sectionFor(path).id;
-  if (s === 'comets') return { w: 440, h: 760 };
+  if (s === 'reels') return { w: 440, h: 760 };
   if (['messenger', 'channels', 'companies', 'communities'].includes(s)) return { w: 1040, h: 680 };
   if (s === 'notifications' || s === 'search') return { w: 560, h: 680 };
   return { w: 860, h: 660 };

@@ -1,9 +1,9 @@
 /**
- * Пошаговый вход: почта или телефон → 6-значный код (в чат SpaceUp на вошедших
+ * Пошаговый вход: почта или телефон → 6-значный код (в чат Sunnet на вошедших
  * устройствах и на почту) → пароль (можно посмотреть подсказку) → при включённой
  * защите — код из приложения-аутентификатора.
  *
- * «Забыли пароль?» — два разных кода: из письма и из чата SpaceUp (если других
+ * «Забыли пароль?» — два разных кода: из письма и из чата Sunnet (если других
  * устройств со входом нет — хватает письма) → новый пароль, повтор, подсказка.
  * Вход по QR-коду: вошедшее устройство подтверждает новое, дальше — пароль.
  *
@@ -65,7 +65,7 @@ interface QrRow {
 const fmtTime = (d: Date) =>
   d.toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' }) + ' (МСК)';
 
-/** Откуда пытаются войти — для сообщения в чате SpaceUp. */
+/** Откуда пытаются войти — для сообщения в чате Sunnet. */
 function whereText(meta: Pick<RequestMeta, 'userAgent' | 'ip' | 'deviceName'>): string {
   const { os, browser } = parseUserAgent(meta.userAgent);
   // Имя устройства показываем, только если клиент назвал его сам (иначе оно повторяет браузер и систему)
@@ -116,7 +116,7 @@ export class AuthFlowService {
   }
 
   /**
-   * Код входа: в чат SpaceUp и на почту ('all') или только в чат ('account',
+   * Код входа: в чат Sunnet и на почту ('all') или только в чат ('account',
    * когда лимит писем исчерпан). NOTHING — лимит не дал отправить.
    */
   private async sendLoginCode(row: FlowRow, user: UserRow, meta: RequestMeta, to: 'all' | 'account'): Promise<Delivery> {
@@ -131,7 +131,7 @@ export class AuthFlowService {
     const { code } = this.store.issue(row);
     this.system.post(
       user.id,
-      `Код для входа в SpaceUp: ${code}\n\nНикому не сообщайте этот код — даже сотрудникам SpaceUp. Код действует 10 минут.\n\nПопытка входа:\n${whereText(meta)}\n\nЕсли это были не вы — просто не вводите код и смените пароль в настройках безопасности.`,
+      `Код для входа в Sunnet: ${code}\n\nНикому не сообщайте этот код — даже сотрудникам Sunnet. Код действует 10 минут.\n\nПопытка входа:\n${whereText(meta)}\n\nЕсли это были не вы — просто не вводите код и смените пароль в настройках безопасности.`,
     );
     let emailSent = false;
     if (to === 'all' && user.email && this.mail.enabled) {
@@ -246,7 +246,7 @@ export class AuthFlowService {
     return this.state(token, row.id, user, delivery);
   }
 
-  /** Два разных кода: на почту и в чат SpaceUp (если есть устройства со входом). */
+  /** Два разных кода: на почту и в чат Sunnet (если есть устройства со входом). */
   private async sendResetCodes(row: FlowRow, user: UserRow, meta: RequestMeta): Promise<Delivery> {
     const { count, freeIn } = this.store.sends(user.id, 'reset', RESET_WINDOW_MS);
     if (count >= RESETS_PER_WINDOW) {
@@ -283,7 +283,7 @@ export class AuthFlowService {
         fields.emailCode = 'Коды больше не действуют — отправьте новые';
       } else {
         if (email !== 'ok') fields.emailCode = 'Неверный код из письма';
-        if (account !== 'ok') fields.accountCode = 'Неверный код из чата SpaceUp';
+        if (account !== 'ok') fields.accountCode = 'Неверный код из чата Sunnet';
       }
       const message = Object.values(fields).join('. ') + (left > 0 ? `. Осталось попыток: ${left}` : '');
       throw new AppError(400, ErrorCode.EmailCodeInvalid, message, fields);

@@ -213,7 +213,7 @@ describe('самопроверка Brevo при запуске', () => {
   const brevo = async (account: Response, senders: unknown) => {
     vi.stubGlobal('fetch', async (url: string) => (String(url).endsWith('/account') ? account : new Response(JSON.stringify(senders))));
     const dir = mkdtempSync(path.join(tmpdir(), 'omni-mail-'));
-    const config = loadConfig({ NODE_ENV: 'test', DATA_DIR: dir, APP_SECRET: 'test-secret-test-secret-test-secret-0123456789', BREVO_API_KEY: 'xkeysib-test', MAIL_FROM: 'SpaceUp <Me@Gmail.com>' });
+    const config = loadConfig({ NODE_ENV: 'test', DATA_DIR: dir, APP_SECRET: 'test-secret-test-secret-test-secret-0123456789', BREVO_API_KEY: 'xkeysib-test', MAIL_FROM: 'Sunnet <Me@Gmail.com>' });
     const a = await buildApp(config);
     a.ctx.services.mail.logger = { info: () => undefined, warn: () => undefined, error: () => undefined };
     const health = await a.ctx.services.mail.verify();
@@ -273,7 +273,7 @@ describe('письма через свой Gmail (Apps Script)', () => {
     const sent: Record<string, unknown>[] = [];
     const a = await gmailApp(() => Response.json({ ok: true }), sent);
     await a.ctx.services.mail.send({ to: 'friend@example.com', subject: 'Код подтверждения', text: 'Код: 123456', html: '<b>123456</b>', tag: 'test' });
-    expect(sent.at(-1)).toMatchObject({ secret: 'shared-secret-0123456789', to: 'friend@example.com', subject: 'Код подтверждения', name: 'SpaceUp' });
+    expect(sent.at(-1)).toMatchObject({ secret: 'shared-secret-0123456789', to: 'friend@example.com', subject: 'Код подтверждения', name: 'Sunnet' });
     await a.close();
   });
 

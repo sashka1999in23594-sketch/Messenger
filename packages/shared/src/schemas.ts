@@ -68,7 +68,7 @@ export const password = z
   .min(LIMITS.passwordMin, `Минимум ${LIMITS.passwordMin} символов`)
   .max(LIMITS.passwordMax, `Не более ${LIMITS.passwordMax} символов`);
 
-/** Подсказка к паролю: видна только после ввода кода из письма или чата SpaceUp. */
+/** Подсказка к паролю: видна только после ввода кода из письма или чата Sunnet. */
 export const passwordHint = z
   .string()
   .trim()
@@ -187,11 +187,11 @@ export const flowStartSchema = z.object({
 const flowToken = z.string().min(16).max(128);
 export const flowTokenSchema = z.object({ flow: flowToken });
 export const flowCodeSchema = z.object({ flow: flowToken, code: emailCode });
-/** Повторная отправка: на почту и в чат SpaceUp или только в чат (когда письма исчерпаны) */
+/** Повторная отправка: на почту и в чат Sunnet или только в чат (когда письма исчерпаны) */
 export const flowResendSchema = z.object({ flow: flowToken, to: z.enum(['all', 'account']).default('all') });
 export const flowPasswordSchema = z.object({ flow: flowToken, password: z.string().min(1).max(LIMITS.passwordMax) });
 export const flowTotpSchema = z.object({ flow: flowToken, code: totpCode });
-/** Сброс пароля: код из письма и код из чата SpaceUp */
+/** Сброс пароля: код из письма и код из чата Sunnet */
 export const flowResetCodesSchema = z.object({ flow: flowToken, emailCode, accountCode: emailCode.optional() });
 
 /** Новый пароль: дважды и с подсказкой. */

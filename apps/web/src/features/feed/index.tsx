@@ -109,7 +109,7 @@ function BirthdayBanner() {
       </span>
       <div className="col" style={{ gap: 2, minWidth: 0 }}>
         <b>С днём рождения, {me.displayName}!</b>
-        <span className="small muted">Команда SpaceUp поздравляет вас. Загляните в чаты — там наверняка уже ждут поздравления.</span>
+        <span className="small muted">Команда Sunnet поздравляет вас. Загляните в чаты — там наверняка уже ждут поздравления.</span>
       </div>
       <IconButton
         label="Скрыть"

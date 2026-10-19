@@ -1,49 +1,53 @@
 import { useId } from 'react';
 
-/** Знак SpaceUp: планета на орбите со спутником. */
+/** Лучи солнца в знаке: 24 луча трёх длин, расширяются наружу (сетка 48×48). */
+const SUN_RAYS =
+  'M24.35 19L25.75 2L22.25 2L23.65 19ZM25.63 19.26L28.75 9.74L27.01 9.28L24.96 19.08ZM26.8 19.84L34.08 9.04L31.92 7.79L26.2 19.49ZM27.78 20.71L35.24 14.03L33.97 12.76L27.29 20.22ZM28.51 21.8L43.93 14.52L42.18 11.48L28.16 21.2ZM28.92 23.04L38.72 20.99L38.26 19.25L28.74 22.37ZM29 24.35L42 25.25L42 22.75L29 23.65ZM28.74 25.63L38.26 28.75L38.72 27.01L28.92 24.96ZM28.16 26.8L42.18 36.52L43.93 33.48L28.51 26.2ZM27.29 27.78L33.97 35.24L35.24 33.97L27.78 27.29ZM26.2 28.51L31.92 40.21L34.08 38.96L26.8 28.16ZM24.96 28.92L27.01 38.72L28.75 38.26L25.63 28.74ZM23.65 29L22.25 46L25.75 46L24.35 29ZM22.37 28.74L19.25 38.26L20.99 38.72L23.04 28.92ZM21.2 28.16L13.92 38.96L16.08 40.21L21.8 28.51ZM20.22 27.29L12.76 33.97L14.03 35.24L20.71 27.78ZM19.49 26.2L4.07 33.48L5.82 36.52L19.84 26.8ZM19.08 24.96L9.28 27.01L9.74 28.75L19.26 25.63ZM19 23.65L6 22.75L6 25.25L19 24.35ZM19.26 22.37L9.74 19.25L9.28 20.99L19.08 23.04ZM19.84 21.2L5.82 11.48L4.07 14.52L19.49 21.8ZM20.71 20.22L14.03 12.76L12.76 14.03L20.22 20.71ZM21.8 19.49L16.08 7.79L13.92 9.04L21.2 19.84ZM23.04 19.08L20.99 9.28L19.25 9.74L22.37 19.26Z';
+
+/** Знак Sunnet: солнце с золотыми лучами на голубом небе. */
 export function Logo({ size = 40, className }: { size?: number; className?: string }) {
   const id = useId();
   return (
     <svg className={className ? `logo ${className}` : 'logo'} width={size} height={size} viewBox="0 0 48 48" aria-hidden>
       <defs>
-        <linearGradient id={`${id}-bg`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" style={{ stopColor: 'var(--brand-bg-1)' }} />
-          <stop offset="1" style={{ stopColor: 'var(--brand-bg-2)' }} />
+        <linearGradient id={`${id}-sky`} x1="0.15" y1="0" x2="0.85" y2="1">
+          <stop offset="0" style={{ stopColor: 'var(--brand-sky-1)' }} />
+          <stop offset="1" style={{ stopColor: 'var(--brand-sky-2)' }} />
         </linearGradient>
-        <radialGradient id={`${id}-pl`} cx="0.35" cy="0.3" r="0.8">
-          <stop offset="0" style={{ stopColor: 'var(--brand-light)' }} />
-          <stop offset="0.45" style={{ stopColor: 'var(--brand-1)' }} />
-          <stop offset="1" style={{ stopColor: 'var(--brand-2)' }} />
+        <radialGradient id={`${id}-glow`} cx="24" cy="24" r="21" gradientUnits="userSpaceOnUse">
+          <stop offset="0" style={{ stopColor: 'var(--brand-sun-core)' }} />
+          <stop offset="0.3" style={{ stopColor: 'var(--brand-glow)', stopOpacity: 0.85 }} />
+          <stop offset="0.55" style={{ stopColor: 'var(--brand-sun-mid)', stopOpacity: 0.32 }} />
+          <stop offset="1" style={{ stopColor: 'var(--brand-sun-core)', stopOpacity: 0 }} />
         </radialGradient>
-        <linearGradient id={`${id}-rg`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" style={{ stopColor: 'var(--brand-star)', stopOpacity: 0.2 }} />
-          <stop offset="0.5" style={{ stopColor: 'var(--brand-star)' }} />
-          <stop offset="1" style={{ stopColor: 'var(--brand-glow)' }} />
-        </linearGradient>
+        <radialGradient id={`${id}-ray`} cx="24" cy="24" r="22" gradientUnits="userSpaceOnUse">
+          <stop offset="0.2" style={{ stopColor: 'var(--brand-sun-core)' }} />
+          <stop offset="0.45" style={{ stopColor: 'var(--brand-ray-1)' }} />
+          <stop offset="0.75" style={{ stopColor: 'var(--brand-ray-2)', stopOpacity: 0.9 }} />
+          <stop offset="1" style={{ stopColor: 'var(--brand-sun-mid)', stopOpacity: 0.1 }} />
+        </radialGradient>
+        <radialGradient id={`${id}-core`} cx="0.45" cy="0.42" r="0.6">
+          <stop offset="0" style={{ stopColor: 'var(--brand-sun-core)' }} />
+          <stop offset="0.55" style={{ stopColor: 'var(--brand-sun-mid)' }} />
+          <stop offset="0.85" style={{ stopColor: 'var(--brand-ray-1)' }} />
+          <stop offset="1" style={{ stopColor: 'var(--brand-sun-rim)' }} />
+        </radialGradient>
       </defs>
-      <rect width="48" height="48" rx="14" fill={`url(#${id}-bg)`} />
-      <circle cx="9" cy="11" r="0.8" style={{ fill: 'var(--brand-star)' }} opacity="0.8" />
-      <circle cx="38" cy="8" r="0.6" style={{ fill: 'var(--brand-star)' }} opacity="0.6" />
-      <circle cx="40" cy="38" r="0.7" style={{ fill: 'var(--brand-star)' }} opacity="0.7" />
-      <g transform="rotate(-24 24 24)">
-        <path d="M 5 24 A 19 7.2 0 0 1 43 24" fill="none" stroke={`url(#${id}-rg)`} strokeWidth="2.4" strokeLinecap="round" opacity="0.55" />
-      </g>
-      <circle cx="24" cy="24" r="9.5" fill={`url(#${id}-pl)`} />
-      <g transform="rotate(-24 24 24)">
-        <path d="M 43 24 A 19 7.2 0 0 1 5 24" fill="none" stroke={`url(#${id}-rg)`} strokeWidth="2.4" strokeLinecap="round" />
-        <circle className="logo__sat" cx="41.9" cy="26.5" r="2.7" style={{ fill: 'var(--brand-star)' }} />
-      </g>
+      <rect width="48" height="48" rx="14" fill={`url(#${id}-sky)`} />
+      <circle cx="24" cy="24" r="21" fill={`url(#${id}-glow)`} />
+      <path className="logo__rays" d={SUN_RAYS} fill={`url(#${id}-ray)`} />
+      <circle cx="24" cy="24" r="7.6" fill={`url(#${id}-core)`} />
     </svg>
   );
 }
 
-/** Логотип со словом «SpaceUp». */
+/** Логотип со словом «Sunnet». */
 export function Wordmark({ size = 36 }: { size?: number }) {
   return (
     <span className="row" style={{ gap: size * 0.3 }}>
       <Logo size={size} />
       <span className="wordmark" style={{ fontSize: size * 0.62 }}>
-        SpaceUp
+        Sunnet
       </span>
     </span>
   );

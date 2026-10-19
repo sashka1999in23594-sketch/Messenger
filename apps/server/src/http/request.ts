@@ -36,8 +36,8 @@ export function parseUserAgent(ua: string): { os: string; browser: string } {
             : /Linux/.test(ua)
               ? 'Linux'
               : 'Неизвестная система';
-  const browser = /SpaceUp\//.test(ua)
-    ? 'Приложение SpaceUp'
+  const browser = /(Sunnet|SpaceUp)\//.test(ua)
+    ? 'Приложение Sunnet'
     : /Edg\//.test(ua)
       ? 'Edge'
       : /OPR\/|Opera/.test(ua)

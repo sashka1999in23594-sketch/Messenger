@@ -62,7 +62,7 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub, storage
   const callsRepo = new CallsRepo(db, usersRepo);
   const messagesRepo = new MessagesRepo(db, usersRepo, media, polls, callsRepo);
   const chats = new ChatsService(db, usersRepo, messagesRepo, policy, media, hub, notifications, keys, polls);
-  // Служебный чат SpaceUp, пошаговый вход и регистрация, дни рождения
+  // Служебный чат Sunnet, пошаговый вход и регистрация, дни рождения
   const system = new SystemService(db, chats);
   const flowStore = new FlowStore(db, config.secret);
   const authFlow = new AuthFlowService(db, flowStore, usersRepo, auth, sessions, system, mail, securityLog);

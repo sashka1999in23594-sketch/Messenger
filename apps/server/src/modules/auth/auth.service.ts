@@ -348,7 +348,7 @@ export class AuthService {
   }
 
   /**
-   * Новый пароль после проверки двух кодов (почта + чат SpaceUp): сохраняем
+   * Новый пароль после проверки двух кодов (почта + чат Sunnet): сохраняем
    * пароль и подсказку, снимаем блокировку и завершаем все сеансы.
    */
   async setNewPassword(user: UserRow, password: string, hint: string, meta: RequestMeta): Promise<void> {
@@ -361,7 +361,7 @@ export class AuthService {
     const ids = this.sessions.revokeAllExcept(user.id, null);
     for (const id of ids) this.hub.kickSession(user.id, id);
     this.log.record(user.id, 'password_reset', meta);
-    this.securityEmail(user.id, 'Пароль сброшен по кодам из письма и чата SpaceUp', meta);
+    this.securityEmail(user.id, 'Пароль сброшен по кодам из письма и чата Sunnet', meta);
   }
 
   /** Подсказка к паролю (из настроек): только с текущим паролем. */

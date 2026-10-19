@@ -151,13 +151,13 @@ export class ChatsService {
     return chat.type === 'channel' ? this.isAdmin(m) : m.role !== 'subscriber';
   }
 
-  /** Служебный чат SpaceUp: в нём есть служебный аккаунт. */
+  /** Служебный чат Sunnet: в нём есть служебный аккаунт. */
   isSystemChat(chatId: string): boolean {
     return !!this.db.get('SELECT 1 FROM chat_members WHERE chat_id = :c AND user_id = :s', { c: chatId, s: SYSTEM_USER_ID });
   }
 
-  /** Писать в служебный чат может только сам SpaceUp. */
-  private assertNotSystemChat(userId: string, chatId: string, what = 'Это служебный чат SpaceUp — писать в него нельзя'): void {
+  /** Писать в служебный чат может только сам Sunnet. */
+  private assertNotSystemChat(userId: string, chatId: string, what = 'Это служебный чат Sunnet — писать в него нельзя'): void {
     if (userId !== SYSTEM_USER_ID && this.isSystemChat(chatId)) throw forbidden(what);
   }
 
@@ -439,7 +439,7 @@ export class ChatsService {
     if (!myKey) throw badRequest('Ключ этого устройства не зарегистрирован');
     const peerKey = this.keys.latestFor(peer.id);
     if (!peerKey) {
-      throw privacyRestricted('Собеседник ещё ни разу не открывал SpaceUp на устройстве с поддержкой шифрования');
+      throw privacyRestricted('Собеседник ещё ни разу не открывал Sunnet на устройстве с поддержкой шифрования');
     }
     const devices = { [userId]: myKey.deviceId, [peer.id]: peerKey.deviceId };
     const id = this.db.tx(() => {
@@ -561,7 +561,7 @@ export class ChatsService {
 
   /** Удалить чат: владелец группы/канала удаляет для всех; личный — скрывает у себя и очищает историю. */
   remove(userId: string, chatId: string): void {
-    this.assertNotSystemChat(userId, chatId, 'Служебный чат SpaceUp нельзя удалить: в него приходят коды входа');
+    this.assertNotSystemChat(userId, chatId, 'Служебный чат Sunnet нельзя удалить: в него приходят коды входа');
     const { chat, member } = this.access(chatId, userId);
     if (chat.type === 'group' || chat.type === 'channel') {
       if (member.role !== 'owner') return this.leave(userId, chatId);
@@ -599,7 +599,7 @@ export class ChatsService {
   }
 
   leave(userId: string, chatId: string): void {
-    this.assertNotSystemChat(userId, chatId, 'Служебный чат SpaceUp нельзя покинуть: в него приходят коды входа');
+    this.assertNotSystemChat(userId, chatId, 'Служебный чат Sunnet нельзя покинуть: в него приходят коды входа');
     const { chat, member } = this.access(chatId, userId);
     if (chat.type !== 'group' && chat.type !== 'channel') return this.remove(userId, chatId);
     this.db.tx(() => {
