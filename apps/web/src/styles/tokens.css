@@ -65,8 +65,9 @@
   --sky-low: #86bff7;
   --sky-horizon: #c9e4fd;
   --sun-core: #ffffff;
-  --sun-warm: #fff3d1;
-  --sun-glow: #ffe39a;
+  --ray-core: #fff6cf;
+  --ray-gold: #ffd257;
+  --ray-amber: #ffad33;
   --rainbow-red: #ff5a5a;
   --rainbow-orange: #ffa63d;
   --rainbow-yellow: #ffe94d;
@@ -76,10 +77,6 @@
   --flare-0: #ffffff;
   --flare-1: #ffb366;
   --flare-2: #fff3a6;
-  --flare-3: #b9ffcf;
-  --flare-4: #8fe3ff;
-  --flare-5: #9fb6ff;
-  --flare-6: #f2a6ff;
   --sky-card: rgba(255, 255, 255, 0.8);
   --sky-card-shadow: 0 40px 90px -30px rgba(10, 50, 120, 0.45), 0 10px 30px -10px rgba(10, 50, 120, 0.25);
   --safe-top: env(safe-area-inset-top, 0px);
