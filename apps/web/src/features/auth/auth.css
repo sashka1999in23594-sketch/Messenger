@@ -1,75 +1,221 @@
-/* ─── Вход, регистрация, «Скачать»: слева живая Земля, справа — один шаг ─── */
+/* ─── Вход, регистрация, «Скачать»: небо с солнцем и карточка посередине ─── */
 .auth {
   position: relative;
   z-index: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(400px, 0.75fr);
-  min-height: 100dvh;
-}
-
-.auth__world {
-  position: relative;
-  min-height: 100dvh;
-  overflow: hidden;
-  background: var(--auth-space);
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 42%, var(--sky-low) 78%, var(--sky-horizon) 100%);
+  /* Цвет текста заново от темы этого блока (на компьютере здесь всегда светлая) */
+  color: var(--text);
   isolation: isolate;
 }
-.auth__world-fallback {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 50% 48%, var(--auth-planet-glow), transparent 42%);
-}
-.auth__brand {
-  position: absolute;
-  left: clamp(20px, 3.4vw, 52px);
-  top: clamp(20px, 4vh, 44px);
-  z-index: 2;
+.auth__main {
+  position: relative;
+  z-index: 1;
   display: flex;
-  align-items: center;
-  gap: 14px;
-  pointer-events: none;
-  animation: rise-in var(--dur-slow) var(--ease);
-}
-.auth__name {
-  font-family: var(--font-display);
-  font-size: 28px;
-  font-weight: 760;
-  letter-spacing: -0.03em;
-  line-height: 1;
-  color: var(--auth-world-fg);
-}
-.auth__tagline {
-  font-size: var(--fs-sm);
-  color: var(--auth-world-fg-2);
-}
-
-.auth__side {
-  display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4);
-  padding: var(--space-8) clamp(20px, 3.5vw, 56px);
+  min-height: 100%;
+  padding: var(--space-8) var(--space-6);
 }
 .auth__panel {
   width: 100%;
-  max-width: 410px;
-  padding: 30px 28px 28px;
+  max-width: 420px;
+  padding: 32px 30px 22px;
   border-radius: 28px;
-  background: var(--panel);
+  background: var(--sky-card);
   border: 1px solid var(--panel-border);
-  box-shadow: var(--panel-highlight), var(--shadow-lg);
-  backdrop-filter: blur(var(--blur)) saturate(1.5);
-  -webkit-backdrop-filter: blur(var(--blur)) saturate(1.5);
+  box-shadow: var(--panel-highlight), var(--sky-card-shadow);
+  backdrop-filter: blur(var(--blur-strong)) saturate(1.6);
+  -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(1.6);
+  animation: rise-in var(--dur-slow) var(--ease);
 }
 
-/* Маленькие синие ссылки под карточкой */
+/* ─── Небо: солнце слева вверху и блики объектива ─── */
+.sky {
+  --sun-x: clamp(96px, 10vw, 190px);
+  --sun-y: clamp(84px, 14vh, 160px);
+  --px: 0;
+  --py: 0;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* Небо светлеет и теплеет вокруг солнца */
+.sky__glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at var(--sun-x) var(--sun-y), var(--sun-core) 0, color-mix(in oklab, var(--sun-warm) 80%, transparent) 46px, color-mix(in oklab, var(--sun-warm) 42%, transparent) 130px, color-mix(in oklab, var(--sun-warm) 16%, transparent) 300px, transparent 640px),
+    radial-gradient(ellipse 70% 55% at 0% 0%, color-mix(in oklab, var(--sun-warm) 22%, transparent), transparent 70%);
+}
+.sky__sun,
+.sky__rays,
+.sky__halo,
+.sky__streak {
+  position: absolute;
+  left: var(--sun-x);
+  top: var(--sun-y);
+  translate: -50% -50%;
+}
+.sky__sun {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--sun-core) 0 52%, var(--sun-warm) 66%, transparent 72%);
+  box-shadow:
+    0 0 26px 10px var(--sun-core),
+    0 0 90px 40px color-mix(in oklab, var(--sun-warm) 75%, transparent),
+    0 0 220px 110px color-mix(in oklab, var(--sun-glow) 32%, transparent);
+  animation: sun-breathe 7s ease-in-out infinite;
+}
+@keyframes sun-breathe {
+  50% {
+    scale: 1.06;
+  }
+}
+/* Лучи: тонкие у одного слоя, широкие и короче у другого — вместе выглядят неровно, как настоящие */
+.sky__rays {
+  width: 620px;
+  height: 620px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 4deg, color-mix(in oklab, var(--sun-core) 42%, transparent) 0deg 1.1deg, transparent 1.1deg 13deg);
+  filter: blur(0.6px);
+  mask-image: radial-gradient(circle, black 0, color-mix(in oklab, black 45%, transparent) 22%, transparent 64%);
+  -webkit-mask-image: radial-gradient(circle, black 0, color-mix(in oklab, black 45%, transparent) 22%, transparent 64%);
+  animation: sky-spin 260s linear infinite;
+}
+.sky__rays--fine {
+  width: 900px;
+  height: 900px;
+  opacity: 0.55;
+  background: repeating-conic-gradient(from 0deg, color-mix(in oklab, var(--sun-core) 50%, transparent) 0deg 0.5deg, transparent 0.5deg 7.3deg);
+  mask-image: radial-gradient(circle, black 0, color-mix(in oklab, black 30%, transparent) 16%, transparent 50%);
+  -webkit-mask-image: radial-gradient(circle, black 0, color-mix(in oklab, black 30%, transparent) 16%, transparent 50%);
+  animation-duration: 340s;
+  animation-direction: reverse;
+}
+@keyframes sky-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+/* Слабое радужное гало вокруг солнца */
+.sky__halo {
+  width: 440px;
+  height: 440px;
+  border-radius: 50%;
+  opacity: 0.32;
+  background: radial-gradient(
+    circle,
+    transparent 78%,
+    var(--rainbow-violet) 80%,
+    var(--rainbow-blue) 82.5%,
+    var(--rainbow-green) 85%,
+    var(--rainbow-yellow) 87.5%,
+    var(--rainbow-orange) 90%,
+    var(--rainbow-red) 92.5%,
+    transparent 96%
+  );
+  filter: blur(3px);
+}
+/* Горизонтальный отблеск через солнце */
+.sky__streak {
+  width: min(1100px, 90vw);
+  height: 3px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--sun-core) 55%, transparent) 50%, transparent);
+  filter: blur(1.5px);
+  opacity: 0.7;
+}
+/* Блики: на линии от солнца через центр экрана */
+.sky__ghost {
+  position: absolute;
+  left: calc(var(--sun-x) + var(--t) * (50vw - var(--sun-x)));
+  top: calc(var(--sun-y) + var(--t) * (50vh - var(--sun-y)));
+  width: var(--s);
+  height: var(--s);
+  translate: calc(-50% - var(--px) * var(--t) * 0.06px) calc(-50% - var(--py) * var(--t) * 0.06px);
+  opacity: var(--o);
+  transition: translate 1.2s var(--ease);
+  animation: ghost-shimmer 6s ease-in-out var(--d) infinite;
+  mix-blend-mode: screen;
+}
+@keyframes ghost-shimmer {
+  50% {
+    opacity: calc(var(--o) * 0.7);
+  }
+}
+.sky__ghost--disc {
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in oklab, var(--c) 90%, white) 0, color-mix(in oklab, var(--c) 55%, transparent) 45%, transparent 70%);
+}
+.sky__ghost--ring {
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 58%, color-mix(in oklab, var(--c) 70%, transparent) 66%, transparent 72%);
+}
+.sky__ghost--hex {
+  clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%);
+  background: radial-gradient(circle, color-mix(in oklab, var(--c) 45%, transparent) 0, color-mix(in oklab, var(--c) 70%, transparent) 80%);
+  filter: blur(1px);
+}
+/* Та самая радужная точка, которая остаётся, когда посмотришь на солнце */
+.sky__ghost--rainbow {
+  border-radius: 50%;
+  background: conic-gradient(
+    from 20deg,
+    var(--rainbow-red),
+    var(--rainbow-orange),
+    var(--rainbow-yellow),
+    var(--rainbow-green),
+    var(--rainbow-blue),
+    var(--rainbow-violet),
+    var(--rainbow-red)
+  );
+  mask-image: radial-gradient(circle, color-mix(in oklab, black 35%, transparent) 0, black 46%, transparent 70%);
+  -webkit-mask-image: radial-gradient(circle, color-mix(in oklab, black 35%, transparent) 0, black 46%, transparent 70%);
+  filter: blur(2px) saturate(1.3);
+  animation:
+    ghost-shimmer 6s ease-in-out var(--d) infinite,
+    sky-spin 30s linear infinite;
+}
+.sky__ghost--halo {
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    transparent 74%,
+    var(--rainbow-red) 77%,
+    var(--rainbow-yellow) 80%,
+    var(--rainbow-green) 83%,
+    var(--rainbow-blue) 86%,
+    var(--rainbow-violet) 89%,
+    transparent 93%
+  );
+  filter: blur(4px);
+}
+.sky--still *,
+.sky--still .sky__ghost {
+  animation: none !important;
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sky * {
+    animation: none !important;
+  }
+}
+
+/* Маленькие синие ссылки внизу карточки */
 .auth__links {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 4px 18px;
-  max-width: 410px;
+  gap: 2px 18px;
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
 }
 .auth__link {
   padding: 4px 2px;
@@ -472,39 +618,34 @@
   color: var(--text-2);
 }
 
-/* Планшет и телефон: Земля — баннером сверху, шаг — под ней */
+/* Телефон и узкое окно: ничего лишнего — только поля на весь экран */
 @media (max-width: 899px) {
   .auth {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto 1fr;
+    background: var(--bg);
   }
-  .auth__world {
-    min-height: 0;
-    height: min(40vh, 340px);
-  }
-  .auth__brand {
-    left: 16px;
-    top: 14px;
-    gap: 10px;
-  }
-  .auth__name {
-    font-size: 22px;
-  }
-  .auth__tagline {
-    font-size: var(--fs-xs);
-  }
-  .auth__side {
-    position: relative;
-    z-index: 2;
-    justify-content: flex-start;
-    margin-top: -28px;
-    padding: 0 16px calc(24px + var(--safe-bottom));
+  .auth__main {
+    align-items: stretch;
+    padding: calc(var(--space-6) + var(--safe-top)) 20px calc(var(--space-6) + var(--safe-bottom));
   }
   .auth__panel {
-    padding: 24px 18px 22px;
-    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 440px;
+    margin: 0 auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .auth__links {
+    margin-top: 28px;
+    border-top: 0;
   }
   .auth__title {
-    font-size: 23px;
+    font-size: 24px;
   }
 }

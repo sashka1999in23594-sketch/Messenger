@@ -1,37 +1,31 @@
 /**
- * Общее для входа, регистрации и скачивания: слева — живая Земля, справа —
- * карточка с одним шагом, под ней — маленькие синие ссылки.
+ * Общее для входа, регистрации и скачивания: на компьютере — голубое небо с
+ * солнцем слева вверху и карточка с одним шагом посередине; на телефоне —
+ * только поля на весь экран. Маленькие синие ссылки — внизу карточки.
  */
-import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import QRCodeLib from 'qrcode';
 import { useAuthConfig } from '../../shared/api/config';
+import { useMediaQuery } from '../../shared/hooks';
 import { usePrefs } from '../../shared/stores/prefs';
 import { Logo } from '../../shared/ui';
 import { DevMailbox } from './DevMailbox';
+import { Sky } from './Sky';
 import './auth.css';
-
-const EarthScene = lazy(() => import('./earth/EarthScene'));
 
 export function AuthLayout({ children, links }: { children: ReactNode; links?: ReactNode }) {
   const reduceMotion = usePrefs((s) => s.reduceMotion);
+  const wide = useMediaQuery('(min-width: 900px)');
   return (
-    <div className="auth">
-      <section className="auth__world" aria-label="SpaceUp: люди со всего мира на одной орбите">
-        <Suspense fallback={<div className="auth__world-fallback" />}>
-          <EarthScene className={reduceMotion ? 'earth--still' : undefined} />
-        </Suspense>
-        <div className="auth__brand">
-          <Logo size={44} />
-          <div className="col" style={{ gap: 2 }}>
-            <span className="auth__name">SpaceUp</span>
-            <span className="auth__tagline">Люди со всего мира — на одной орбите</span>
-          </div>
+    // Днём на небе карточка светлая при любой теме; на телефоне — тема пользователя
+    <div className="auth" data-theme={wide ? 'light' : undefined}>
+      {wide && <Sky still={reduceMotion} />}
+      <main className="auth__main">
+        <div className="auth__panel">
+          {children}
+          {links && <nav className="auth__links">{links}</nav>}
         </div>
-      </section>
-      <main className="auth__side">
-        <div className="auth__panel">{children}</div>
-        {links && <nav className="auth__links">{links}</nav>}
       </main>
     </div>
   );
