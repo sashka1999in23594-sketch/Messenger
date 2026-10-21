@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Compass, Lock, Megaphone, MessageCircle, Plus, Search, ShieldCheck, Users } from 'lucide-react';
+import { ChevronLeft, Compass, Lock, Megaphone, MessageCircle, Plus, Search, ShieldCheck, Users } from 'lucide-react';
 import type { ChatSummary } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { qk, queryClient } from '../../shared/api/query';
@@ -37,14 +37,41 @@ export function ChatsLayout({ variant = 'chats' }: { variant?: 'chats' | 'channe
   }, [chatId, setInfo]);
 
   return (
-    <div className={cn('chats', hasDetail && 'chats--detail', infoOpen && chatId && 'chats--info')} style={{ '--msg-scale': msgScale / 100 } as React.CSSProperties}>
-      <ChatList folder={folder} variant={variant} activeId={chatId ?? null} onFolder={(f) => navigate(f === 'all' ? '/chats' : `/chats/folder/${f}`)} />
-      <section className="chats__detail">
-        <ChatWallpaper chatId={chatId} />
-        <Outlet />
-      </section>
-      {infoOpen && chatId && <ChatInfo chatId={chatId} onClose={() => setInfo(false)} />}
+    <div className="chats-host">
+      <div className={cn('chats', hasDetail && 'chats--detail', infoOpen && chatId && 'chats--info')} style={{ '--msg-scale': msgScale / 100 } as React.CSSProperties}>
+        <ChatList folder={folder} variant={variant} activeId={chatId ?? null} onFolder={(f) => navigate(f === 'all' ? '/chats' : `/chats/folder/${f}`)} />
+        <section className="chats__detail">
+          <ChatWallpaper chatId={chatId} />
+          <Outlet />
+        </section>
+        {infoOpen && chatId && <ChatInfo chatId={chatId} onClose={() => setInfo(false)} />}
+      </div>
     </div>
+  );
+}
+
+/**
+ * Шапка вложенного экрана мессенджера (новый чат, папки, обзор) — видна, когда
+ * мессенджер в одну колонку (телефон, узкое окно): «Назад» к списку и заголовок.
+ */
+export function DetailHead({ title, back, actions }: { title: string; back?: string; actions?: ReactNode }) {
+  const navigate = useNavigate();
+  const { pathname, key } = useLocation();
+  const fallback = back ?? (pathname.startsWith('/channels') ? '/channels' : '/chats');
+  return (
+    <header className="detail-head">
+      <button
+        type="button"
+        className="chat-back"
+        style={{ display: 'inline-flex' }}
+        aria-label="Назад"
+        onClick={() => (key !== 'default' ? navigate(-1) : navigate(fallback, { replace: true }))}
+      >
+        <ChevronLeft size={28} strokeWidth={2.2} />
+      </button>
+      <span className="detail-head__title">{title}</span>
+      {actions}
+    </header>
   );
 }
 
@@ -90,7 +117,10 @@ export function NoChatSelected() {
 
 /** «Избранное»: создаётся при первом открытии и сразу открывается. */
 export function OpenSaved() {
-  const q = useQuery({ queryKey: ['saved-chat'], queryFn: () => api.post<ChatSummary>('/chats/saved') });
+  const q = useQuery({
+    queryKey: ['saved-chat'],
+    queryFn: () => api.post<ChatSummary>('/chats/saved'),
+  });
   if (q.data) return <Navigate to={`/chats/${q.data.id}`} replace />;
   return <Loading />;
 }
@@ -114,54 +144,57 @@ export function DiscoverChannels({ only }: { only?: 'channel' | 'group' }) {
   });
   const open = (c: ChatSummary) => `/${c.type === 'channel' ? 'channels' : 'chats'}/${c.id}`;
   const items = (list.data?.items ?? []).filter((c) => !only || c.type === only);
+  const pageTitle = only === 'channel' ? 'Обзор каналов' : only === 'group' ? 'Открытые группы' : 'Открытые каналы и группы';
   return (
-    <div className="scroll">
-      <div className="page">
-        <PageHeader
-          title={only === 'channel' ? 'Обзор каналов' : only === 'group' ? 'Открытые группы' : 'Открытые каналы и группы'}
-          subtitle={only === 'channel' ? 'Открытые каналы, на которые можно подписаться' : 'Вступить может любой — без приглашения'}
-          icon={<Compass size={22} />}
-        />
-        <div className="input-group" style={{ marginBottom: 16 }}>
-          <Search size={16} className="input-group__icon" />
-          <input className="input" placeholder="Название или @ссылка" value={q} onChange={(e) => setQ(e.target.value)} />
-        </div>
-        {list.isLoading ? (
-          <ListSkeleton />
-        ) : items.length === 0 ? (
-          <EmptyState icon={<Users size={28} />} title="Ничего не найдено" text={q ? 'Попробуйте другое название' : 'Открытых каналов пока нет — создайте первый'} />
-        ) : (
-          <div className="card">
-            {items.map((c) => (
-              <div key={c.id} className="list-item">
-                <button className="row grow" style={{ gap: 12, textAlign: 'left' }} onClick={() => navigate(open(c))}>
-                  <Avatar src={c.avatarUrl} name={c.title} id={c.id} size={48} />
-                  <span className="list-item__body">
-                    <span className="list-item__title row gap-1">
-                      {c.title} {c.type === 'channel' && <ShieldCheck size={14} className="faint" />}
-                    </span>
-                    <span className="list-item__sub ellipsis" style={{ display: 'block' }}>
-                      {c.handle ? `@${c.handle} · ` : ''}
-                      {members(c.memberCount, c.type === 'channel' ? 'channel' : 'group')}
-                    </span>
-                    {c.description && <span className="list-item__sub clamp-2">{c.description}</span>}
-                  </span>
-                </button>
-                {c.role ? (
-                  <Button variant="secondary" size="sm" onClick={() => navigate(open(c))}>
-                    Открыть
-                  </Button>
-                ) : (
-                  <Button size="sm" loading={join.isPending && join.variables === c.id} onClick={() => join.mutate(c.id)}>
-                    {c.type === 'channel' ? 'Подписаться' : 'Вступить'}
-                  </Button>
-                )}
-              </div>
-            ))}
+    <div className="chat-page">
+      <DetailHead title={pageTitle} />
+      <div className="scroll">
+        <div className="page">
+          <PageHeader
+            title={pageTitle}
+            subtitle={only === 'channel' ? 'Открытые каналы, на которые можно подписаться' : 'Вступить может любой — без приглашения'}
+            icon={<Compass size={22} />}
+          />
+          <div className="input-group" style={{ marginBottom: 16 }}>
+            <Search size={16} className="input-group__icon" />
+            <input className="input" placeholder="Название или @ссылка" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
-        )}
+          {list.isLoading ? (
+            <ListSkeleton />
+          ) : items.length === 0 ? (
+            <EmptyState icon={<Users size={28} />} title="Ничего не найдено" text={q ? 'Попробуйте другое название' : 'Открытых каналов пока нет — создайте первый'} />
+          ) : (
+            <div className="card">
+              {items.map((c) => (
+                <div key={c.id} className="list-item">
+                  <button className="row grow" style={{ gap: 12, textAlign: 'left' }} onClick={() => navigate(open(c))}>
+                    <Avatar src={c.avatarUrl} name={c.title} id={c.id} size={48} />
+                    <span className="list-item__body">
+                      <span className="list-item__title row gap-1">
+                        {c.title} {c.type === 'channel' && <ShieldCheck size={14} className="faint" />}
+                      </span>
+                      <span className="list-item__sub ellipsis" style={{ display: 'block' }}>
+                        {c.handle ? `@${c.handle} · ` : ''}
+                        {members(c.memberCount, c.type === 'channel' ? 'channel' : 'group')}
+                      </span>
+                      {c.description && <span className="list-item__sub clamp-2">{c.description}</span>}
+                    </span>
+                  </button>
+                  {c.role ? (
+                    <Button variant="secondary" size="sm" onClick={() => navigate(open(c))}>
+                      Открыть
+                    </Button>
+                  ) : (
+                    <Button size="sm" loading={join.isPending && join.variables === c.id} onClick={() => join.mutate(c.id)}>
+                      {c.type === 'channel' ? 'Подписаться' : 'Вступить'}
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
-

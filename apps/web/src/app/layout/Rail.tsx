@@ -1,5 +1,5 @@
 import { Link, NavLink, useNavigate } from 'react-router';
-import { Download, LifeBuoy, LogOut, Moon, Orbit, Settings, Sun, UserRound } from 'lucide-react';
+import { Download, LifeBuoy, LogOut, Moon, Settings, Sun, UserRound } from 'lucide-react';
 import type { Me } from '@omni/shared';
 import { sections, type NavSection } from '../navigation';
 import { confirmLogout } from '../session';
@@ -53,9 +53,6 @@ export function Rail({ current }: { current: NavSection }) {
           <RailItem key={s.id} section={s} active={current.id === s.id} />
         ))}
       <div className="rail__spacer" />
-      <button className="rail__tool desktop-only" onClick={() => setPrefs({ spaceMode: true })} aria-label="Режим «Пространство»" title="Пространство: окна на поле, которое приближается колесом">
-        <Orbit size={20} />
-      </button>
       <button className="rail__tool" onClick={() => setPrefs({ theme: isDark ? 'light' : 'dark' })} aria-label="Сменить тему" title={isDark ? 'Светлая тема' : 'Тёмная тема'}>
         {isDark ? <Sun size={20} /> : <Moon size={20} />}
       </button>

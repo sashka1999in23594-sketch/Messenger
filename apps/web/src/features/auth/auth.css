@@ -47,11 +47,12 @@
 /* Тёплое сияние: у солнца небо золотое, дальше — тёплый белый и только потом синее
  * (золото напрямую в синий даёт серый, поэтому переход идёт через белый) */
 .sky__glow {
+  /* С запасом за краями: слой сдвигается за курсором, и край не должен проступать */
   position: absolute;
-  inset: 0;
+  inset: -80px;
   background:
     radial-gradient(
-      circle at var(--sun-x) var(--sun-y),
+      circle at calc(var(--sun-x) + 80px) calc(var(--sun-y) + 80px),
       var(--sun-core) 0,
       var(--ray-core) 40px,
       color-mix(in oklab, var(--ray-gold) 78%, transparent) 95px,
@@ -135,6 +136,171 @@
     scale: 1.06;
   }
 }
+/* Солнце с лучами и пылинками — ближний слой: чуть смещается за курсором;
+ * у самого солнца лучи разгораются и появляется слепящий ореол */
+.sky__sunwrap {
+  position: absolute;
+  inset: 0;
+  --near: 0;
+  translate: calc(var(--px) * -0.014px) calc(var(--py) * -0.014px);
+  transition: translate 1.4s var(--ease);
+}
+.sky__sunwrap::after {
+  content: '';
+  position: absolute;
+  left: var(--sun-x);
+  top: var(--sun-y);
+  width: 520px;
+  height: 520px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle closest-side, var(--sun-core), color-mix(in oklab, var(--ray-core) 55%, transparent) 30%, transparent);
+  opacity: calc(var(--near) * 0.75);
+  transition: opacity 0.5s var(--ease);
+  pointer-events: none;
+}
+.sky__sunwrap .sky__rays {
+  filter: blur(1.4px) brightness(calc(1 + var(--near) * 0.45));
+}
+
+/* Облака: два слоя глубины, плывут слева направо и чуть смещаются за курсором */
+.sky__clouds {
+  position: absolute;
+  inset: 0;
+  transition: translate 1.8s var(--ease);
+}
+.sky__clouds--far {
+  translate: calc(var(--px) * -0.006px) calc(var(--py) * -0.004px);
+}
+.sky__clouds--near {
+  translate: calc(var(--px) * -0.022px) calc(var(--py) * -0.012px);
+}
+.sky__cloud-track {
+  position: absolute;
+  left: 0;
+  top: var(--top);
+  animation: cloud-drift var(--dur) linear var(--delay) infinite;
+}
+@keyframes cloud-drift {
+  from {
+    translate: -30vw 0;
+  }
+  to {
+    translate: 115vw 0;
+  }
+}
+/* Кучевое облако из нескольких мягких эллипсов: сверху белое, снизу с голубой тенью */
+.sky__cloud {
+  width: 280px;
+  height: 110px;
+  scale: var(--k);
+  opacity: var(--o);
+  background:
+    radial-gradient(closest-side, var(--cloud), transparent) 90px 8px / 120px 92px no-repeat,
+    radial-gradient(closest-side, var(--cloud), transparent) 30px 34px / 120px 70px no-repeat,
+    radial-gradient(closest-side, var(--cloud), transparent) 150px 26px / 110px 78px no-repeat,
+    radial-gradient(closest-side, var(--cloud-shade), transparent) 20px 58px / 240px 50px no-repeat,
+    radial-gradient(closest-side, var(--cloud), transparent) 10px 50px / 260px 46px no-repeat;
+  filter: blur(7px);
+}
+
+/* Пылинки, которые кружатся в солнечном свете */
+.sky__mote {
+  position: absolute;
+  left: calc(var(--sun-x) + var(--x));
+  top: calc(var(--sun-y) + var(--y));
+  width: var(--s);
+  height: var(--s);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--sun-core), color-mix(in oklab, var(--ray-core) 60%, transparent) 50%, transparent 72%);
+  box-shadow: 0 0 6px 1px color-mix(in oklab, var(--ray-core) 70%, transparent);
+  animation:
+    mote-drift var(--dur) ease-in-out var(--delay) infinite alternate,
+    mote-twinkle var(--tw) ease-in-out var(--delay) infinite alternate;
+}
+@keyframes mote-drift {
+  to {
+    translate: var(--dx) var(--dy);
+  }
+}
+@keyframes mote-twinkle {
+  from {
+    opacity: 0.12;
+  }
+  to {
+    opacity: 0.95;
+  }
+}
+
+/* Стая птиц пролетает по небу раз в 50 секунд */
+.sky__flock {
+  position: absolute;
+  left: 0;
+  top: 24%;
+  width: 120px;
+  height: 60px;
+  opacity: 0;
+  animation: flock-fly 50s linear 4s infinite;
+}
+@keyframes flock-fly {
+  0% {
+    translate: -14vw 8vh;
+    opacity: 0;
+  }
+  2% {
+    opacity: 1;
+  }
+  44% {
+    translate: 50vw -2vh;
+  }
+  86% {
+    translate: 114vw -10vh;
+    opacity: 1;
+  }
+  88%,
+  100% {
+    translate: 114vw -10vh;
+    opacity: 0;
+  }
+}
+.sky__bird {
+  position: absolute;
+  width: 30px;
+  fill: var(--bird);
+  transform-origin: 50% 60%;
+  animation: bird-flap 0.5s ease-in-out calc(var(--i) * -0.17s) infinite alternate;
+}
+/* Клин: вожак впереди, остальные — уступами */
+.sky__bird:nth-child(1) {
+  left: 96px;
+  top: 16px;
+}
+.sky__bird:nth-child(2) {
+  left: 64px;
+  top: 0;
+  width: 26px;
+}
+.sky__bird:nth-child(3) {
+  left: 68px;
+  top: 34px;
+  width: 27px;
+}
+.sky__bird:nth-child(4) {
+  left: 34px;
+  top: -12px;
+  width: 22px;
+}
+.sky__bird:nth-child(5) {
+  left: 40px;
+  top: 50px;
+  width: 23px;
+}
+@keyframes bird-flap {
+  to {
+    scale: 1 0.3;
+  }
+}
+
 /* Блики: на линии от солнца через центр экрана */
 .sky__ghost {
   position: absolute;
@@ -195,10 +361,56 @@
   animation: none !important;
   transition: none;
 }
+.sky--still .sky__flock {
+  display: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .sky * {
     animation: none !important;
   }
+  .sky__flock {
+    display: none;
+  }
+  .auth--tilt .auth__panel {
+    transform: none;
+  }
+}
+
+/* Карточка на компьютере чуть наклоняется за курсором, по стеклу скользит блик */
+.auth--tilt .auth__panel {
+  position: relative;
+  transform: perspective(1400px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.5s var(--ease);
+}
+.auth--tilt .auth__panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(420px circle at var(--mx, 30%) var(--my, 0%), color-mix(in oklab, var(--sun-core) 38%, transparent), transparent 60%);
+  pointer-events: none;
+  opacity: 0.9;
+  transition: opacity 0.5s var(--ease);
+}
+.auth--tilt .auth__panel > * {
+  position: relative;
+}
+/* Главная кнопка: при наведении по ней пробегает солнечный блик */
+.auth .btn--primary {
+  position: relative;
+  overflow: hidden;
+}
+.auth .btn--primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, color-mix(in oklab, var(--sun-core) 50%, transparent) 50%, transparent 70%);
+  translate: -120% 0;
+  pointer-events: none;
+}
+.auth .btn--primary:hover::after {
+  translate: 120% 0;
+  transition: translate 0.9s var(--ease);
 }
 
 /* Маленькие синие ссылки внизу карточки */

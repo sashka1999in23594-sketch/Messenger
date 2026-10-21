@@ -1,229 +1,978 @@
-/* ─── «Пространство»: док слева, поле с точками, окна ───────────────────── */
+/* ─── Рабочий стол Sunnet: обои, строка меню, док и окна ─────────────────── */
 .desk {
+  --desk-r: var(--radius-md);
   position: fixed;
   inset: 0;
-  display: flex;
   overflow: hidden;
+  isolation: isolate;
+  color: var(--text);
   user-select: none;
+  -webkit-user-select: none;
 }
-.desk__field {
-  position: relative;
-  flex: 1;
-  min-width: 0;
+/* Под обоями общий фон приложения не нужен — не тратим на него видеокарту */
+body:has(.desk:not(.desk--wp-aurora)) .aurora {
+  display: none;
+}
+
+/* ─── Обои ─── */
+.wall {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   overflow: hidden;
-  touch-action: none;
-  cursor: grab;
-  background-image: radial-gradient(circle, var(--desk-dot) 1.2px, transparent 1.6px);
+  contain: strict;
 }
-.desk__field:active {
-  cursor: grabbing;
+.wall--aurora {
+  background: transparent;
 }
-.desk__world {
+.wall__sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, var(--desk-sky-1) 0%, var(--desk-sky-2) 38%, var(--desk-sky-3) 72%, var(--desk-sky-4) 100%);
+}
+.wall__sun {
+  position: absolute;
+  left: var(--desk-sun-x);
+  top: var(--desk-sun-y);
+  width: var(--desk-sun-size);
+  height: var(--desk-sun-size);
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--desk-sun-core) 0%,
+    var(--desk-sun-core) 5%,
+    var(--desk-sun-glow) 9%,
+    color-mix(in oklab, var(--desk-sun-glow) 45%, transparent) 17%,
+    var(--desk-sun-halo) 30%,
+    transparent 68%
+  );
+}
+.wall__rays {
+  position: absolute;
+  left: var(--desk-sun-x);
+  top: var(--desk-sun-y);
+  width: 260vmax;
+  height: 260vmax;
+  translate: -50% -50%;
+  opacity: var(--desk-ray-opacity);
+  mix-blend-mode: screen;
+}
+.wall__haze {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 60% at var(--desk-sun-x) 100%, var(--desk-haze) 0%, transparent 70%),
+    radial-gradient(60% 40% at var(--desk-sun-x) var(--desk-sun-y), var(--desk-haze) 0%, transparent 100%);
+}
+.wall__stars {
+  position: absolute;
+  inset: 0 0 35% 0;
+  opacity: 0.85;
+  background-image:
+    radial-gradient(1.2px 1.2px at 12% 18%, var(--desk-star) 50%, transparent 100%),
+    radial-gradient(1px 1px at 24% 42%, var(--desk-star) 50%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 37% 12%, var(--desk-star) 50%, transparent 100%),
+    radial-gradient(1px 1px at 48% 30%, var(--desk-star) 50%, transparent 100%),
+    radial-gradient(1.3px 1.3px at 58% 8%, var(--desk-star) 50%, transparent 100%),
+    radial-gradient(1px 1px at 66% 36%, var(--desk-star) 50%, transparent 100%),
+    radial-gradient(1.6px 1.6px at 71% 22%, var(--desk-star) 50%, transparent 100%),
+    radial-gradient(1px 1px at 88% 44%, var(--desk-star) 50%, transparent 100%),
+    radial-gradient(1.2px 1.2px at 93% 10%, var(--desk-star) 50%, transparent 100%),
+    radial-gradient(1px 1px at 6% 52%, var(--desk-star) 50%, transparent 100%),
+    radial-gradient(1.4px 1.4px at 31% 58%, var(--desk-star) 50%, transparent 100%),
+    radial-gradient(1px 1px at 77% 56%, var(--desk-star) 50%, transparent 100%);
+  background-size: 640px 520px;
+}
+/* Облака у горизонта: несколько мягких слоёв, ближние — светлее */
+.wall__clouds {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -4%;
+  height: 46%;
+  filter: blur(14px);
+}
+.wall__cloud {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--desk-cloud) 0%, var(--desk-cloud) 42%, transparent 100%);
+}
+.wall__cloud--1 {
+  left: -4%;
+  bottom: -18%;
+  width: 52%;
+  height: 78%;
+}
+.wall__cloud--2 {
+  left: 30%;
+  bottom: -30%;
+  width: 46%;
+  height: 74%;
+  background: radial-gradient(closest-side, var(--desk-cloud-2) 0%, var(--desk-cloud-2) 40%, transparent 100%);
+}
+.wall__cloud--3 {
+  right: -6%;
+  bottom: -14%;
+  width: 56%;
+  height: 84%;
+}
+.wall__cloud--4 {
+  left: 18%;
+  bottom: 18%;
+  width: 34%;
+  height: 34%;
+  background: radial-gradient(closest-side, var(--desk-cloud-rim) 0%, transparent 100%);
+}
+
+/* ─── Пустой стол: подсказка над доком ─── */
+.desk__empty {
   position: absolute;
   left: 0;
-  top: 0;
-  width: 1px;
-  height: 1px;
-  transform-origin: 0 0;
-}
-.desk__hint {
-  position: absolute;
-  left: 50%;
-  bottom: 32px;
-  transform: translateX(-50%);
+  right: 0;
+  bottom: calc(var(--desk-dock-zone) + 14px);
+  z-index: 0;
   display: flex;
+  justify-content: center;
+  pointer-events: none;
+  animation: fade-in var(--dur-slow) var(--ease);
+}
+.desk__pill {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  max-width: min(640px, 90%);
-  padding: 12px 18px;
+  padding: 8px 14px;
   border-radius: var(--radius-full);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow-md);
-  color: var(--text-2);
+  background: var(--desk-menubar-bg);
+  color: var(--desk-menubar-fg);
+  box-shadow:
+    inset 0 0 0 1px var(--desk-menubar-edge),
+    var(--shadow-md);
+  backdrop-filter: blur(var(--blur-strong)) saturate(1.6);
+  -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(1.6);
   font-size: var(--fs-sm);
+  font-weight: 550;
+}
+.desk__pill--button {
+  pointer-events: auto;
+  font-weight: 650;
+}
+.desk__pill--button:hover {
+  background: var(--desk-dock-bg);
+}
+.desk__kbd {
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--desk-menubar-field);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+/* ─── Слой окон ─── */
+.desk__windows {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   pointer-events: none;
 }
 
-/* ─── Док ─── */
-.dock {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 0;
-  z-index: 2;
-  background: var(--panel);
-  border-right: 1px solid var(--panel-border);
-  backdrop-filter: blur(var(--blur-strong)) saturate(1.5);
-  -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(1.5);
-}
-.dock__logo {
-  display: grid;
-  place-items: center;
-  margin-bottom: 6px;
-}
-.dock__apps {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-.dock-app {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  width: 64px;
-  padding: 7px 0 5px;
-  border-radius: var(--radius-md);
-  color: var(--text-2);
-}
-.dock-app:hover {
-  background: var(--surface-hover);
-  color: var(--text);
-}
-.dock-app__label {
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.2;
-}
-.dock-app--running::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 3px;
-  height: 8px;
-  margin-top: -4px;
-  border-radius: 0 3px 3px 0;
-  background: var(--text-3);
-}
-.dock-app--active {
-  color: var(--text);
-  background: var(--accent-soft);
-}
-.dock-app--active::before {
-  height: 22px;
-  margin-top: -11px;
-  background: var(--accent);
-}
-.dock-app__badge {
-  position: absolute;
-  top: 2px;
-  right: 8px;
-}
-.dock__tools {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-}
-.dock-tool {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 34px;
-  border-radius: var(--radius-sm);
-  color: var(--text-2);
-}
-.dock-tool:hover {
-  background: var(--surface-hover);
-  color: var(--text);
-}
-.dock-tool--zoom {
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ─── Окна ─── */
+/* ─── Окно ─── */
 .desk-win {
   position: absolute;
+  left: 0;
+  top: 0;
   display: flex;
   flex-direction: column;
-  border-radius: var(--radius-xl);
-  background: var(--bg-elevated-solid);
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
+  border-radius: var(--desk-r);
+  background: var(--desk-win-bg);
+  box-shadow:
+    0 0 0 1px var(--desk-win-edge),
+    var(--desk-win-shadow);
+  pointer-events: auto;
   user-select: text;
-  cursor: default;
-  touch-action: auto;
+  -webkit-user-select: text;
+  outline: none;
+  transition: box-shadow var(--dur) var(--ease);
 }
 .desk-win[hidden] {
   display: none;
 }
-.desk-win--max {
-  border-radius: 0;
-  border: 0;
+.desk-win--active {
+  box-shadow:
+    0 0 0 1px var(--desk-win-edge),
+    var(--desk-win-shadow-active);
 }
+.desk-win--glide {
+  transition:
+    translate 280ms var(--ease),
+    width 280ms var(--ease),
+    height 280ms var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+.desk-win--move {
+  will-change: translate;
+}
+/* Пока окно тянут, содержимое (видео, рамки) не перехватывает мышь */
+.desk-win--move .desk-win__body,
+.desk-win--resize .desk-win__body,
+.desk-win--leaving {
+  pointer-events: none;
+}
+.desk-win--resize,
+.desk-win--move {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .desk-win__bar {
+  position: relative;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 42px;
-  padding: 0 6px 0 8px;
+  gap: 6px;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: var(--desk-r) var(--desk-r) 0 0;
+  background: var(--desk-win-bar-idle);
   border-bottom: 1px solid var(--border);
-  background: var(--panel);
-  cursor: grab;
   user-select: none;
+  -webkit-user-select: none;
   touch-action: none;
 }
-.desk-win__bar:active {
-  cursor: grabbing;
+.desk-win--active .desk-win__bar {
+  background: var(--desk-win-bar);
 }
-.desk-win--max .desk-win__bar {
-  cursor: default;
+.desk-win--win .desk-win__bar {
+  padding-right: 0;
 }
-.desk-win__icon {
+.desk-win__lead {
   flex: 0 0 auto;
-  color: var(--accent-fg);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.desk-win__tool {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 28px;
+  border-radius: 8px;
+  color: var(--text-2);
+}
+.desk-win__tool:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.desk-win__tool--on {
+  color: var(--text);
+  background: var(--surface-2);
+}
+.desk-win__tool:disabled {
+  opacity: 0.3;
 }
 .desk-win__title {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: var(--fs-sm);
-  font-weight: 650;
   color: var(--text);
 }
-.desk-win__controls {
-  display: flex;
-  gap: 2px;
+/* macOS: заголовок ровно по центру окна, пока хватает места */
+.desk-win--mac .desk-win__bar {
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(0, 1fr);
 }
-.desk-win__btn {
+.desk-win--mac .desk-win__title {
+  justify-content: center;
+}
+.desk-win__app {
+  font-weight: 700;
+}
+.desk-win__sub {
+  color: var(--text-2);
+  font-weight: 500;
+}
+.desk-win:not(.desk-win--active) .desk-win__title {
+  color: var(--text-3);
+}
+.desk-win:not(.desk-win--active) .desk-win__sub {
+  color: var(--text-3);
+}
+.desk-win:not(.desk-win--active) .desk-win__title .desk-tile {
+  opacity: 0.6;
+}
+
+/* Кнопки macOS: красная, жёлтая, зелёная; значки — при наведении */
+.desk-win__lights {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px 0 4px;
+}
+.desk-light {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 30px;
-  border-radius: var(--radius-sm);
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--desk-light-idle);
+  box-shadow: inset 0 0 0 0.5px var(--desk-light-ring);
+  color: transparent;
+}
+.desk-light svg {
+  opacity: 0;
+}
+.desk-win--active .desk-light--close,
+.desk-win__lights:hover .desk-light--close {
+  background: var(--desk-light-close);
+}
+.desk-win--active .desk-light--min,
+.desk-win__lights:hover .desk-light--min {
+  background: var(--desk-light-min);
+}
+.desk-win--active .desk-light--max,
+.desk-win__lights:hover .desk-light--max {
+  background: var(--desk-light-max);
+}
+.desk-win__lights:hover .desk-light {
+  color: var(--desk-light-glyph);
+}
+.desk-win__lights:hover .desk-light svg {
+  opacity: 1;
+}
+.desk-light:active {
+  filter: brightness(0.85);
+}
+
+/* Кнопки Windows: справа, во всю высоту заголовка */
+.desk-win__caps {
+  flex: 0 0 auto;
+  display: flex;
+  align-self: stretch;
+}
+.desk-cap {
+  display: grid;
+  place-items: center;
+  width: 46px;
   color: var(--text-2);
 }
-.desk-win__btn:hover:not(:disabled) {
-  background: var(--surface-hover);
+.desk-cap:hover {
+  background: var(--desk-cap-hover);
   color: var(--text);
 }
-.desk-win__btn:disabled {
-  opacity: 0.35;
+.desk-cap--close {
+  border-top-right-radius: var(--desk-r);
 }
-.desk-win__btn--close:hover {
-  background: var(--danger) !important;
-  color: var(--accent-text) !important;
+.desk-cap--close:hover {
+  background: var(--desk-cap-close);
+  color: var(--desk-cap-close-fg);
+}
+
+/* Под заголовком: боковая панель с подразделами и содержимое раздела */
+.desk-win__main {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+  border-radius: 0 0 var(--desk-r) var(--desk-r);
+}
+/* Содержимое окна: ограничивает «фиксированные» элементы страниц рамками окна */
+.desk-win__body {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  contain: layout paint;
+  container: desk-win / inline-size;
+}
+.desk-side {
+  flex: 0 0 248px;
+  width: 248px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--desk-side-bg);
+  border-right: 1px solid var(--border);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.desk-side--overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 6;
+  box-shadow: var(--shadow-lg);
+  animation: slide-right var(--dur) var(--ease);
+}
+.desk-side__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: var(--desk-scrim);
+  animation: fade-in var(--dur) var(--ease);
+}
+.desk-side__search {
+  flex: 0 0 auto;
+  padding: 10px 10px 6px;
+}
+.desk-side__search .input {
+  height: 34px;
+  font-size: var(--fs-sm);
+}
+.desk-side__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 8px 14px;
+  scrollbar-width: thin;
 }
 .desk-win__content {
   flex: 1;
   min-height: 0;
   overflow: hidden;
 }
-/* Разделы внутри окна занимают окно целиком, без внешних отступов оболочки */
+.desk-win__error {
+  margin: auto;
+  max-width: 360px;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+/* Края и углы для изменения размера — чуть выходят за окно, как в macOS */
+.desk-win__grip {
+  position: absolute;
+  z-index: 3;
+  touch-action: none;
+}
+.desk-win__grip--n {
+  top: -4px;
+  left: 12px;
+  right: 12px;
+  height: 8px;
+  cursor: ns-resize;
+}
+.desk-win__grip--s {
+  bottom: -5px;
+  left: 12px;
+  right: 12px;
+  height: 10px;
+  cursor: ns-resize;
+}
+.desk-win__grip--e {
+  right: -5px;
+  top: 12px;
+  bottom: 12px;
+  width: 10px;
+  cursor: ew-resize;
+}
+.desk-win__grip--w {
+  left: -5px;
+  top: 12px;
+  bottom: 12px;
+  width: 10px;
+  cursor: ew-resize;
+}
+.desk-win__grip--ne,
+.desk-win__grip--nw,
+.desk-win__grip--se,
+.desk-win__grip--sw {
+  width: 18px;
+  height: 18px;
+}
+.desk-win__grip--ne {
+  top: -5px;
+  right: -5px;
+  cursor: nesw-resize;
+}
+.desk-win__grip--nw {
+  top: -5px;
+  left: -5px;
+  cursor: nwse-resize;
+}
+.desk-win__grip--se {
+  bottom: -5px;
+  right: -5px;
+  cursor: nwse-resize;
+}
+.desk-win__grip--sw {
+  bottom: -5px;
+  left: -5px;
+  cursor: nesw-resize;
+}
+
+/* ─── Прилипание: подсветка места и раскладки у кнопки «Развернуть» ─── */
+.desk-snap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: var(--desk-r);
+  background: var(--desk-snap-fill);
+  box-shadow:
+    inset 0 0 0 1px var(--desk-snap-edge),
+    var(--shadow-md);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  pointer-events: none;
+  opacity: 0;
+  scale: 0.97;
+  transition:
+    opacity 160ms var(--ease),
+    scale 200ms var(--ease),
+    translate 200ms var(--ease),
+    width 200ms var(--ease),
+    height 200ms var(--ease);
+}
+.desk-snap--on {
+  opacity: 1;
+  scale: 1;
+}
+.desk-snapfly {
+  position: fixed;
+  z-index: var(--z-modal);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-highlight), var(--shadow-lg);
+  backdrop-filter: blur(var(--blur-strong)) saturate(1.6);
+  -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(1.6);
+  animation: scale-in var(--dur-fast) var(--ease);
+  transform-origin: top center;
+}
+.desk-snapfly__layout {
+  display: grid;
+  gap: 3px;
+  height: 48px;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.desk-snapfly__layout--2 {
+  grid-template-columns: 1fr 1fr;
+}
+.desk-snapfly__layout--4 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+.desk-snapfly__zone {
+  border-radius: 5px;
+  background: var(--surface-3);
+  transition: background var(--dur-fast) var(--ease);
+}
+.desk-snapfly__zone:hover,
+.desk-snapfly__zone:focus-visible {
+  background: var(--accent);
+}
+
+/* ─── Плитки приложений ─── */
+.desk-tile {
+  --tile: var(--desk-app-home);
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: var(--tile-size);
+  height: var(--tile-size);
+  border-radius: calc(var(--tile-size) * 0.27);
+  background: linear-gradient(165deg, color-mix(in oklab, var(--tile) 62%, white) 0%, var(--tile) 52%, color-mix(in oklab, var(--tile) 82%, black) 100%);
+  color: var(--desk-tile-glyph);
+  box-shadow:
+    inset 0 1px 0 var(--desk-tile-sheen),
+    inset 0 -1px 0 var(--desk-tile-shade);
+}
+.desk-tile svg {
+  filter: drop-shadow(0 1px 1px var(--desk-tile-shade));
+}
+.desk-tile--home {
+  --tile: var(--desk-app-home);
+}
+.desk-tile--messenger {
+  --tile: var(--desk-app-messenger);
+}
+.desk-tile--channels {
+  --tile: var(--desk-app-channels);
+}
+.desk-tile--reels {
+  --tile: var(--desk-app-reels);
+}
+.desk-tile--video {
+  --tile: var(--desk-app-video);
+}
+.desk-tile--companies {
+  --tile: var(--desk-app-companies);
+}
+.desk-tile--communities {
+  --tile: var(--desk-app-communities);
+}
+.desk-tile--search {
+  --tile: var(--desk-app-search);
+}
+.desk-tile--notifications {
+  --tile: var(--desk-app-notifications);
+}
+.desk-tile--stats {
+  --tile: var(--desk-app-stats);
+}
+.desk-tile--profile {
+  --tile: var(--desk-app-profile);
+}
+.desk-tile--settings {
+  --tile: var(--desk-app-settings);
+}
+.desk-tile--help {
+  --tile: var(--desk-app-help);
+}
+.desk-tile--download {
+  --tile: var(--desk-app-download);
+}
+
+/* ─── Док ─── */
+.dock {
+  --grow-l: 0px;
+  --grow-r: 0px;
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  z-index: 4;
+  translate: -50% 0;
+  max-width: calc(100vw - 16px);
+}
+.dock__bg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(0px - var(--grow-l));
+  right: calc(0px - var(--grow-r));
+  border-radius: 22px;
+  background: var(--desk-dock-bg);
+  box-shadow:
+    inset 0 0 0 1px var(--desk-dock-border),
+    var(--shadow-lg);
+  backdrop-filter: blur(var(--blur-strong)) saturate(1.8);
+  -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(1.8);
+  transition:
+    left 240ms var(--ease),
+    right 240ms var(--ease);
+}
+.dock__row {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 6px 9px 9px;
+}
+.dock__sep {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 1px;
+  margin: 4px 3px 0;
+  background: var(--desk-dock-border);
+  transform: translateX(var(--tx, 0px));
+  transition: transform 240ms var(--ease);
+}
+.dock__anchor {
+  flex: 0 0 auto;
+  width: 0;
+  align-self: stretch;
+}
+.dock-item {
+  --s: 1;
+  --tx: 0px;
+  position: relative;
+  flex: 0 0 auto;
+  transform: translateX(var(--tx)) scale(var(--s));
+  transform-origin: 50% 100%;
+  transition: transform 240ms var(--ease);
+}
+.dock--hover .dock-item,
+.dock--hover .dock__sep {
+  transition-duration: 70ms;
+}
+.dock--hover .dock__bg {
+  transition-duration: 70ms;
+}
+.dock-item__btn {
+  display: block;
+  border-radius: 13px;
+}
+.dock-item__btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.dock-item__tile {
+  position: relative;
+  display: block;
+}
+.dock-item__tile .desk-tile {
+  box-shadow:
+    inset 0 1px 0 var(--desk-tile-sheen),
+    inset 0 -1px 0 var(--desk-tile-shade),
+    0 6px 14px -6px var(--desk-tile-shade);
+}
+.dock-item__btn:active .dock-item__tile {
+  filter: brightness(0.82);
+}
+.dock-item__badge {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  font-size: 10.5px;
+}
+.dock-item__dot {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--desk-dock-dot);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+.dock-item--running .dock-item__dot {
+  opacity: 1;
+}
+.dock-item__tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 14px);
+  translate: -50% 0;
+  scale: calc(1 / var(--s));
+  transform-origin: 50% 100%;
+  padding: 5px 11px;
+  border-radius: 9px;
+  background: var(--desk-tip-bg);
+  color: var(--desk-tip-fg);
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    var(--shadow-md);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms var(--ease);
+}
+.dock-item:hover .dock-item__tip {
+  opacity: 1;
+  transition-delay: 80ms;
+}
+/* Свёрнутое окно — уменьшенная копия окна со значком раздела */
+.dock-min {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding-top: 8px;
+  border-radius: 10px;
+  background: var(--desk-win-bg);
+  box-shadow:
+    0 0 0 1px var(--desk-win-edge),
+    0 6px 14px -6px var(--desk-tile-shade);
+  overflow: hidden;
+  position: relative;
+}
+.dock-min__bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 10px;
+  background: var(--desk-win-bar);
+  border-bottom: 1px solid var(--border);
+}
+.dock-me {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+}
+.dock-me .avatar,
+.dock-me img {
+  box-shadow:
+    0 0 0 2px var(--desk-dock-border),
+    0 6px 14px -6px var(--desk-tile-shade);
+}
+.dock-item__btn--open .dock-me {
+  filter: brightness(0.9);
+}
+
+/* ─── Строка меню ─── */
+.menubar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 5;
+  height: var(--desk-menubar-h);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px;
+  background: var(--desk-menubar-bg);
+  border-bottom: 1px solid var(--desk-menubar-edge);
+  color: var(--desk-menubar-fg);
+  backdrop-filter: blur(var(--blur-strong)) saturate(1.8);
+  -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(1.8);
+  font-size: 13px;
+}
+.menubar__left,
+.menubar__right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.menubar__right {
+  justify-content: flex-end;
+}
+.menubar__menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 6px;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.menubar__menu strong {
+  font-weight: 700;
+}
+.menubar__menu:first-child {
+  padding: 0 8px;
+}
+.menubar__menu:hover,
+.menubar__menu--open {
+  background: var(--desk-menubar-hover);
+}
+.menubar__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(380px, 34vw);
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 7px;
+  background: var(--desk-menubar-field);
+  box-shadow: inset 0 0 0 1px var(--desk-menubar-edge);
+  color: var(--desk-menubar-fg-2);
+  font-size: 12.5px;
+}
+.menubar__search:hover {
+  color: var(--desk-menubar-fg);
+  background: var(--desk-menubar-hover);
+}
+.menubar__kbd {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+.menubar__icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 24px;
+  border-radius: 6px;
+  color: inherit;
+}
+.menubar__icon:hover,
+.menubar__me:hover,
+.menubar__me--open {
+  background: var(--desk-menubar-hover);
+}
+.menubar__badge {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  font-size: 9.5px;
+  box-shadow: none;
+}
+.menubar__clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  font-weight: 550;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.menubar__me {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 26px;
+  border-radius: 6px;
+}
+
+/* ─── Меню рабочего стола ─── */
+.desk-menu {
+  min-width: 240px;
+  max-width: 340px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.desk-menu__item:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.desk-menu__label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.desk-menu__hint {
+  margin-left: var(--space-4);
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.desk-menu__check {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  flex: 0 0 auto;
+  color: var(--accent-fg);
+}
+.desk-menu__title {
+  padding: 6px 12px 4px;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+/* ─── Разделы внутри окна ─── */
+/* Окно — уже рамка: панели раздела во всю его площадь, без внешних отступов и стекла */
 .desk-win__content > .chats {
   gap: 0;
 }
@@ -235,47 +984,53 @@
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
-.desk-win__grip {
-  position: absolute;
-  z-index: 2;
-  touch-action: none;
+.desk-win__content .chats__list {
+  border-width: 0 1px 0 0;
 }
-.desk-win__grip--e {
-  top: 42px;
-  right: 0;
-  bottom: 14px;
-  width: 8px;
-  cursor: ew-resize;
+.desk-win__content .chats__detail {
+  border: 0;
 }
-.desk-win__grip--w {
-  top: 42px;
-  left: 0;
-  bottom: 14px;
-  width: 8px;
-  cursor: ew-resize;
+/* Узкое окно мессенджера — как на планшете и телефоне */
+@container desk-win (max-width: 940px) {
+  .chats,
+  .chats--info {
+    grid-template-columns: minmax(270px, 320px) minmax(0, 1fr);
+  }
 }
-.desk-win__grip--s {
-  left: 14px;
-  right: 14px;
-  bottom: 0;
-  height: 8px;
-  cursor: ns-resize;
+@container desk-win (max-width: 640px) {
+  .chats,
+  .chats--info {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .chats--detail .chats__list {
+    display: none;
+  }
+  .chats:not(.chats--detail) .chats__detail {
+    display: none;
+  }
 }
-.desk-win__grip--se {
-  right: 0;
-  bottom: 0;
-  width: 18px;
-  height: 18px;
-  cursor: nwse-resize;
-}
-.desk-win__grip--sw {
-  left: 0;
-  bottom: 0;
-  width: 18px;
-  height: 18px;
-  cursor: nesw-resize;
-}
-/* Кнопки оболочки (дерево разделов) в окне не нужны — разделы в доке */
+/* Кнопка дерева разделов оболочки в окне не нужна — разделы в доке */
 .desk-win .shell-nav-toggle {
   display: none;
+}
+
+/* ─── Невысокий экран ноутбука ─── */
+@media (max-height: 800px) {
+  .dock__row {
+    gap: 5px;
+    padding: 5px 8px 8px;
+  }
+}
+.menubar__offline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  margin-right: 4px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 12px;
+  font-weight: 650;
 }

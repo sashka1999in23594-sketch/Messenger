@@ -3,7 +3,7 @@
  * солнцем слева вверху и карточка с одним шагом посередине; на телефоне —
  * только поля на весь экран. Маленькие синие ссылки — внизу карточки.
  */
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import QRCodeLib from 'qrcode';
 import { useAuthConfig } from '../../shared/api/config';
@@ -17,12 +17,40 @@ import './auth.css';
 export function AuthLayout({ children, links }: { children: ReactNode; links?: ReactNode }) {
   const reduceMotion = usePrefs((s) => s.reduceMotion);
   const wide = useMediaQuery('(min-width: 900px)');
+  const mouse = useMediaQuery('(pointer: fine)');
+  const tilt = wide && mouse && !reduceMotion;
+  const panel = useRef<HTMLDivElement>(null);
+
+  // Карточка чуть наклоняется за курсором, по стеклу скользит блик (только мышь)
+  useEffect(() => {
+    const el = panel.current;
+    if (!tilt || !el) return;
+    let frame = 0;
+    const onMove = (e: PointerEvent) => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const r = el.getBoundingClientRect();
+        const x = Math.min(1, Math.max(-1, (e.clientX - (r.left + r.width / 2)) / (window.innerWidth / 2)));
+        const y = Math.min(1, Math.max(-1, (e.clientY - (r.top + r.height / 2)) / (window.innerHeight / 2)));
+        el.style.setProperty('--ry', `${(x * 2.2).toFixed(2)}deg`);
+        el.style.setProperty('--rx', `${(-y * 2.2).toFixed(2)}deg`);
+        el.style.setProperty('--mx', `${(((e.clientX - r.left) / r.width) * 100).toFixed(1)}%`);
+        el.style.setProperty('--my', `${(((e.clientY - r.top) / r.height) * 100).toFixed(1)}%`);
+      });
+    };
+    window.addEventListener('pointermove', onMove, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('pointermove', onMove);
+    };
+  }, [tilt]);
+
   return (
     // Днём на небе карточка светлая при любой теме; на телефоне — тема пользователя
-    <div className="auth" data-theme={wide ? 'light' : undefined}>
+    <div className={tilt ? 'auth auth--tilt' : 'auth'} data-theme={wide ? 'light' : undefined}>
       {wide && <Sky still={reduceMotion} />}
       <main className="auth__main">
-        <div className="auth__panel">
+        <div className="auth__panel" ref={panel}>
           {children}
           {links && <nav className="auth__links">{links}</nav>}
         </div>

@@ -1,3 +1,4 @@
+import { brandName } from '../lib/brand';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 
 export function useMediaQuery(query: string): boolean {
@@ -86,7 +87,7 @@ export function useCopy(): (text: string) => Promise<boolean> {
 
 export function useTitle(title: string | undefined) {
   useEffect(() => {
-    if (title) document.title = `${title} · Sunnet`;
+    if (title) document.title = `${title} · ${brandName()}`;
   }, [title]);
 }
 

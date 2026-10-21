@@ -52,7 +52,11 @@ export function startJobs(app: FastifyInstance): () => void {
       app.log.error({ err, job: 'birthdays' }, 'job failed');
     }
   }, 15_000).unref();
-  if (app.ctx.storage) everyAsync(60_000, 'storage-sync', () => services.media.syncPending());
+  if (app.ctx.storage) {
+    everyAsync(60_000, 'storage-sync', () => services.media.syncPending());
+    // Старые файлы, отправленные до включения шифрования, — понемногу, чтобы не нагружать сеть
+    everyAsync(5 * 60_000, 'storage-reencrypt', () => services.media.reencryptLegacy());
+  }
 
   return () => {
     timers.forEach(clearInterval);

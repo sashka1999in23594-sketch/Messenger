@@ -7,9 +7,9 @@ export {
   DataSettings,
   LanguageSettings,
   NotificationSettingsPage,
-  SettingsHome,
   ShortcutsSettings,
 } from './general';
+export { SettingsHome } from './home';
 export { PrivacySettings, RelationsList } from './privacy';
 export { KeysSettings, PasscodeSettings, PasswordSettings, SecurityLogSettings, SecurityOverview, SessionsSettings } from './security';
 export { AppearanceSettings } from './appearance';

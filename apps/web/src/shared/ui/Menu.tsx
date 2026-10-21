@@ -40,7 +40,10 @@ export function Menu({ anchor, items, onClose, header }: MenuProps) {
   }, [anchor]);
 
   if (!anchor) return null;
-  const visible = items.filter((i) => i === 'separator' || !i.hidden);
+  // Скрытые пункты убираем; разделители — только между видимыми группами
+  const visible = items
+    .filter((i) => i === 'separator' || !i.hidden)
+    .filter((i, idx, arr) => i !== 'separator' || (idx > 0 && idx < arr.length - 1 && arr[idx - 1] !== 'separator'));
   return createPortal(
     <div
       ref={ref}

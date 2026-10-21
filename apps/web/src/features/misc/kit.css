@@ -1,0 +1,510 @@
+/* ─── Набор страниц ленты, профиля, поиска и настроек ───────────────────────
+ * .pk-root — корень страницы и контейнер для @container page: страницы
+ * подстраиваются под ширину окна (телефон, планшет, окно «Пространства»),
+ * а не под ширину экрана.
+ */
+.pk-root {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  container: page / inline-size;
+}
+.pk-root > .scroll {
+  overflow-x: hidden;
+}
+
+/* ─── Шторка снизу ─── */
+.pk-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: var(--overlay);
+  animation: fade-in var(--dur) var(--ease);
+}
+.pk-sheet {
+  width: 100%;
+  max-width: 560px;
+  max-height: min(86dvh, 760px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated-solid);
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  box-shadow: var(--shadow-lg);
+  padding-bottom: calc(var(--space-2) + var(--safe-bottom));
+  animation: pk-sheet-in var(--dur-slow) var(--ease);
+  transition: transform var(--dur) var(--ease);
+  outline: none;
+  overflow: hidden;
+}
+.pk-sheet--full {
+  max-height: calc(100dvh - var(--safe-top) - 24px);
+  height: calc(100dvh - var(--safe-top) - 24px);
+}
+@keyframes pk-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+@media (min-width: 768px) and (pointer: fine) {
+  .pk-sheet-overlay {
+    align-items: center;
+    padding: var(--space-6);
+  }
+  .pk-sheet {
+    border-radius: var(--radius-2xl);
+    max-width: 440px;
+    padding-bottom: var(--space-2);
+    animation: scale-in var(--dur) var(--ease);
+  }
+  .pk-sheet--full {
+    max-width: 640px;
+    height: min(86dvh, 820px);
+  }
+  .pk-sheet__grip {
+    display: none !important;
+  }
+}
+.pk-sheet__grip {
+  display: block;
+  width: 38px;
+  height: 5px;
+  margin: 8px auto 2px;
+  border-radius: var(--radius-full);
+  background: var(--border-strong);
+  flex: 0 0 auto;
+}
+.pk-sheet__head {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 8px 0 20px;
+  flex: 0 0 auto;
+}
+.pk-sheet__title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-lg);
+  font-weight: 720;
+  text-align: center;
+  padding-left: 36px;
+}
+.pk-sheet__x {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  color: var(--text-2);
+}
+.pk-sheet__x:hover {
+  background: var(--surface-hover);
+}
+.pk-sheet__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ─── Список действий в шторке ─── */
+.pk-actions {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 10px 4px;
+}
+.pk-actions__header {
+  padding: 4px 16px 6px;
+}
+.pk-actions__item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 52px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-md);
+  font-weight: 560;
+  color: var(--text);
+  text-align: left;
+}
+.pk-actions__item:active,
+.pk-actions__item:hover {
+  background: var(--surface-hover);
+}
+.pk-actions__icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  color: var(--text-2);
+}
+.pk-actions__item--danger,
+.pk-actions__item--danger .pk-actions__icon {
+  color: var(--danger);
+}
+.pk-actions__sep {
+  height: 1px;
+  margin: 4px 12px;
+  background: var(--border);
+}
+
+/* ─── Поделиться ─── */
+.pk-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  margin: 4px 16px 10px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-3);
+}
+.pk-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-md);
+}
+.pk-search input:focus {
+  outline: none;
+}
+.pk-share__people {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  gap: 14px 4px;
+  padding: 6px 12px 14px;
+  max-height: 290px;
+  overflow-y: auto;
+}
+.pk-share__person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--text);
+  font-size: var(--fs-xs);
+}
+.pk-share__person:active .pk-share__avatar {
+  transform: scale(0.94);
+}
+.pk-share__avatar {
+  position: relative;
+  transition: transform var(--dur-fast) var(--ease);
+}
+.pk-share__sent {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: var(--accent-text);
+  border: 2px solid var(--bg-elevated-solid);
+}
+.pk-share__sent .spinner {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+}
+.pk-share__name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pk-share__empty {
+  grid-column: 1 / -1;
+  padding: 12px;
+  text-align: center;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+.pk-share__actions {
+  display: flex;
+  gap: 4px;
+  padding: 12px 12px 6px;
+  border-top: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pk-share__action {
+  flex: 1 0 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 2px;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  text-align: center;
+}
+.pk-share__action > span {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  color: var(--text);
+  transition: background var(--dur-fast) var(--ease);
+}
+.pk-share__action:hover > span {
+  background: var(--surface-3);
+}
+.pk-share__qrbox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 20px 16px;
+}
+.pk-share__qr {
+  width: min(240px, 70vw);
+  aspect-ratio: 1;
+  border-radius: var(--radius-lg);
+  background: var(--qr-bg);
+  padding: 10px;
+}
+.pk-share__url {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+.pk-pill {
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  font-weight: 650;
+}
+
+/* ─── Вкладки с подчёркиванием ─── */
+.pk-utabs {
+  display: flex;
+  align-items: stretch;
+  background: color-mix(in oklab, var(--panel-solid) 86%, transparent);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(var(--blur)) saturate(1.5);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(1.5);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pk-utabs::-webkit-scrollbar {
+  display: none;
+}
+.pk-utabs--sticky {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+.pk-utab {
+  position: relative;
+  flex: 1 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--pk-bar-h);
+  padding: 0 14px;
+  color: var(--text-3);
+  font-weight: 650;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  text-decoration: none !important;
+  transition: color var(--dur-fast) var(--ease);
+}
+.pk-utab:hover {
+  color: var(--text-2);
+}
+.pk-utab--active,
+.pk-utab--active:hover {
+  color: var(--text);
+}
+.pk-utab::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -1px;
+  width: 0;
+  height: 2.5px;
+  border-radius: 2px 2px 0 0;
+  background: var(--text);
+  transform: translateX(-50%);
+  transition: width var(--dur) var(--ease);
+}
+.pk-utab--active::after {
+  width: min(72%, 64px);
+}
+.pk-utabs--icons .pk-utab {
+  flex: 1 1 0;
+  padding: 0 4px;
+}
+.pk-utabs--icons .pk-utab--active::after {
+  width: 44%;
+}
+.pk-utab__count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  background: var(--danger);
+  color: var(--accent-text);
+  font-size: var(--fs-2xs);
+  font-weight: 750;
+  display: inline-grid;
+  place-items: center;
+}
+
+/* ─── Чипы-фильтры ─── */
+.pk-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px 16px;
+  scroll-padding: 16px;
+}
+.pk-chips::-webkit-scrollbar {
+  display: none;
+}
+.pk-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 620;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  text-decoration: none !important;
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.pk-chip:hover {
+  background: var(--surface-3);
+}
+.pk-chip--on,
+.pk-chip--on:hover {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--text-inverse);
+}
+.pk-chip__count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  background: var(--danger);
+  color: var(--accent-text);
+  font-size: var(--fs-2xs);
+  font-weight: 750;
+  display: inline-grid;
+  place-items: center;
+}
+
+/* ─── Потяните, чтобы обновить ─── */
+.pk-ptr {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  transition: height var(--dur) var(--ease);
+}
+.pk-ptr__spin {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  border: 2.5px solid var(--border-strong);
+  border-top-color: var(--text);
+}
+.pk-ptr__spin--on {
+  animation: spin 0.7s linear infinite;
+}
+
+/* ─── Заголовки ─── */
+.pk-group-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 16px 8px;
+  font-size: var(--fs-md);
+  font-weight: 720;
+  color: var(--text);
+}
+.pk-group-title a,
+.pk-group-title button {
+  font-size: var(--fs-sm);
+  font-weight: 620;
+  color: var(--accent-fg);
+}
+.pk-large-title {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 18px 16px 10px;
+}
+.pk-large-title__text {
+  flex: 1;
+  min-width: 0;
+}
+.pk-large-title h1 {
+  font-size: var(--fs-2xl);
+  font-weight: 780;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+.pk-large-title p {
+  margin-top: 4px;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+.pk-large-title__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+/* Круглая кнопка-иконка 44 px (касание пальцем) */
+.pk-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  color: var(--text);
+  transition:
+    background var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.pk-icon:hover {
+  background: var(--surface-hover);
+}
+.pk-icon:active {
+  transform: scale(0.9);
+}
+.pk-icon:disabled {
+  opacity: 0.4;
+}

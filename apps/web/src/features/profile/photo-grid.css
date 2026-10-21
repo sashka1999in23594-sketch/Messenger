@@ -1,35 +1,119 @@
 /* ─── Сетка публикаций в профиле ─── */
 .photo-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 3px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
 }
-.photo-grid a,
-.photo-grid button {
+@container page (min-width: 641px) {
+  .photo-grid {
+    gap: 4px;
+  }
+}
+.pg-tile {
   position: relative;
+  display: block;
   aspect-ratio: 1;
   overflow: hidden;
   background: var(--surface-3);
-  display: block;
+  color: var(--media-fg);
+  text-decoration: none !important;
 }
-.photo-grid img {
+.photo-grid--tall .pg-tile {
+  aspect-ratio: 9 / 16;
+}
+.pg-tile img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
   transition: transform var(--dur-slow) var(--ease);
 }
-.photo-grid a:hover img {
-  transform: scale(1.04);
+/* Заметка без медиа — плитка с текстом на градиенте */
+.pg-tile--text {
+  background: linear-gradient(150deg, var(--text-tile-a), var(--text-tile-b));
 }
-.photo-grid__badge {
+.pg-tile--text:nth-child(3n + 2) {
+  background: linear-gradient(150deg, var(--accent), var(--accent-2));
+}
+.pg-tile--text:nth-child(3n) {
+  background: linear-gradient(150deg, var(--accent-deep), var(--text-tile-a));
+}
+.pg-tile__text {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  color: #fff;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+  top: 0;
+  left: 0;
+  right: 0;
+  max-height: 100%;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+  padding: 12px;
+  color: var(--text-tile-fg);
+  font-size: var(--fs-xs);
+  font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
-.photo-grid--wide {
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+@container page (min-width: 641px) {
+  .pg-tile__text {
+    font-size: var(--fs-sm);
+    padding: 16px;
+    -webkit-line-clamp: 7;
+  }
 }
-
-
+.pg-tile__badges {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: flex;
+  gap: 4px;
+  color: var(--media-fg);
+  filter: drop-shadow(0 1px 3px var(--media-scrim));
+  pointer-events: none;
+}
+.pg-tile__views,
+.pg-tile__time {
+  position: absolute;
+  left: 7px;
+  bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-shadow: 0 1px 3px var(--media-scrim);
+  pointer-events: none;
+}
+.pg-tile__time {
+  left: auto;
+  right: 7px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background: var(--media-scrim);
+  text-shadow: none;
+}
+.pg-tile__hover {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: var(--media-scrim-soft);
+  font-weight: 750;
+  font-size: var(--fs-md);
+}
+.pg-tile__hover span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .pg-tile:hover .pg-tile__hover {
+    display: flex;
+  }
+  .pg-tile:hover img {
+    transform: scale(1.03);
+  }
+}

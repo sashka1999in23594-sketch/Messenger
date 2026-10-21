@@ -1,7 +1,32 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { AtSign, Ban, Bell, BellOff, Crown, FolderPlus, Globe, Hourglass, Image, Link2, Lock, MessageSquare, Paintbrush, Pencil, Shield, Timer, UserMinus, UserPlus, Users, UserX, X } from 'lucide-react';
+import {
+  AtSign,
+  Ban,
+  Bell,
+  BellOff,
+  ChevronLeft,
+  Crown,
+  EllipsisVertical,
+  FolderPlus,
+  Globe,
+  Hourglass,
+  Link2,
+  Lock,
+  MessageSquare,
+  Paintbrush,
+  Pencil,
+  Phone,
+  Search,
+  Shield,
+  Timer,
+  UserMinus,
+  UserPlus,
+  UserX,
+  Video,
+  X,
+} from 'lucide-react';
 import { SECRET_TTL_OPTIONS, SLOW_MODE_OPTIONS, type ChatMember, type ChatSummary, type MediaItem, type Paginated, type UserSummary } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { qk, queryClient } from '../../shared/api/query';
@@ -9,8 +34,12 @@ import { fingerprint } from '../../shared/crypto/e2e';
 import { usePrefs } from '../../shared/stores/prefs';
 import { useMe } from '../../shared/stores/session';
 import { toast } from '../../shared/stores/ui';
-import { members as membersLabel } from '../../shared/lib/format';
-import { Avatar, Button, IconButton, Input, Lightbox, Menu, Modal, Notice, RichText, SettingRow, Switch, Textarea, UserName, useMenu, Verified } from '../../shared/ui';
+import { lastSeen, members as membersLabel } from '../../shared/lib/format';
+import { startCall } from '../../shared/calls/engine';
+import { useRealtime } from '../../shared/stores/realtime';
+import { SavedAvatar } from './ChatList';
+import { useChatUi } from './store';
+import { Avatar, Button, IconButton, Input, Lightbox, Menu, Modal, Notice, RichText, Segmented, SettingRow, Switch, Textarea, UserName, useMenu, Verified } from '../../shared/ui';
 import { BanDialog, BansDialog } from './channel';
 import { patchChat } from './cache';
 import { useSecretChat } from './secret';
@@ -54,7 +83,7 @@ function ChatSettingsBlock({ chat }: { chat: ChatSummary }) {
   if (!chat.role) return null;
   const canTtl = chat.type !== 'secret' && (!shared || isAdmin);
   return (
-    <div className="panel info-settings">
+    <div className="info-card info-settings">
       <div className="panel__title">{chat.type === 'channel' ? 'Настройки канала' : 'Настройки чата'}</div>
       {shared && isAdmin && (
         <SettingRow
@@ -113,8 +142,12 @@ function ChatSettingsBlock({ chat }: { chat: ChatSummary }) {
           }
         />
       )}
-      {shared && isAdmin && <SettingRow icon={<Link2 size={18} />} tile="tile-blue" title="Пригласительные ссылки" description="Срок, лимит, отзыв" onClick={() => setDialog('invites')} />}
-      {shared && isAdmin && <SettingRow icon={<UserX size={18} />} tile="tile-red" title="Заблокированные" description="Кто не может вернуться" onClick={() => setDialog('bans')} />}
+      {shared && isAdmin && (
+        <SettingRow icon={<Link2 size={18} />} tile="tile-blue" title="Пригласительные ссылки" description="Срок, лимит, отзыв" onClick={() => setDialog('invites')} />
+      )}
+      {shared && isAdmin && (
+        <SettingRow icon={<UserX size={18} />} tile="tile-red" title="Заблокированные" description="Кто не может вернуться" onClick={() => setDialog('bans')} />
+      )}
       <SettingRow
         icon={<Paintbrush size={18} />}
         tile="tile-pink"
@@ -151,7 +184,7 @@ function SecretBlock({ chat }: { chat: ChatSummary }) {
     onError: (e) => toast({ text: errorMessage(e), kind: 'error' }),
   });
   return (
-    <div className="panel" style={{ margin: 12 }}>
+    <div className="info-card">
       <div className="panel__title row">
         <Lock size={14} /> Сквозное шифрование
       </div>
@@ -164,14 +197,10 @@ function SecretBlock({ chat }: { chat: ChatSummary }) {
                 <span key={i}>{d}</span>
               ))}
             </div>
-            <p className="small muted">
-              Сверьте эти эмодзи или цифры с собеседником (лично или по звонку). Если они совпадают — переписку никто не перехватывает.
-            </p>
+            <p className="small muted">Сверьте эти эмодзи или цифры с собеседником (лично или по звонку). Если они совпадают — переписку никто не перехватывает.</p>
           </>
         ) : (
-          <Notice kind="warning">
-            {secret.status === 'wrong-device' ? 'Ключи этого чата хранятся на другом устройстве.' : 'Подготовка ключей…'}
-          </Notice>
+          <Notice kind="warning">{secret.status === 'wrong-device' ? 'Ключи этого чата хранятся на другом устройстве.' : 'Подготовка ключей…'}</Notice>
         )}
         <label className="col" style={{ gap: 6 }}>
           <span className="field__label row">
@@ -203,7 +232,16 @@ function EditChatDialog({ chat, onClose }: { chat: ChatSummary; onClose: () => v
     onError: (e) => toast({ text: errorMessage(e), kind: 'error' }),
   });
   return (
-    <Modal open onClose={onClose} title="Изменить" footer={<Button loading={save.isPending} onClick={() => save.mutate()}>Сохранить</Button>}>
+    <Modal
+      open
+      onClose={onClose}
+      title="Изменить"
+      footer={
+        <Button loading={save.isPending} onClick={() => save.mutate()}>
+          Сохранить
+        </Button>
+      }
+    >
       <div className="col gap-3">
         <Input label="Название" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={128} />
         <Textarea label="Описание" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} />
@@ -224,14 +262,16 @@ function MemberRow({ chat, m }: { chat: ChatSummary; m: ChatMember }) {
         <Avatar src={m.user.avatarUrl} name={m.user.displayName} id={m.user.id} size={40} />
         <span className="list-item__body">
           <UserName user={m.user} />
-          <span className="list-item__sub">{m.role === 'owner' ? 'владелец' : m.role === 'admin' ? 'администратор' : m.role === 'subscriber' ? `подписчик · @${m.user.username}` : `@${m.user.username}`}</span>
+          <span className="list-item__sub">
+            {m.role === 'owner' ? 'владелец' : m.role === 'admin' ? 'администратор' : m.role === 'subscriber' ? `подписчик · @${m.user.username}` : `@${m.user.username}`}
+          </span>
         </span>
       </Link>
       {m.role === 'owner' && <Crown size={16} style={{ color: 'var(--warning)' }} />}
       {canManage && (
         <>
           <IconButton label="Действия" size="sm" onClick={(e) => menu.openFromEvent(e)}>
-            ⋮
+            <EllipsisVertical size={18} />
           </IconButton>
           <Menu
             anchor={menu.anchor}
@@ -256,6 +296,8 @@ function MemberRow({ chat, m }: { chat: ChatSummary; m: ChatMember }) {
 
 export function ChatInfo({ chatId, onClose }: { chatId: string; onClose: () => void }) {
   const chat = useQuery({ queryKey: qk.chat(chatId), queryFn: () => api.get<ChatSummary>(`/chats/${chatId}`) }).data;
+  const presence = useRealtime((s) => (chat?.peer ? s.presence[chat.peer.id] : undefined));
+  const setSearch = useChatUi((s) => s.setSearch);
   const [tab, setTab] = useState<'members' | 'media'>('members');
   const [editing, setEditing] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -280,67 +322,131 @@ export function ChatInfo({ chatId, onClose }: { chatId: string; onClose: () => v
   const media = (mediaQ.data?.items ?? []).map((i) => i.media).filter((m) => m.kind === 'image' || m.kind === 'video');
   const showTabs = isGroupish && (chat.type === 'group' || isAdmin);
 
+  const presenceText = chat.system
+    ? 'служебный чат'
+    : chat.peer
+      ? presence
+        ? lastSeen(presence)
+        : 'был(а) недавно'
+      : isGroupish
+        ? membersLabel(chat.memberCount, chat.type === 'channel' ? 'channel' : 'group')
+        : chat.type === 'saved'
+          ? 'заметки для себя'
+          : '';
+  const canCall = (chat.type === 'direct' || chat.type === 'secret') && !!chat.peer && !!chat.role && !chat.system;
+  const link = chat.peer ? `@${chat.peer.username}` : chat.handle ? `@${chat.handle}` : null;
+  const copy = (text: string, what: string) => void navigator.clipboard.writeText(text).then(() => toast(`${what} скопировано`));
+
   return (
     <aside className="chats__info" aria-label="Информация о чате">
-      <div className="row" style={{ padding: '8px 8px 0', justifyContent: 'space-between' }}>
-        <span className="bold" style={{ paddingLeft: 8 }}>
-          Информация
-        </span>
-        <IconButton label="Закрыть" onClick={onClose}>
+      <div className="info-head">
+        <button type="button" className="chat-back" aria-label="Назад к переписке" onClick={onClose}>
+          <ChevronLeft size={28} strokeWidth={2.2} />
+        </button>
+        <span className="info-head__title">{chat.type === 'channel' ? 'Канал' : chat.type === 'group' ? 'Группа' : 'Информация'}</span>
+        {isAdmin && isGroupish && (
+          <IconButton label="Изменить" onClick={() => setEditing(true)}>
+            <Pencil size={19} />
+          </IconButton>
+        )}
+        <IconButton label="Закрыть" onClick={onClose} className="info-head__close">
           <X size={20} />
         </IconButton>
       </div>
       <div className="info-hero">
-        <Avatar src={chat.avatarUrl} name={chat.title} id={chat.peer?.id ?? chat.id} size={96} />
+        {chat.type === 'saved' ? <SavedAvatar size={100} /> : <Avatar src={chat.avatarUrl} name={chat.title} id={chat.peer?.id ?? chat.id} size={100} online={presence?.online} />}
         <h2 className="row gap-1" style={{ justifyContent: 'center' }}>
-          {chat.title} {chat.peer?.verified && <Verified size={18} />}
+          {chat.type === 'secret' && <Lock size={18} style={{ color: 'var(--success)' }} />}
+          {chat.title} {(chat.peer?.verified || chat.system) && <Verified size={19} />}
         </h2>
-        <div className="muted small">
-          {chat.peer ? `@${chat.peer.username}` : chat.handle ? `@${chat.handle}` : isGroupish ? membersLabel(chat.memberCount, chat.type === 'channel' ? 'channel' : 'group') : ''}
-        </div>
-        {chat.description && <RichText text={chat.description} className="small" />}
+        <div className={presence?.online ? 'info-hero__sub info-hero__sub--accent' : 'info-hero__sub'}>{presenceText}</div>
       </div>
       <div className="info-actions">
+        {canCall && (
+          <button className="info-action" onClick={() => void startCall(chat.id, false)}>
+            <Phone size={22} />
+            <span>Звонок</span>
+          </button>
+        )}
+        {canCall && (
+          <button className="info-action" onClick={() => void startCall(chat.id, true)}>
+            <Video size={22} />
+            <span>Видео</span>
+          </button>
+        )}
         {chat.role && (
           <button className="info-action" onClick={() => mute.mutate(!chat.mutedUntil)}>
-            {chat.mutedUntil ? <Bell size={20} /> : <BellOff size={20} />}
-            {chat.mutedUntil ? 'Включить' : 'Без звука'}
+            {chat.mutedUntil ? <Bell size={22} /> : <BellOff size={22} />}
+            <span>{chat.mutedUntil ? 'Звук' : 'Без звука'}</span>
+          </button>
+        )}
+        {chat.type !== 'secret' && chat.role && (
+          <button
+            className="info-action"
+            onClick={() => {
+              onClose();
+              setSearch(true);
+            }}
+          >
+            <Search size={22} />
+            <span>Поиск</span>
           </button>
         )}
         {chat.peer && !chat.system && (
           <Link className="info-action" to={`/u/${chat.peer.username}`}>
-            <AtSign size={20} />
-            Профиль
+            <AtSign size={22} />
+            <span>Профиль</span>
           </Link>
-        )}
-        {isAdmin && isGroupish && (
-          <button className="info-action" onClick={() => setEditing(true)}>
-            <Pencil size={20} />
-            Изменить
-          </button>
         )}
         {isGroupish && chat.role && (chat.type === 'group' || isAdmin) && (
           <button className="info-action" onClick={() => setAdding(true)}>
-            <UserPlus size={20} />
-            Добавить
+            <UserPlus size={22} />
+            <span>Добавить</span>
           </button>
         )}
       </div>
+
+      {(link || chat.description) && (
+        <div className="info-card">
+          {chat.description && (
+            <div className="info-field">
+              <span className="info-field__value">
+                <RichText text={chat.description} />
+              </span>
+              <span className="info-field__label">{chat.peer ? 'о себе' : 'описание'}</span>
+            </div>
+          )}
+          {link && (
+            <button type="button" className="info-field" onClick={() => copy(link, 'Имя пользователя')}>
+              <span className="info-field__value info-field__value--link">{link}</span>
+              <span className="info-field__label">{chat.peer ? 'имя пользователя' : 'ссылка'} · нажмите, чтобы скопировать</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {chat.type === 'secret' && <SecretBlock chat={chat} />}
       <ChatSettingsBlock chat={chat} />
 
       {showTabs && (
-        <div className="tabs" style={{ padding: '0 8px' }}>
-          <button className={`tab ${tab === 'members' ? 'tab--active' : ''}`} onClick={() => setTab('members')}>
-            <Users size={15} style={{ verticalAlign: -2 }} /> Участники
-          </button>
-          <button className={`tab ${tab === 'media' ? 'tab--active' : ''}`} onClick={() => setTab('media')}>
-            <Image size={15} style={{ verticalAlign: -2 }} /> Медиа
-          </button>
+        <div className="info-tabs">
+          <Segmented
+            value={tab}
+            onChange={setTab}
+            options={[
+              { value: 'members', label: chat.type === 'channel' ? 'Подписчики' : `Участники${membersQ.data ? ` · ${membersQ.data.items.length}` : ''}` },
+              { value: 'media', label: 'Медиа' },
+            ]}
+          />
         </div>
       )}
-      {showTabs && tab === 'members' && membersQ.data?.items.map((m) => <MemberRow key={m.user.id} chat={chat} m={m} />)}
+      {showTabs && tab === 'members' && (
+        <div className="info-card info-members">
+          {membersQ.data?.items.map((m) => (
+            <MemberRow key={m.user.id} chat={chat} m={m} />
+          ))}
+        </div>
+      )}
       {(!showTabs || tab === 'media') && chat.type !== 'secret' && (
         <>
           {!showTabs && <div className="panel__title">Медиа</div>}
@@ -369,7 +475,11 @@ export function ChatInfo({ chatId, onClose }: { chatId: string; onClose: () => v
               void api
                 .post<{ added: string[]; skipped: string[] }>(`/chats/${chatId}/members`, { userIds: [u.id] })
                 .then((r) => {
-                  toast(r.added.length ? { text: `${u.displayName} добавлен(а)`, kind: 'success' } : { text: 'Настройки приватности пользователя не позволяют его добавить', kind: 'error' });
+                  toast(
+                    r.added.length
+                      ? { text: `${u.displayName} добавлен(а)`, kind: 'success' }
+                      : { text: 'Настройки приватности пользователя не позволяют его добавить', kind: 'error' },
+                  );
                   void queryClient.invalidateQueries({ queryKey: qk.members(chatId) });
                 })
                 .catch((e) => toast({ text: errorMessage(e), kind: 'error' }))

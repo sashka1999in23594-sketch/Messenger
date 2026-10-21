@@ -1,0 +1,95 @@
+/* ─── Знак Sunnet: закат днём, луна ночью (Lynnet) ─── */
+.logo {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 22.5%;
+  isolation: isolate;
+  box-shadow:
+    0 0 0 0.5px var(--brand-edge),
+    0 6px 18px -6px var(--brand-shadow);
+  transition: box-shadow 0.6s var(--ease);
+}
+.logo__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  pointer-events: none;
+  transform-origin: 50% 64%;
+  transition:
+    scale 1.6s var(--ease),
+    filter 1.2s var(--ease);
+}
+/* Лучи из-за облаков и сияние солнца — проступают при наведении */
+.logo__beams,
+.logo__glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+  transition: opacity 0.9s var(--ease);
+}
+.logo__beams {
+  inset: -40%;
+  background: repeating-conic-gradient(from 0deg at 50% 59%, var(--brand-beam) 0deg 2.5deg, transparent 2.5deg 9deg);
+  mask-image: radial-gradient(circle at 50% 59%, black 0, transparent 46%);
+  -webkit-mask-image: radial-gradient(circle at 50% 59%, black 0, transparent 46%);
+  transform-origin: 50% 59%;
+}
+.logo__glow {
+  background: radial-gradient(circle at 50% 64.5%, var(--brand-sun) 0, var(--brand-sun-halo) 14%, transparent 42%);
+}
+.logo:hover,
+:hover > .logo {
+  box-shadow:
+    0 0 0 0.5px var(--brand-edge),
+    0 8px 26px -6px var(--brand-glow-hover);
+}
+.logo--day:hover .logo__img,
+:hover > .logo--day .logo__img {
+  scale: 1.08;
+  filter: brightness(1.08) saturate(1.12);
+}
+.logo--day:hover .logo__beams,
+:hover > .logo--day .logo__beams {
+  opacity: 0.55;
+  animation: logo-beams 14s linear infinite;
+}
+.logo--day:hover .logo__glow,
+:hover > .logo--day .logo__glow {
+  opacity: 1;
+  animation: logo-glow 2.4s ease-in-out infinite alternate;
+}
+@keyframes logo-beams {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes logo-glow {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.55;
+  }
+}
+/* Луна при наведении мягко светлеет и чуть приближается */
+.logo--night .logo__img {
+  transform-origin: 47% 45%;
+}
+.logo--night:hover .logo__img,
+:hover > .logo--night .logo__img {
+  scale: 1.06;
+  filter: brightness(1.15);
+}
+@media (prefers-reduced-motion: reduce) {
+  .logo *,
+  .logo:hover * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

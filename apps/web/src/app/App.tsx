@@ -9,6 +9,7 @@ import { Aurora, ConfirmHost, Loading, Toasts } from '../shared/ui';
 import { GuestApp } from '../features/auth/GuestApp';
 import { AppRoutes } from './routes';
 import { bootstrapSession } from './session';
+import { brandName } from '../shared/lib/brand';
 
 /** Внешний вид применяется к <html> при любом изменении настроек. */
 function PrefsSync() {
@@ -44,7 +45,7 @@ function Gate() {
   useEffect(() => {
     void bootstrapSession();
   }, []);
-  if (status === 'loading') return <Loading label="Sunnet загружается…" />;
+  if (status === 'loading') return <Loading label={`${brandName()} загружается…`} />;
   if (status === 'guest')
     return (
       <BrowserRouter>

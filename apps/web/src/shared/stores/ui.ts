@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { create } from 'zustand';
+import { brandName } from '../lib/brand';
 
 export interface Toast {
   id: number;
@@ -59,7 +60,7 @@ export function useCrumb(title: string | null | undefined) {
   const setCrumb = useUi((s) => s.setCrumb);
   useEffect(() => {
     setCrumb(title ?? null);
-    if (title) document.title = `${title} · Sunnet`;
+    if (title) document.title = `${title} · ${brandName()}`;
     return () => setCrumb(null);
   }, [title, setCrumb]);
 }

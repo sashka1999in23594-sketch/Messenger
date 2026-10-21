@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import { Accessibility, BatteryCharging, Bell, Database, Flag, Info, Keyboard, Languages, Lock, MessageCircle, Moon, Palette, Settings, ShieldCheck, Volume2, Zap } from 'lucide-react';
+import { Accessibility, Bell, Database, Flag, Info, Keyboard, Languages, MessageCircle, Moon, Palette, Volume2, Zap } from 'lucide-react';
 import { APP_NAME, REPORT_REASON_LABELS, type ReportReason } from '@omni/shared';
-import { sections } from '../../app/navigation';
 import { api } from '../../shared/api/client';
 import { flatPages, queryClient, useCursorList } from '../../shared/api/query';
 import { usePrefs } from '../../shared/stores/prefs';
@@ -12,64 +11,6 @@ import { fileSize, fullDate } from '../../shared/lib/format';
 import { Button, confirm, EmptyState, Notice, PageHeader, SettingRow, Switch } from '../../shared/ui';
 import { Panel, SettingsPage, useNotificationPrefs } from './common';
 import { useWallpaper, WallpaperPicker } from '../chats/wallpapers';
-import { SettingsSearch } from './search';
-
-const QUICK: { to: string; label: string; icon: React.ReactNode; tile: string }[] = [
-  { to: '/settings/appearance/theme', label: 'Оформление', icon: <Palette size={18} />, tile: 'tile-violet' },
-  { to: '/settings/notifications', label: 'Уведомления', icon: <Bell size={18} />, tile: 'tile-red' },
-  { to: '/settings/privacy/profile', label: 'Приватность', icon: <Lock size={18} />, tile: 'tile-blue' },
-  { to: '/settings/security', label: 'Безопасность', icon: <ShieldCheck size={18} />, tile: 'tile-green' },
-  { to: '/settings/chats/wallpaper', label: 'Обои чатов', icon: <MessageCircle size={18} />, tile: 'tile-pink' },
-  { to: '/settings/power', label: 'Энергосбережение', icon: <BatteryCharging size={18} />, tile: 'tile-lime' },
-];
-
-export function SettingsHome() {
-  const settings = sections.find((s) => s.id === 'settings')!;
-  const [searching, setSearching] = useState(false);
-  return (
-    <div className="scroll">
-      <div className="page page--wide">
-        <PageHeader title="Настройки" subtitle="Всё, что можно настроить в Sunnet — более 70 параметров" icon={<Settings size={22} />} />
-        <SettingsSearch onActive={setSearching} />
-        {!searching && (
-          <div className="settings-quick">
-            {QUICK.map((q) => (
-              <Link key={q.to} to={q.to} className="settings-quick__item">
-                <span className={`list-item__icon ${q.tile}`}>{q.icon}</span>
-                {q.label}
-              </Link>
-            ))}
-          </div>
-        )}
-        <div className="settings-grid">
-          {settings.children
-            .filter((n) => !n.adminOnly)
-            .map((n) => {
-              const Icon = n.icon ?? Settings;
-              const links = n.children ?? (n.path ? [n] : []);
-              return (
-                <div key={n.id} className="settings-tile">
-                  <Link to={links[0]?.path ?? '/settings'} className="row" style={{ color: 'inherit', gap: 10 }}>
-                    <span className="list-item__icon">
-                      <Icon size={18} />
-                    </span>
-                    <span className="bold">{n.label}</span>
-                  </Link>
-                  <div className="settings-tile__links">
-                    {links.map((l) => (
-                      <Link key={l.id} to={l.path ?? '#'}>
-                        {l.label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function NotificationSettingsPage() {
   const { prefs, update } = useNotificationPrefs();
@@ -287,7 +228,7 @@ export function AboutSettings() {
       <Panel>
         <div className="col gap-3" style={{ padding: 16 }}>
           <p>
-            <b>{APP_NAME}</b> — всё общение под одним солнцем: чаты и звонки, каналы, лента, Reels, видео, компании и сообщества.
+            <b>{APP_NAME}</b> — чаты и звонки, каналы, лента, Reels, видео, компании и сообщества.
           </p>
           <p className="muted small">Версия 0.1.0 · React 19 + Fastify 5 + SQLite · PWA</p>
         </div>

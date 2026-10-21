@@ -4,26 +4,36 @@ import type { Audience, Me, NotificationSettings, PrivacySettings } from '@omni/
 import { api, errorMessage } from '../../shared/api/client';
 import { useSession } from '../../shared/stores/session';
 import { toast } from '../../shared/stores/ui';
-import { PageHeader } from '../../shared/ui';
+import '../misc/kit.css';
 import './settings.css';
 
+/** Страница настроек: крупный заголовок и сгруппированные списки (как в iOS). */
 export function SettingsPage({ title, subtitle, icon, children }: { title: string; subtitle?: ReactNode; icon?: ReactNode; children: ReactNode }) {
   return (
-    <div className="scroll">
-      <div className="page">
-        <PageHeader title={title} subtitle={subtitle} icon={icon} />
-        <div className="col gap-4">{children}</div>
+    <div className="pk-root">
+      <div className="scroll">
+        <div className="st-page">
+          <header className="st-head">
+            {icon && <span className="st-head__icon">{icon}</span>}
+            <div className="st-head__text">
+              <h1 className="st-title">{title}</h1>
+              {subtitle && <p className="st-sub">{subtitle}</p>}
+            </div>
+          </header>
+          <div className="st-body">{children}</div>
+        </div>
       </div>
     </div>
   );
 }
 
+/** Группа настроек: подпись над карточкой, строки внутри, пояснение под ней. */
 export function Panel({ title, footer, children }: { title?: string; footer?: ReactNode; children: ReactNode }) {
   return (
-    <section className="panel">
-      {title && <div className="panel__title">{title}</div>}
-      {children}
-      {footer && <div className="panel__footer">{footer}</div>}
+    <section className="st-group">
+      {title && <h2 className="st-group__title">{title}</h2>}
+      <div className="panel st-card">{children}</div>
+      {footer && <div className="st-group__footer">{footer}</div>}
     </section>
   );
 }

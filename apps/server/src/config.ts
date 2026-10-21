@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 import { regionFromEndpoint, type S3Options } from './lib/s3.js';
+import { storageKey } from './lib/sealed.js';
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -61,6 +62,8 @@ const envSchema = z.object({
   S3_REGION: z.string().default(''),
   /** Папка внутри бакета */
   S3_PREFIX: z.string().default('spaceup'),
+  /** Шифрование копий базы и файлов в хранилище ключом из APP_SECRET (on — по умолчанию) */
+  S3_ENCRYPTION: z.enum(['on', 'off']).default('on'),
   /** Как часто проверять изменения базы и отправлять копию (секунды) */
   BACKUP_INTERVAL_SEC: z.coerce.number().int().min(5).max(3600).default(60),
 });
@@ -122,6 +125,8 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
         accessKeyId: env.S3_ACCESS_KEY_ID.trim(),
         secretAccessKey: env.S3_SECRET_ACCESS_KEY.trim(),
         prefix: env.S3_PREFIX.trim().replace(/^\/+|\/+$/g, ''),
+        // Ключ есть только у сервера: даже с доступом к бакету данные не прочитать
+        encryptionKey: env.S3_ENCRYPTION === 'on' ? storageKey(secret) : undefined,
       }
     : null;
   // Частые ошибки настройки — понятным текстом, а не «Malformed Access Key Id» от хранилища

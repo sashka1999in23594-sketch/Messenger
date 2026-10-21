@@ -35,7 +35,7 @@ let chunks: Blob[] = [];
 let mixCtx: AudioContext | null = null;
 
 /** Чем больше зрителей, тем ниже битрейт: исходящего канала ведущего должно хватить на всех. */
-const bitrateFor = (viewers: number) => (viewers <= 4 ? 1_500_000 : viewers <= 12 ? 800_000 : viewers <= 25 ? 500_000 : 300_000);
+export const bitrateFor = (viewers: number) => (viewers <= 4 ? 1_500_000 : viewers <= 12 ? 800_000 : viewers <= 25 ? 500_000 : 300_000);
 
 function applyBitrate() {
   const max = bitrateFor(peers.size);
@@ -59,18 +59,25 @@ function mixAudio(tracks: MediaStreamTrack[]): MediaStreamTrack | null {
   return dest.stream.getAudioTracks()[0] ?? null;
 }
 
+/** Выбранные устройства: камера и микрофон (пусто — по умолчанию). */
+export interface DeviceChoice {
+  cameraId?: string;
+  micId?: string;
+}
+
 /** Предпросмотр перед эфиром: камера или экран с микрофоном. */
-export async function prepareSource(source: LiveSource): Promise<MediaStream> {
+export async function prepareSource(source: LiveSource, devices: DeviceChoice = {}): Promise<MediaStream> {
   stopTracks();
   let stream: MediaStream;
+  const micAudio: MediaTrackConstraints = { echoCancellation: true, noiseSuppression: true, ...(devices.micId ? { deviceId: { exact: devices.micId } } : {}) };
   if (source === 'camera') {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-      audio: { echoCancellation: true, noiseSuppression: true },
+      video: { width: { ideal: 1280 }, height: { ideal: 720 }, ...(devices.cameraId ? { deviceId: { exact: devices.cameraId } } : { facingMode: 'user' }) },
+      audio: micAudio,
     });
   } else {
     const screen = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 30 } }, audio: true });
-    const mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).catch(() => null);
+    const mic = await navigator.mediaDevices.getUserMedia({ audio: micAudio }).catch(() => null);
     const audio = mixAudio([...screen.getAudioTracks(), ...(mic?.getAudioTracks() ?? [])]);
     stream = new MediaStream([...screen.getVideoTracks(), ...(audio ? [audio] : [])]);
     // Показ экрана остановлен кнопкой браузера — завершаем эфир

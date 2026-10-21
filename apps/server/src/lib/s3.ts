@@ -3,10 +3,15 @@
  * Yandex Object Storage, AWS S3, MinIO): PUT, GET и HEAD объектов с подписью
  * AWS Signature V4. Без SDK — только node:crypto и node:http(s); файлы
  * передаются потоком, поэтому большие видео не занимают память.
+ *
+ * С ключом шифрования (`encryptionKey`) каждый объект перед отправкой
+ * шифруется AES-256-GCM (см. sealed.ts): хранилище видит только шифротекст.
+ * Старые незашифрованные объекты по-прежнему читаются.
  */
 import { createHash, createHmac } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { rename, rm, stat } from 'node:fs/promises';
+import { isSealedFile, openFile, sealBuffer, sealFile } from './sealed.js';
 import http from 'node:http';
 import https from 'node:https';
 import type { Readable } from 'node:stream';
@@ -21,6 +26,8 @@ export interface S3Options {
   secretAccessKey: string;
   /** Папка внутри бакета: в одном бакете могут жить несколько копий приложения */
   prefix: string;
+  /** Ключ шифрования объектов (32 байта); без него объекты хранятся как есть */
+  encryptionKey?: Buffer;
 }
 
 export class S3Error extends Error {
@@ -175,20 +182,40 @@ export class S3Storage {
     throw new S3Error(res.statusCode ?? 0, code, `S3 ${what}: ${code}${message ? ` — ${message}` : ''}`);
   }
 
+  /** Шифруется ли содержимое перед отправкой. */
+  get encrypted(): boolean {
+    return !!this.opts.encryptionKey;
+  }
+
   /** Загружает буфер или файл. Для файла можно передать заранее посчитанный SHA-256. */
   async put(key: string, data: Buffer | { file: string; sha256?: string }, contentType = 'application/octet-stream'): Promise<void> {
+    const secret = this.opts.encryptionKey;
     let body: Body;
     let hash: string;
+    let sealed: string | null = null;
     if (Buffer.isBuffer(data)) {
-      body = { buffer: data };
-      hash = sha256hex(data);
+      const buffer = secret ? sealBuffer(secret, key, data) : data;
+      body = { buffer };
+      hash = sha256hex(buffer);
+    } else if (secret) {
+      // Шифруем во временный файл рядом с исходным и отправляем уже его
+      sealed = `${data.file}.${process.pid}.${Date.now()}.sealed`;
+      await sealFile(secret, key, data.file, sealed);
+      body = { file: sealed, size: (await stat(sealed)).size };
+      hash = await fileSha256(sealed);
     } else {
       body = { file: data.file, size: (await stat(data.file)).size };
       hash = data.sha256 ?? (await fileSha256(data.file));
     }
-    const res = await this.request('PUT', this.url(this.full(key)), body, hash, contentType);
-    if (res.statusCode !== 200) return this.fail(res, `PUT ${key}`);
-    res.resume();
+    try {
+      // Шифрованный объект хранилище не должно пытаться показать как картинку или видео
+      const res = await this.request('PUT', this.url(this.full(key)), body, hash, secret ? 'application/octet-stream' : contentType);
+      // await, а не return: иначе ошибка повисла бы без обработчика, пока finally удаляет временный файл
+      if (res.statusCode !== 200) await this.fail(res, `PUT ${key}`);
+      res.resume();
+    } finally {
+      if (sealed) await rm(sealed, { force: true });
+    }
   }
 
   /** Скачивает объект в файл (атомарно, через временное имя). false — объекта нет. */
@@ -203,12 +230,22 @@ export class S3Storage {
     }
     if (res.statusCode !== 200) return this.fail(res, `GET ${key}`);
     const tmp = `${dest}.${process.pid}.part`;
+    const plain = `${dest}.${process.pid}.plain`;
     try {
       await pipeline(res, createWriteStream(tmp, { mode: 0o600 }));
-      await rename(tmp, dest);
+      if (await isSealedFile(tmp)) {
+        if (!this.opts.encryptionKey) throw new Error(`S3 GET ${key}: объект зашифрован, а шифрование хранилища выключено (S3_ENCRYPTION=off)`);
+        await openFile(this.opts.encryptionKey, key, tmp, plain);
+        await rename(plain, dest);
+      } else {
+        // Старый объект, сохранённый до включения шифрования
+        await rename(tmp, dest);
+      }
     } catch (err) {
-      await rm(tmp, { force: true });
+      await rm(plain, { force: true });
       throw err;
+    } finally {
+      await rm(tmp, { force: true });
     }
     return true;
   }
