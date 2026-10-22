@@ -2555,7 +2555,8 @@
     padding: 16px 16px 40px;
   }
   .vlist__hero {
-    position: static;
+    position: relative;
+    top: 0;
   }
   .vlist__hero-inner {
     display: grid;
@@ -3042,29 +3043,21 @@
     display: none;
   }
   .vs-table__row {
-    grid-template-columns: repeat(3, auto) 1fr;
-    grid-template-areas: 'video video video video' 'vis date stats stats';
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 6px 14px;
     padding: 12px 4px;
+    color: var(--text-2);
+    font-size: 12.5px;
   }
   .vs-table__row > :first-child {
-    grid-column: 1 / -1;
-  }
-  .vs-table__row .num {
-    text-align: left;
-    color: var(--text-2);
+    flex: 1 1 100%;
+    color: var(--text);
+    font-size: 13.5px;
   }
   .vs-table__row .num::before {
-    margin-right: 4px;
-  }
-  .vs-table__row .num:nth-of-type(4)::before {
-    content: 'Просм.';
-  }
-  .vs-table__row .num:nth-of-type(5)::before {
-    content: 'Комм.';
-  }
-  .vs-table__row .num:nth-of-type(6)::before {
-    content: 'Нрав.';
+    content: attr(data-label) ' ';
   }
   .vs-table__date {
     flex-direction: row;

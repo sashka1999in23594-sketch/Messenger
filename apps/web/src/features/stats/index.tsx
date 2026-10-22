@@ -82,7 +82,7 @@ export function StatsPage() {
   return (
     <div className="scroll">
       <div className="page page--wide">
-        <PageHeader title="Статистика" icon={<ChartSpline size={22} />} subtitle="Как растут ваши подписчики, каналы и охваты" />
+        <PageHeader title="Статистика" icon={<ChartSpline size={22} />} />
         <TabLinks tabs={STATS_TABS} className="mb" />
         <div className="stats-filters">{filter}</div>
         {q.error ? (
@@ -294,7 +294,7 @@ export function SubscriptionsPage() {
   return (
     <div className="scroll">
       <div className="page">
-        <PageHeader title="Подписки" icon={<Users size={22} />} subtitle="На кого вы подписаны и кто подписан на вас" />
+        <PageHeader title="Подписки" icon={<Users size={22} />} />
         <TabLinks tabs={STATS_TABS} className="mb" />
         <div className="stats-filters">
           <Segmented

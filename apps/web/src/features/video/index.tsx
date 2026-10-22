@@ -1395,8 +1395,12 @@ function StudioContent() {
                 </Link>
                 <span>{s.status === 'live' ? <LiveBadge small /> : s.recordingPostId ? 'Запись опубликована' : 'Завершена'}</span>
                 <span className="vs-table__date">{fullDate(s.startedAt)}</span>
-                <span className="num">{s.totalViewers}</span>
-                <span className="num">{s.peakViewers}</span>
+                <span className="num" data-label="Зрители:">
+                  {s.totalViewers}
+                </span>
+                <span className="num" data-label="Пик:">
+                  {s.peakViewers}
+                </span>
                 <span />
               </div>
             ))}
@@ -1486,9 +1490,15 @@ function ContentRow({ post, onEdit }: { post: Post; onEdit: () => void }) {
         {fullDate(post.premiereAt ?? post.createdAt).replace(/,.*$/, '')}
         <span>{premiere === 'upcoming' ? 'Запланировано' : 'Опубликовано'}</span>
       </span>
-      <span className="num">{compactNumber(post.stats.views)}</span>
-      <span className="num">{compactNumber(post.stats.comments)}</span>
-      <span className="num">{compactNumber(post.stats.likes)}</span>
+      <span className="num" data-label="Просмотры:">
+        {compactNumber(post.stats.views)}
+      </span>
+      <span className="num" data-label="Комментарии:">
+        {compactNumber(post.stats.comments)}
+      </span>
+      <span className="num" data-label="Нравится:">
+        {compactNumber(post.stats.likes)}
+      </span>
     </div>
   );
 }

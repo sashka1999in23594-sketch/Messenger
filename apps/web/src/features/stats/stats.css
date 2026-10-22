@@ -144,6 +144,17 @@
   align-items: flex-end;
 }
 @media (max-width: 560px) {
+  .stat-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .stat-tile {
+    padding: 12px 14px;
+    border-radius: var(--radius-lg);
+  }
+  .stat-tile .sparkline {
+    display: none;
+  }
   .channel-stat {
     grid-template-columns: auto minmax(0, 1fr) auto;
   }

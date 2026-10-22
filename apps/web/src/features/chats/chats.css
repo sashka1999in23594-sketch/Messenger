@@ -13,6 +13,8 @@
   display: flex;
   flex-direction: column;
   container: chats / inline-size;
+  /* Анимации выезда панелей не должны расширять страницу по горизонтали */
+  overflow: clip;
 }
 .chats {
   position: relative;
