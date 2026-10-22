@@ -1,131 +1,124 @@
 'use strict';
-// Обновления как у игровых лаунчеров: при запуске приложение спрашивает GitHub
-// Releases, есть ли версия новее. Если есть — главное окно прячется, появляется
-// небольшое окно с прогрессом загрузки, затем установка и перезапуск.
-// Работает в Windows (установщик NSIS) и в Linux (AppImage). На macOS без
+// Обновления без участия пользователя, как у игровых лаунчеров.
+// При запуске окно запуска спрашивает GitHub Releases, есть ли версия новее,
+// скачивает её с прогрессом, ставит тихо и перезапускает приложение.
+// В фоне (приложение запущено вместе с системой и свёрнуто в трей) обновление
+// скачивается само и ставится, пока окном никто не пользуется.
+// Работает в Windows (установщик NSIS) и Linux (AppImage). На macOS без
 // платной подписи Apple обновление не установить — там сайт предложит скачать.
 
+const fs = require('node:fs');
 const path = require('node:path');
-const { app, BrowserWindow } = require('electron');
+const { app } = require('electron');
 
-const CHECK_TIMEOUT_MS = 15_000;
-const RECHECK_MS = 6 * 60 * 60 * 1000;
+const RECHECK_MS = 4 * 60 * 60 * 1000;
+/** Метка «после обновления запуститься свёрнутым в трей» */
+const markerPath = () => path.join(app.getPath('userData'), 'start-hidden');
 
-function supported() {
-  if (!app.isPackaged) return false;
-  if (process.platform === 'win32') return true;
-  return process.platform === 'linux' && !!process.env.APPIMAGE;
+let updater;
+function get() {
+  if (updater !== undefined) return updater;
+  updater = null;
+  const supported = app.isPackaged && (process.platform === 'win32' || (process.platform === 'linux' && !!process.env.APPIMAGE));
+  if (!supported) return null;
+  try {
+    ({ autoUpdater: updater } = require('electron-updater'));
+    updater.autoDownload = false;
+    updater.autoInstallOnAppQuit = true;
+    updater.logger = null;
+    // Ошибки сети не должны валить приложение — их обрабатывают вызовы ниже
+    updater.on('error', () => {});
+  } catch {
+    updater = null;
+  }
+  return updater;
+}
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const withTimeout = (promise, ms) => Promise.race([promise, delay(ms).then(() => Promise.reject(new Error('timeout')))]);
+
+/** Новая версия (сведения о ней) или null: нет обновления, нет связи, не дождались. */
+async function findUpdate(timeoutMs = 8000) {
+  const u = get();
+  if (!u) return null;
+  try {
+    const result = await withTimeout(u.checkForUpdates(), timeoutMs);
+    if (!result?.updateInfo) return null;
+    const available = result.isUpdateAvailable ?? result.updateInfo.version !== app.getVersion();
+    return available ? result.updateInfo : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Скачать найденное обновление; onProgress получает проценты, байты и скорость. */
+async function download(onProgress = () => {}) {
+  const u = get();
+  if (!u) throw new Error('Обновления недоступны');
+  u.on('download-progress', onProgress);
+  try {
+    await u.downloadUpdate();
+  } finally {
+    u.off('download-progress', onProgress);
+  }
+}
+
+/** Тихо поставить скачанное и перезапуститься (свёрнутым в трей, если hidden). */
+function install({ hidden = false } = {}) {
+  const u = get();
+  if (!u) return;
+  if (hidden) {
+    try {
+      fs.writeFileSync(markerPath(), String(Date.now()));
+    } catch {
+      // не записали — после обновления просто откроется окно запуска
+    }
+  }
+  setImmediate(() => u.quitAndInstall(true, true));
+}
+
+/** Запуск после фонового обновления: снова свернуться в трей (метка живёт 15 минут). */
+function consumeHiddenMarker() {
+  try {
+    const at = Number(fs.readFileSync(markerPath(), 'utf8'));
+    fs.rmSync(markerPath(), { force: true });
+    return Date.now() - at < 15 * 60 * 1000;
+  } catch {
+    return false;
+  }
 }
 
 /**
- * @param {{ getMainWindow: () => BrowserWindow | null, isNight: () => boolean, log?: (msg: string) => void }} opts
+ * Фоновые обновления: проверка сейчас и каждые 4 часа. Скачанное ставится,
+ * как только окно скрыто (никто не пользуется), иначе — при выходе.
+ * @param {{ idle: () => boolean, onIdle: (cb: () => void) => void }} opts
  */
-function startUpdater({ getMainWindow, isNight, log = () => {} }) {
-  if (!supported()) return;
-  let autoUpdater;
-  try {
-    ({ autoUpdater } = require('electron-updater'));
-  } catch (err) {
-    log(`updater unavailable: ${err}`);
-    return;
-  }
-  autoUpdater.autoDownload = false;
-  autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.logger = null;
-
-  let win = null;
-  let phase = 'idle';
-  let version = '';
-
-  const send = (state) => {
-    if (!win || win.isDestroyed()) return;
-    win.webContents.executeJavaScript(`window.updateState && window.updateState(${JSON.stringify(state)})`).catch(() => {});
+function updateInBackground({ idle, onIdle }) {
+  if (!get()) return;
+  let busy = false;
+  let ready = false;
+  const tryInstall = () => {
+    if (ready && idle()) install({ hidden: true });
   };
-
-  function openWindow(version) {
-    if (win && !win.isDestroyed()) return;
-    win = new BrowserWindow({
-      width: 420,
-      height: 380,
-      resizable: false,
-      maximizable: false,
-      minimizable: true,
-      fullscreenable: false,
-      frame: false,
-      show: false,
-      center: true,
-      title: 'Обновление Sunnet',
-      backgroundColor: '#14161d',
-      skipTaskbar: false,
-      webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false },
-    });
-    win.loadFile(path.join(__dirname, 'update.html'), { query: { night: isNight() ? '1' : '0' } }).catch(() => {});
-    win.once('ready-to-show', () => {
-      win.show();
-      send({ phase: 'found', version });
-    });
-    win.on('closed', () => {
-      win = null;
-      // Окно закрыли посреди загрузки — обновление доустановится при выходе
-      if (phase !== 'installing') showMain();
-    });
-  }
-
-  function showMain() {
-    const main = getMainWindow();
-    if (main && !main.isDestroyed() && !main.isVisible()) main.show();
-  }
-
-  function fail(err) {
-    log(`update failed: ${err}`);
-    if (phase === 'idle' || phase === 'checking') {
-      phase = 'idle';
-      return;
+  onIdle(tryInstall);
+  const run = async () => {
+    if (busy || ready) return;
+    busy = true;
+    try {
+      const info = await findUpdate(20_000);
+      if (info) {
+        await download();
+        ready = true;
+        tryInstall();
+      }
+    } catch {
+      // попробуем при следующей проверке
+    } finally {
+      busy = false;
     }
-    phase = 'idle';
-    send({ phase: 'error' });
-    setTimeout(() => {
-      if (win && !win.isDestroyed()) win.close();
-      showMain();
-    }, 2200);
-  }
-
-  autoUpdater.on('update-available', (info) => {
-    if (phase !== 'checking') return;
-    phase = 'downloading';
-    version = info.version;
-    // Как в лаунчерах: сначала обновление, потом приложение
-    const main = getMainWindow();
-    if (main && !main.isDestroyed()) main.hide();
-    openWindow(info.version);
-    autoUpdater.downloadUpdate().catch(fail);
-  });
-  autoUpdater.on('update-not-available', () => {
-    phase = 'idle';
-  });
-  autoUpdater.on('download-progress', (p) => {
-    send({ phase: 'downloading', version, percent: p.percent, transferred: p.transferred, total: p.total, speed: p.bytesPerSecond });
-  });
-  autoUpdater.on('update-downloaded', () => {
-    phase = 'installing';
-    send({ phase: 'installing' });
-    // Тихая установка и перезапуск новой версии
-    setTimeout(() => autoUpdater.quitAndInstall(true, true), 1200);
-  });
-  autoUpdater.on('error', fail);
-
-  const check = () => {
-    if (phase !== 'idle') return;
-    phase = 'checking';
-    const timer = setTimeout(() => phase === 'checking' && (phase = 'idle'), CHECK_TIMEOUT_MS);
-    autoUpdater
-      .checkForUpdates()
-      .catch(fail)
-      .finally(() => clearTimeout(timer));
   };
-  check();
-  // Приложение открыто сутками — проверяем изредка; найденное предложим так же
-  setInterval(check, RECHECK_MS).unref?.();
+  void run();
+  setInterval(run, RECHECK_MS).unref?.();
 }
 
-module.exports = { startUpdater };
+module.exports = { findUpdate, download, install, consumeHiddenMarker, updateInBackground, withTimeout, delay };
