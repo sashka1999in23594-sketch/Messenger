@@ -75,7 +75,7 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub, storage
   const invites = new InvitesService(db, chats, usersRepo, media, config.publicOrigin);
   const scheduled = new ScheduledService(db, chats, media);
   const calls = new CallsService(db, callsRepo, chats, usersRepo, policy, hub);
-  const rooms = new RoomsService(db, usersRepo, policy, hub);
+  const rooms = new RoomsService(db, usersRepo, policy, hub, chats);
   const posts = new PostsService(db, usersRepo, policy, media, notifications);
   const comments = new CommentsService(db, usersRepo, policy, posts, notifications);
   const drafts = new DraftsService(db, media, posts);

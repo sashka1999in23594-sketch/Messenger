@@ -297,6 +297,58 @@ describe('звонки', () => {
     expect(history[0]).toMatchObject({ id: room.body.id, title: 'Планёрка' });
   });
 
+  it('групповой звонок: права организатора, рука, правила и итог в чате', async () => {
+    const a = await registerUser(app);
+    const b = await registerUser(app);
+    const c = await registerUser(app);
+    const dm = await a.client.post('/chats/direct', { userId: b.user.id });
+    const room = await a.client.post('/calls/rooms', { userIds: [b.user.id, c.user.id], video: true, chatId: dm.body.id });
+    expect(room.body.settings).toMatchObject({ allowMic: true, locked: false, spotlight: null });
+    await b.client.post(`/calls/rooms/${room.body.id}/join`);
+    await c.client.post(`/calls/rooms/${room.body.id}/join`);
+    const id = room.body.id as string;
+    const mod = (who: typeof a, body: object) => who.client.post(`/calls/rooms/${id}/moderate`, body);
+    // Участник не может управлять
+    expect((await mod(b, { action: 'muteAll' })).status).toBe(403);
+    // Рука: поднять, организатор даёт слово — рука опускается, право говорить есть
+    const up = await b.client.post(`/calls/rooms/${id}/hand`, { up: true });
+    expect(up.body.members.find((m: { user: { id: string } }) => m.user.id === b.user.id).hand).toBeTruthy();
+    const speak = await mod(a, { action: 'allowSpeak', userId: b.user.id });
+    const bm = speak.body.members.find((m: { user: { id: string } }) => m.user.id === b.user.id);
+    expect(bm.hand).toBeNull();
+    expect(bm.canSpeak).toBe(true);
+    // Правила: микрофоны и чат выключены, вход закрыт
+    const st = await mod(a, { action: 'settings', settings: { allowMic: false, allowChat: false, locked: true } });
+    expect(st.body.settings).toMatchObject({ allowMic: false, allowChat: false, locked: true });
+    expect((await c.client.post(`/calls/rooms/${id}/chat`, { text: 'можно?' })).status).toBe(403);
+    expect((await a.client.post(`/calls/rooms/${id}/chat`, { text: 'Тишина' })).status).toBe(200);
+    expect((await c.client.post(`/calls/rooms/${id}/invite`, { userIds: [a.user.id] })).status).toBe(403);
+    // Закрепить для всех, соорганизатор
+    expect((await mod(a, { action: 'spotlight', spotlight: `screen:${b.user.id}` })).body.settings.spotlight).toBe(`screen:${b.user.id}`);
+    const co = await mod(a, { action: 'cohost', userId: c.user.id, on: true });
+    expect(co.body.members.find((m: { user: { id: string } }) => m.user.id === c.user.id).role).toBe('cohost');
+    // Соорганизатор не управляет организатором
+    expect((await mod(c, { action: 'remove', userId: a.user.id })).status).toBe(403);
+    // Удалённый не вернётся сам
+    const rm = await mod(a, { action: 'remove', userId: b.user.id });
+    expect(rm.body.members.find((m: { user: { id: string } }) => m.user.id === b.user.id).state).toBe('removed');
+    expect((await b.client.post(`/calls/rooms/${id}/join`)).status).toBe(403);
+    // Завершить для всех — итог в личном чате
+    const end = await mod(a, { action: 'end' });
+    expect(end.body.status).toBe('ended');
+    const msgs = await a.client.get(`/chats/${dm.body.id}/messages`);
+    expect(msgs.body.items.at(-1).text).toContain('позвонил(а)');
+  });
+
+  it('групповой звонок: единственный приглашённый отклонил — звонок завершён', async () => {
+    const a = await registerUser(app);
+    const b = await registerUser(app);
+    const room = await a.client.post('/calls/rooms', { userIds: [b.user.id], video: false });
+    const declined = await b.client.post(`/calls/rooms/${room.body.id}/leave`);
+    expect(declined.status).toBe(200);
+    expect((await a.client.get(`/calls/rooms/${room.body.id}`)).body.status).toBe('ended');
+  });
+
   it('групповой звонок: не больше 50 человек, заблокировавшего не позвать', async () => {
     const a = await registerUser(app);
     const b = await registerUser(app);

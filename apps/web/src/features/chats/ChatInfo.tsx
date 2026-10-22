@@ -35,7 +35,7 @@ import { usePrefs } from '../../shared/stores/prefs';
 import { useMe } from '../../shared/stores/session';
 import { toast } from '../../shared/stores/ui';
 import { lastSeen, members as membersLabel } from '../../shared/lib/format';
-import { startCall } from '../../shared/calls/engine';
+import { callChat } from '../../shared/calls/room';
 import { useRealtime } from '../../shared/stores/realtime';
 import { SavedAvatar } from './ChatList';
 import { useChatUi } from './store';
@@ -363,13 +363,13 @@ export function ChatInfo({ chatId, onClose }: { chatId: string; onClose: () => v
       </div>
       <div className="info-actions">
         {canCall && (
-          <button className="info-action" onClick={() => void startCall(chat.id, false)}>
+          <button className="info-action" onClick={() => void callChat(chat, false)}>
             <Phone size={22} />
             <span>Звонок</span>
           </button>
         )}
         {canCall && (
-          <button className="info-action" onClick={() => void startCall(chat.id, true)}>
+          <button className="info-action" onClick={() => void callChat(chat, true)}>
             <Video size={22} />
             <span>Видео</span>
           </button>

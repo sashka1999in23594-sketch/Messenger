@@ -1511,3 +1511,384 @@
     display: none;
   }
 }
+
+/* ─── Правая панель: вкладки «Показ», «Участники», «Чат» ─── */
+.room-panel__tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 8px 6px;
+  border-bottom: 1px solid var(--room-border);
+}
+.room-panel__tabs > button:not(.room-panel__close) {
+  position: relative;
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  border-radius: 9px;
+  color: var(--room-fg-2);
+  font-weight: 650;
+  font-size: var(--fs-xs);
+}
+.room-panel__tabs > button:hover {
+  background: var(--room-panel-2);
+  color: var(--room-fg);
+}
+.room-panel__tabs > button.is-on {
+  background: var(--room-panel-3);
+  color: var(--room-fg);
+}
+.room-panel__close {
+  flex: none;
+}
+.room-tab-hand {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  background: var(--room-warn);
+  color: var(--room-stage);
+  font-size: 10px;
+  font-weight: 800;
+}
+.room-icon__dot--inline {
+  position: static;
+  box-shadow: none;
+}
+.room-panel__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.room-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.room-sec__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 4px;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--room-fg-3);
+}
+.room-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.room-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--room-panel-2);
+  border: 1px solid var(--room-border);
+  color: var(--room-fg);
+  text-align: left;
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.room-card:hover:not(:disabled) {
+  background: var(--room-panel-3);
+  border-color: var(--room-border-strong);
+}
+.room-card:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.room-card > svg {
+  color: var(--room-accent);
+  margin-bottom: 2px;
+}
+.room-card b {
+  font-size: var(--fs-sm);
+}
+.room-card span {
+  font-size: 11px;
+  color: var(--room-fg-3);
+  line-height: 1.35;
+}
+.room-card--row {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+.room-card--row > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: inherit;
+  color: inherit;
+}
+.room-card--row > span > span {
+  font-size: 11px;
+  color: var(--room-fg-3);
+}
+.room-now {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--room-live-soft);
+}
+.room-now__dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--room-live);
+  animation: room-pulse 1.6s ease-in-out infinite;
+}
+.room-now__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.room-now__text span {
+  font-size: 11px;
+  color: var(--room-fg-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.room-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  background: var(--room-panel-3);
+  color: var(--room-fg);
+  font-weight: 650;
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.room-btn:hover {
+  background: var(--room-border-strong);
+}
+.room-btn--sm {
+  padding: 5px 9px;
+  font-size: 11px;
+  background: var(--room-accent);
+  color: var(--room-accent-fg);
+}
+.room-btn--wide {
+  width: 100%;
+}
+.room-btn--danger {
+  background: var(--room-danger);
+  color: var(--room-accent-fg);
+}
+.room-btn--danger:hover {
+  background: var(--room-danger-hover);
+}
+.room-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 4px;
+  font-size: 11px;
+  color: var(--room-fg-3);
+  line-height: 1.4;
+}
+.room-music {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 10px 10px 12px;
+  border-radius: 12px;
+  background: var(--room-panel-2);
+}
+.room-music__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--room-accent-soft);
+  color: var(--room-accent);
+}
+.room-music__name {
+  min-width: 0;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.room-range {
+  grid-column: 1 / -1;
+  width: 100%;
+  accent-color: var(--room-accent);
+}
+.room-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 6px;
+  border-radius: 8px;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.room-switch:hover {
+  background: var(--room-panel-2);
+}
+.room-switch input {
+  width: 34px;
+  height: 20px;
+  accent-color: var(--room-accent);
+  cursor: pointer;
+}
+.room-host {
+  padding: 10px 6px 4px;
+  border-top: 1px solid var(--room-border);
+}
+.room-host__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+.room-host__actions .room-btn {
+  justify-content: flex-start;
+}
+.room-rename {
+  display: flex;
+  gap: 6px;
+}
+.room-rename input {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 9px;
+  background: var(--room-panel-2);
+  border: 1px solid var(--room-border);
+  color: var(--room-fg);
+}
+.room-menu--member {
+  top: calc(100% + 4px);
+  bottom: auto;
+  left: auto;
+  right: 0;
+  transform: none;
+}
+.room-menu button.is-danger {
+  color: var(--room-danger);
+}
+.room-menu button:disabled {
+  opacity: 0.4;
+}
+.room-role {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--room-warn);
+  color: var(--room-stage);
+  vertical-align: -2px;
+}
+.room-role--co {
+  background: var(--room-accent);
+  color: var(--room-accent-fg);
+}
+.room-person--hand {
+  background: var(--room-panel-2);
+}
+.room-person__queue {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--room-warn);
+  color: var(--room-stage);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* Плитка: рука с местом в очереди, «закреплено для всех», выбор щелчком */
+.room-tile__hand {
+  width: auto;
+  height: 28px;
+  gap: 3px;
+  padding: 0 9px 0 7px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 800;
+}
+.room-tile__spot {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  background: var(--room-accent);
+  color: var(--room-accent-fg);
+  font-size: 11px;
+  font-weight: 700;
+  transform: translateX(-50%);
+}
+.room-tile.is-clickable {
+  cursor: pointer;
+}
+.room-tile.is-clickable:hover {
+  outline-color: var(--room-border-strong);
+}
+.room-tile.is-selected {
+  outline-color: var(--room-accent);
+}
+.room-ctrl__lock {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--room-warn);
+  color: var(--room-stage);
+}
+.room-ctrl.is-locked .room-ctrl__btn {
+  opacity: 0.8;
+}
+
+/* Одна панель вместо нескольких */
+.room-win__side > .room-panel {
+  flex: 1;
+}
+.room-sheet__card .room-panel__body {
+  padding-bottom: 20px;
+}
+@keyframes room-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}

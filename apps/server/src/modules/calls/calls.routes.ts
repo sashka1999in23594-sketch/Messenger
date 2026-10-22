@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { createRoomSchema, inviteRoomSchema, pagination, roomChatSchema, startCallSchema } from '@omni/shared';
+import { createRoomSchema, inviteRoomSchema, pagination, roomChatSchema, roomHandSchema, roomModerateSchema, startCallSchema } from '@omni/shared';
 import { parse } from '../../lib/errors.js';
 import { requireAuth } from '../../http/request.js';
 import { IceProvider } from './ice.js';
@@ -51,6 +51,12 @@ export async function callsRoutes(app: FastifyInstance): Promise<void> {
   });
   app.post<P>('/calls/rooms/:id/leave', async (req) => rooms.leave(requireAuth(req).userId, req.params.id));
   app.post<P>('/calls/rooms/:id/invite', { config: callLimit }, async (req) => rooms.invite(requireAuth(req).userId, req.params.id, parse(inviteRoomSchema, req.body)));
+  app.post<P>('/calls/rooms/:id/hand', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (req) =>
+    rooms.hand(requireAuth(req).userId, req.params.id, parse(roomHandSchema, req.body).up),
+  );
+  app.post<P>('/calls/rooms/:id/moderate', { config: { rateLimit: { max: 120, timeWindow: '1 minute' } } }, async (req) =>
+    rooms.moderate(requireAuth(req).userId, req.params.id, parse(roomModerateSchema, req.body)),
+  );
   app.post<P>('/calls/rooms/:id/chat', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (req) =>
     rooms.chat(requireAuth(req).userId, req.params.id, parse(roomChatSchema, req.body).text),
   );

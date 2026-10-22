@@ -468,22 +468,50 @@ export interface CallInfo {
   endedAt: ISODate | null;
 }
 
-/** Участник группового звонка: приглашён, в звонке, вышел или отказался */
-export type RoomMemberState = 'invited' | 'joined' | 'left' | 'declined';
+/** Участник группового звонка: приглашён, в звонке, вышел, отказался или удалён организатором */
+export type RoomMemberState = 'invited' | 'joined' | 'left' | 'declined' | 'removed';
+
+/** Организатор (создал звонок), соорганизатор (те же права) или участник */
+export type RoomRole = 'owner' | 'cohost' | 'member';
 
 export interface RoomMember {
   user: UserSummary;
   state: RoomMemberState;
-  /** Создатель звонка или участник */
-  role: 'owner' | 'member';
+  role: RoomRole;
   invitedAt: ISODate;
   joinedAt: ISODate | null;
+  /** Когда поднял руку (очередь — по времени), null — рука опущена */
+  hand: ISODate | null;
+  /** Организатор дал слово: можно включать микрофон, даже когда участникам нельзя */
+  canSpeak: boolean;
 }
+
+/** Правила звонка — меняют организатор и соорганизаторы. */
+export interface RoomSettings {
+  /** Вход закрыт: новые не войдут, приглашать нельзя */
+  locked: boolean;
+  /** Участники могут включать микрофон */
+  allowMic: boolean;
+  allowCamera: boolean;
+  /** Показывать экран, окна, фото и видео */
+  allowScreen: boolean;
+  allowChat: boolean;
+  /** Участники могут приглашать людей */
+  allowInvite: boolean;
+  /** Закреплено для всех: id участника или «screen:<id>» — его показ экрана */
+  spotlight: string | null;
+}
+
+/** Команды организатора, которые приходят участнику */
+export type RoomControl = 'mute' | 'camera-off' | 'stop-screen' | 'lower-hand' | 'removed' | 'ended' | 'declined';
 
 /** Групповой звонок до 50 человек: идёт, пока в нём есть хотя бы один участник. */
 export interface CallRoom {
   id: ID;
   title: string | null;
+  /** Звонок начат из личного чата — итог появится в переписке */
+  chatId: ID | null;
+  settings: RoomSettings;
   video: boolean;
   status: 'active' | 'ended';
   owner: UserSummary;

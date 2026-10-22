@@ -30,8 +30,6 @@ let tray = null;
 let quitting = false;
 let lastCrashAt = 0;
 let dayNight = null;
-/** Кому сказать, что окно спрятано (фоновое обновление ставится, пока никто не смотрит) */
-const onHide = [];
 
 app.enableSandbox(); // песочница для всех страниц, без исключений
 if (process.platform === 'win32') app.setAppUserModelId('app.spaceup.desktop'); // нужно для уведомлений Windows
@@ -80,7 +78,7 @@ async function start() {
   if (hidden && (tray || isMac)) {
     createWindow();
     void waitForServer(() => !!mainWindow).then(() => loadSite());
-    startBackgroundUpdates();
+    void startBackgroundUpdates()();
     return;
   }
   await launch();
@@ -162,11 +160,61 @@ async function launch() {
   startBackgroundUpdates();
 }
 
+/** Как часто приложение спрашивает, не вышла ли новая версия */
+const UPDATE_CHECK_MS = 5 * 60 * 1000;
+let updating = false;
+
+/** Идёт ли звонок — посреди разговора не обновляемся. */
+async function inCall() {
+  if (!mainWindow || mainWindow.isDestroyed()) return false;
+  const js = "!!document.querySelector('.room-win, .room-mobile, .room-pill, .call-screen')";
+  return withTimeout(mainWindow.webContents.executeJavaScript(js), 2000).catch(() => false);
+}
+
+/**
+ * Обновления, пока приложение открыто: вышла новая версия — главное окно
+ * закрывается, появляется окно обновления с прогрессом, установка и перезапуск.
+ * Во время звонка ждём, пока он закончится. Свёрнуто в трей — ставим тихо.
+ */
 function startBackgroundUpdates() {
-  updates.updateInBackground({
-    idle: () => !mainWindow || mainWindow.isDestroyed() || !mainWindow.isVisible(),
-    onIdle: (cb) => onHide.push(cb),
-  });
+  const check = async () => {
+    if (updating) return;
+    const info = await updates.findUpdate(20_000);
+    if (!info || updating) return;
+    if (await inCall()) return void setTimeout(check, 60_000);
+    updating = true;
+    const visible = mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible();
+    if (!visible) {
+      try {
+        await updates.download();
+        quitting = true;
+        updates.install({ hidden: true });
+      } catch {
+        updating = false;
+      }
+      return;
+    }
+    mainWindow.hide();
+    openLauncher();
+    setLauncher({ phase: 'downloading', version: info.version, percent: 0 });
+    try {
+      await updates.download((p) =>
+        setLauncher({ phase: 'downloading', version: info.version, percent: p.percent, transferred: p.transferred, total: p.total, speed: p.bytesPerSecond }),
+      );
+      setLauncher({ phase: 'installing' });
+      await delay(900);
+      quitting = true;
+      updates.install();
+    } catch {
+      setLauncher({ phase: 'error', text: 'Не получилось обновиться — продолжаем в текущей версии' });
+      await delay(1800);
+      closeLauncher();
+      showMainWindow();
+      updating = false;
+    }
+  };
+  setInterval(() => void check(), UPDATE_CHECK_MS);
+  return check;
 }
 
 // ─── Сервер ──────────────────────────────────────────────────────────────────
@@ -269,7 +317,6 @@ function createWindow() {
     }
     tray?.hint();
   });
-  mainWindow.on('hide', () => onHide.forEach((cb) => cb()));
   mainWindow.on('closed', () => {
     mainWindow = null;
   });

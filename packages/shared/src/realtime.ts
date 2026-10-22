@@ -3,7 +3,7 @@
  * лёгкие сигналы (набор текста, пинг). Все изменения данных идут через REST,
  * поэтому протокол легко масштабировать (Redis pub/sub, NATS) без изменения клиента.
  */
-import type { AppNotification, CallInfo, CallRoom, Counters, ID, LiveChatMessage, LiveStream, Message, UserSummary } from './types.js';
+import type { AppNotification, CallInfo, CallRoom, Counters, ID, LiveChatMessage, LiveStream, Message, RoomControl, UserSummary } from './types.js';
 
 /** Что делает собеседник: печатает, записывает голосовое или кружок. */
 export type ChatActivity = 'typing' | 'voice' | 'round';
@@ -56,6 +56,10 @@ export type ServerEvent =
   | { t: 'room.signal'; roomId: ID; from: ID; signal: RoomSignal }
   /** Сообщение в чате звонка */
   | { t: 'room.chat'; roomId: ID; message: LiveChatMessage }
+  /** Команда организатора этому участнику: выключить микрофон, удалить из звонка… */
+  | { t: 'room.control'; roomId: ID; action: RoomControl; by: UserSummary }
+  /** Кто-то поднял руку (организаторам) */
+  | { t: 'room.hand'; roomId: ID; user: UserSummary }
   /** Прямой эфир: зритель подключился или ушёл (ведущему) */
   | { t: 'live.viewer'; streamId: ID; peer: string; joined: boolean }
   /** Сигнал WebRTC эфира: ведущему — от зрителя peer, зрителю — от ведущего */

@@ -525,7 +525,48 @@ const roomPeople = {
   userIds: z.array(id).max(MAX_ROOM_MEMBERS - 1).default([]),
   usernames: z.array(z.string().trim().max(64)).max(MAX_ROOM_MEMBERS - 1).default([]),
 };
-export const createRoomSchema = z.object({ ...roomPeople, video: z.boolean().default(true), title: z.string().trim().max(80).optional() });
+export const createRoomSchema = z.object({
+  ...roomPeople,
+  video: z.boolean().default(true),
+  title: z.string().trim().max(80).optional(),
+  /** Звонок из личного чата: итог звонка появится в переписке */
+  chatId: id.optional(),
+});
+export const roomHandSchema = z.object({ up: z.boolean() });
+/** Команды организатора и соорганизаторов */
+export const ROOM_ACTIONS = [
+  'mute',
+  'muteAll',
+  'cameraOff',
+  'stopScreen',
+  'lowerHand',
+  'lowerAllHands',
+  'allowSpeak',
+  'remove',
+  'cohost',
+  'spotlight',
+  'settings',
+  'rename',
+  'end',
+] as const;
+export const roomModerateSchema = z.object({
+  action: z.enum(ROOM_ACTIONS),
+  userId: id.optional(),
+  on: z.boolean().optional(),
+  spotlight: z.string().max(80).nullable().optional(),
+  title: z.string().trim().max(80).optional(),
+  settings: z
+    .object({
+      locked: z.boolean(),
+      allowMic: z.boolean(),
+      allowCamera: z.boolean(),
+      allowScreen: z.boolean(),
+      allowChat: z.boolean(),
+      allowInvite: z.boolean(),
+    })
+    .partial()
+    .optional(),
+});
 export const inviteRoomSchema = z.object(roomPeople);
 export const roomChatSchema = z.object({ text: z.string().trim().min(1, 'Пустое сообщение').max(1000) });
 

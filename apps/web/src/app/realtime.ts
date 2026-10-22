@@ -122,6 +122,8 @@ function handle(event: ServerEvent): void {
     case 'room.updated':
     case 'room.signal':
     case 'room.chat':
+    case 'room.control':
+    case 'room.hand':
       void handleRoomEvent(event).catch(() => undefined);
       break;
     case 'session.revoked':

@@ -1,9 +1,8 @@
 'use strict';
 // Обновления без участия пользователя, как у игровых лаунчеров.
-// При запуске окно запуска спрашивает GitHub Releases, есть ли версия новее,
-// скачивает её с прогрессом, ставит тихо и перезапускает приложение.
-// В фоне (приложение запущено вместе с системой и свёрнуто в трей) обновление
-// скачивается само и ставится, пока окном никто не пользуется.
+// При запуске и каждые несколько минут приложение спрашивает GitHub Releases,
+// есть ли версия новее, скачивает её с прогрессом, ставит тихо и перезапускается.
+// Когда и как показывать окно обновления, решает main.js.
 // Работает в Windows (установщик NSIS) и Linux (AppImage). На macOS без
 // платной подписи Apple обновление не установить — там сайт предложит скачать.
 
@@ -11,7 +10,6 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { app } = require('electron');
 
-const RECHECK_MS = 4 * 60 * 60 * 1000;
 /** Метка «после обновления запуститься свёрнутым в трей» */
 const markerPath = () => path.join(app.getPath('userData'), 'start-hidden');
 
@@ -88,37 +86,4 @@ function consumeHiddenMarker() {
   }
 }
 
-/**
- * Фоновые обновления: проверка сейчас и каждые 4 часа. Скачанное ставится,
- * как только окно скрыто (никто не пользуется), иначе — при выходе.
- * @param {{ idle: () => boolean, onIdle: (cb: () => void) => void }} opts
- */
-function updateInBackground({ idle, onIdle }) {
-  if (!get()) return;
-  let busy = false;
-  let ready = false;
-  const tryInstall = () => {
-    if (ready && idle()) install({ hidden: true });
-  };
-  onIdle(tryInstall);
-  const run = async () => {
-    if (busy || ready) return;
-    busy = true;
-    try {
-      const info = await findUpdate(20_000);
-      if (info) {
-        await download();
-        ready = true;
-        tryInstall();
-      }
-    } catch {
-      // попробуем при следующей проверке
-    } finally {
-      busy = false;
-    }
-  };
-  void run();
-  setInterval(run, RECHECK_MS).unref?.();
-}
-
-module.exports = { findUpdate, download, install, consumeHiddenMarker, updateInBackground, withTimeout, delay };
+module.exports = { findUpdate, download, install, consumeHiddenMarker, withTimeout, delay };

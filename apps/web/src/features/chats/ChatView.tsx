@@ -29,7 +29,7 @@ import {
 import type { ChatSummary, EncryptedPayload, Message, PollInput, ScheduledMessage } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { qk, queryClient } from '../../shared/api/query';
-import { startCall } from '../../shared/calls/engine';
+import { callChat } from '../../shared/calls/room';
 import { encryptMessage } from '../../shared/crypto/e2e';
 import { playSound } from '../../shared/lib/sounds';
 import { realtime } from '../../shared/realtime/socket';
@@ -329,7 +329,7 @@ export function ChatView() {
         void navigator.clipboard.writeText(text).then(() => toast('Текст скопирован'));
       },
       readers: (m) => setReadersOf(m),
-      callBack: chat?.peer ? (video) => void startCall(chatId, video) : undefined,
+      callBack: chat?.peer ? (video) => void callChat(chat, video) : undefined,
       comments: (m) => openComments(m.id),
       select: toggleSelect,
       jumpTo,
@@ -461,10 +461,10 @@ export function ChatView() {
             )}
             {canCall && (
               <>
-                <IconButton label="Видеозвонок" onClick={() => void startCall(chat.id, true)}>
+                <IconButton label="Видеозвонок" onClick={() => void callChat(chat, true)}>
                   <Video size={22} />
                 </IconButton>
-                <IconButton label="Аудиозвонок" onClick={() => void startCall(chat.id, false)}>
+                <IconButton label="Аудиозвонок" onClick={() => void callChat(chat, false)}>
                   <Phone size={20} />
                 </IconButton>
               </>
@@ -624,8 +624,8 @@ export function ChatView() {
           { label: 'Информация', icon: <Info size={18} />, onClick: toggleInfo },
           { label: 'Поиск в чате', icon: <Search size={18} />, onClick: () => setSearchOpen(true), hidden: chat.type === 'secret' },
           { label: 'Отложенные сообщения', icon: <CalendarClock size={18} />, onClick: () => setScheduledOpen(true), hidden: !isMember || chat.type === 'secret' || !canWrite },
-          { label: 'Аудиозвонок', icon: <Phone size={18} />, onClick: () => void startCall(chat.id, false), hidden: !canCall },
-          { label: 'Видеозвонок', icon: <Video size={18} />, onClick: () => void startCall(chat.id, true), hidden: !canCall },
+          { label: 'Аудиозвонок', icon: <Phone size={18} />, onClick: () => void callChat(chat, false), hidden: !canCall },
+          { label: 'Видеозвонок', icon: <Video size={18} />, onClick: () => void callChat(chat, true), hidden: !canCall },
           {
             label: 'Очистить историю',
             icon: <Eraser size={18} />,

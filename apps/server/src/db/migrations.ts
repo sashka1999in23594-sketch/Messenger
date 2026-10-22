@@ -971,4 +971,16 @@ CREATE INDEX idx_call_room_members_user ON call_room_members(user_id, invited_at
 CREATE INDEX idx_call_rooms_status ON call_rooms(status);
 `,
   },
+  {
+    version: '014_call_room_controls',
+    sql: `
+-- Правила звонка (кто может включать микрофон, камеру, показывать экран,
+-- писать в чат, приглашать; закрытый вход; закреплённый для всех), поднятая
+-- рука с очередью, «дать слово» и личный чат, из которого начат звонок.
+ALTER TABLE call_rooms ADD COLUMN chat_id TEXT;
+ALTER TABLE call_rooms ADD COLUMN settings TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE call_room_members ADD COLUMN hand_at INTEGER;
+ALTER TABLE call_room_members ADD COLUMN speak INTEGER NOT NULL DEFAULT 0;
+`,
+  },
 ];

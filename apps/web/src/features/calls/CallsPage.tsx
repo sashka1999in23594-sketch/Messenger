@@ -9,8 +9,8 @@ import { Phone, PhoneCall, PhoneIncoming, PhoneMissed, PhoneOutgoing, Plus, User
 import type { CallInfo, CallRoom } from '@omni/shared';
 import { api } from '../../shared/api/client';
 import { flatPages, useCursorList } from '../../shared/api/query';
-import { fmtDuration, startCall } from '../../shared/calls/engine';
-import { createRoom, joinRoom, useRoom } from '../../shared/calls/room';
+import { fmtDuration } from '../../shared/calls/engine';
+import { callChat, createRoom, joinRoom, useRoom } from '../../shared/calls/room';
 import { useMe } from '../../shared/stores/session';
 import { clockTime, cn, dayLabel, fullDate } from '../../shared/lib/format';
 import { Avatar, EmptyState, ListSkeleton, LoadMore, PageHeader, TabLinks } from '../../shared/ui';
@@ -61,10 +61,10 @@ function CallRow({ c, myId }: { c: CallInfo; myId: string }) {
         <span className="call-row__time">{clockTime(c.createdAt)}</span>
       </button>
       <span className="call-row__actions">
-        <button type="button" className="icon-btn" onClick={() => void startCall(c.chatId, false)} aria-label="Аудиозвонок" title="Аудиозвонок">
+        <button type="button" className="icon-btn" onClick={() => void callChat({ id: c.chatId, peer }, false)} aria-label="Аудиозвонок" title="Аудиозвонок">
           <Phone size={20} />
         </button>
-        <button type="button" className="icon-btn" onClick={() => void startCall(c.chatId, true)} aria-label="Видеозвонок" title="Видеозвонок">
+        <button type="button" className="icon-btn" onClick={() => void callChat({ id: c.chatId, peer }, true)} aria-label="Видеозвонок" title="Видеозвонок">
           <Video size={20} />
         </button>
       </span>

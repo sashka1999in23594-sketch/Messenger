@@ -8,7 +8,7 @@
  * добавить поток (демонстрация экрана), «вежливая» уступает при столкновении.
  */
 import { create } from 'zustand';
-import type { CallRoom, LiveChatMessage, RoomSignal, ServerEvent, UserSummary } from '@omni/shared';
+import type { CallRoom, LiveChatMessage, RoomMember, RoomSignal, ServerEvent, UserSummary } from '@omni/shared';
 import { api, errorMessage } from '../api/client';
 import { realtime } from '../realtime/socket';
 import { useSession } from '../stores/session';
@@ -57,6 +57,10 @@ interface RoomState {
   minimized: boolean;
   /** Громкость собеседников, 0…1 */
   volume: number;
+  /** Что я показываю участникам вместо экрана: экран, окно, фото или видео */
+  share: { kind: 'screen' | 'window' | 'photo' | 'video'; label: string } | null;
+  /** Музыка на фоне — её слышат все участники */
+  music: { name: string; playing: boolean; volume: number } | null;
 }
 
 const initial: RoomState = {
@@ -77,6 +81,8 @@ const initial: RoomState = {
   endedText: null,
   minimized: false,
   volume: 1,
+  share: null,
+  music: null,
 };
 
 export const useRoom = create<RoomState>(() => ({ ...initial }));
@@ -87,6 +93,8 @@ interface Link {
   makingOffer: boolean;
   ignoreOffer: boolean;
   pendingIce: RTCIceCandidateInit[];
+  /** Отправитель звука (микрофон или микрофон с музыкой) */
+  audio: RTCRtpSender | null;
   /** Отправитель видео камеры (или сцены студии) */
   camera: RTCRtpSender | null;
   /** Отправители демонстрации экрана */
@@ -100,6 +108,10 @@ const links = new Map<string, Link>();
 let ring: { stop: () => void } | null = null;
 let ringTimer: number | null = null;
 let endTimer: number | null = null;
+/** Никто не ответил на звонок — завершаем через 45 секунд */
+let noAnswer: number | null = null;
+/** Освобождает то, что держит показ фото или видео (таймер, ссылку на файл) */
+let shareCleanup: (() => void) | null = null;
 
 const me = () => useSession.getState().me?.id ?? '';
 const roomId = () => useRoom.getState().room?.id ?? '';
@@ -208,6 +220,11 @@ const tuneAll = () => links.forEach((l) => void tune(l));
 
 // ─── Соединения ─────────────────────────────────────────────────────────────
 
+/** Звук, который мы отправляем: микрофон или микрофон вместе с музыкой. */
+function outgoingAudio(): MediaStreamTrack | null {
+  return music?.dest.stream.getAudioTracks()[0] ?? useRoom.getState().local?.getAudioTracks()[0] ?? null;
+}
+
 /** Видео, которое мы сейчас отправляем: сцена студии или камера. */
 function outgoingVideo(): MediaStreamTrack | null {
   const s = useRoom.getState();
@@ -224,7 +241,7 @@ async function connect(userId: string, initiator: boolean): Promise<Link> {
   const existing = links.get(userId);
   if (existing) return existing;
   const pc = new RTCPeerConnection({ iceServers: await getIce() });
-  const link: Link = { pc, polite: me() < userId, makingOffer: false, ignoreOffer: false, pendingIce: [], camera: null, screen: [], streams: new Map(), ready: initiator };
+  const link: Link = { pc, polite: me() < userId, makingOffer: false, ignoreOffer: false, pendingIce: [], audio: null, camera: null, screen: [], streams: new Map(), ready: initiator };
   // Пока ждали серверы ICE, соединение могли создать параллельно
   const raced = links.get(userId);
   if (raced) {
@@ -235,7 +252,8 @@ async function connect(userId: string, initiator: boolean): Promise<Link> {
   const s = useRoom.getState();
   const local = s.local ?? new MediaStream();
   if (initiator) {
-    for (const t of local.getAudioTracks()) pc.addTrack(t, local);
+    const audio = outgoingAudio();
+    if (audio) link.audio = pc.addTrack(audio, local);
     // Видеоканал есть всегда: камеру или сцену можно включить позже без пересогласования
     link.camera = pc.addTransceiver('video', { direction: 'sendrecv', streams: [local] }).sender;
     const video = outgoingVideo();
@@ -304,8 +322,8 @@ async function answerWithMedia(link: Link) {
     const kind = t.receiver.track.kind;
     if (kind === 'audio' && !audio) {
       audio = true;
-      const track = local.getAudioTracks()[0] ?? null;
-      await t.sender.replaceTrack(track);
+      link.audio = t.sender;
+      await t.sender.replaceTrack(outgoingAudio());
       t.sender.setStreams?.(local);
       t.direction = 'sendrecv';
     } else if (kind === 'video' && !link.camera) {
@@ -408,6 +426,11 @@ async function getMedia(video: boolean): Promise<MediaStream> {
 
 function cleanup(text: string | null) {
   stopRing();
+  stopMusic();
+  shareCleanup?.();
+  shareCleanup = null;
+  if (noAnswer) window.clearTimeout(noAnswer);
+  noAnswer = null;
   for (const id of [...links.keys()]) drop(id);
   const s = useRoom.getState();
   s.local?.getTracks().forEach((t) => t.stop());
@@ -428,7 +451,7 @@ const busy = () => {
 // ─── Действия ───────────────────────────────────────────────────────────────
 
 /** Новый групповой звонок: id выбранных людей и/или имена пользователей. */
-export async function createRoom(input: { userIds: string[]; usernames: string[]; video: boolean; title?: string }): Promise<boolean> {
+export async function createRoom(input: { userIds: string[]; usernames: string[]; video: boolean; title?: string; chatId?: string }): Promise<boolean> {
   if (busy()) {
     toast('Сначала завершите текущий звонок');
     return false;
@@ -444,6 +467,12 @@ export async function createRoom(input: { userIds: string[]; usernames: string[]
   try {
     const room = await api.post<CallRoom>('/calls/rooms', input);
     useRoom.setState({ room, phase: 'active', startedAt: Date.now() });
+    // Никто не взял трубку за 45 секунд — звонок заканчивается сам
+    noAnswer = window.setTimeout(() => {
+      const r = useRoom.getState().room;
+      const answered = r?.members.some((m) => m.user.id !== me() && m.joinedAt);
+      if (useRoom.getState().phase === 'active' && r?.id === room.id && !answered) void leaveRoom('Нет ответа');
+    }, 45_000);
     return true;
   } catch (e) {
     toast({ text: errorMessage(e), kind: 'error' });
@@ -473,9 +502,9 @@ export async function joinRoom(id: string, video: boolean): Promise<void> {
   }
 }
 
-export async function leaveRoom(): Promise<void> {
+export async function leaveRoom(reason?: string): Promise<void> {
   const { room, phase, startedAt } = useRoom.getState();
-  const text = phase === 'incoming' ? null : startedAt ? `Вы вышли из звонка · ${fmt((Date.now() - startedAt) / 1000)}` : 'Звонок завершён';
+  const text = reason ?? (phase === 'incoming' ? null : startedAt ? `Вы вышли из звонка · ${fmt((Date.now() - startedAt) / 1000)}` : 'Звонок завершён');
   cleanup(text);
   if (room) await api.post(`/calls/rooms/${room.id}/leave`).catch(() => undefined);
 }
@@ -497,6 +526,7 @@ export async function inviteToRoom(input: { userIds: string[]; usernames: string
 export function toggleRoomMute(): void {
   const s = useRoom.getState();
   const muted = !s.muted;
+  if (!muted && !can('mic')) return void toast('Организатор разрешил говорить только по поднятой руке — поднимите руку');
   s.local?.getAudioTracks().forEach((t) => (t.enabled = !muted));
   useRoom.setState({ muted });
   broadcastMedia();
@@ -504,6 +534,7 @@ export function toggleRoomMute(): void {
 
 export async function toggleRoomCamera(): Promise<void> {
   const s = useRoom.getState();
+  if (s.cameraOff && !can('camera')) return void toast('Организатор запретил участникам включать камеру');
   const track = s.local?.getVideoTracks()[0];
   if (track) {
     const cameraOff = !s.cameraOff;
@@ -527,35 +558,120 @@ export async function toggleRoomCamera(): Promise<void> {
   }
 }
 
-export function toggleHand(): void {
-  useRoom.setState({ hand: !useRoom.getState().hand });
+export async function toggleHand(): Promise<void> {
+  const { room, hand } = useRoom.getState();
+  if (!room) return;
+  useRoom.setState({ hand: !hand });
   broadcastMedia();
-}
-
-/** Демонстрация экрана — отдельным потоком, камера остаётся видна. */
-export async function toggleScreen(): Promise<void> {
-  const s = useRoom.getState();
-  if (s.screen) return stopScreen();
-  if (!navigator.mediaDevices?.getDisplayMedia) return toast('Это устройство не умеет показывать экран');
   try {
-    const screen = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 30 } }, audio: true });
-    screen.getVideoTracks()[0]?.addEventListener('ended', () => stopScreen());
-    useRoom.setState({ screen });
-    // Сначала говорим, какой поток — экран, потом добавляем его
-    broadcastMedia();
-    links.forEach((l) => {
-      for (const t of screen.getTracks()) l.screen.push(l.pc.addTrack(t, screen));
-    });
-    tuneAll();
-  } catch {
-    // отменили выбор экрана
+    useRoom.setState({ room: await api.post<CallRoom>(`/calls/rooms/${room.id}/hand`, { up: !hand }) });
+  } catch (e) {
+    useRoom.setState({ hand });
+    toast({ text: errorMessage(e), kind: 'error' });
   }
 }
 
-function stopScreen() {
+/** Показ участникам (экран, окно, фото или видео) — отдельным потоком, камера остаётся видна. */
+function startShare(stream: MediaStream, share: NonNullable<RoomState['share']>, cleanupFn?: () => void) {
+  if (useRoom.getState().screen) stopScreen();
+  shareCleanup = cleanupFn ?? null;
+  stream.getVideoTracks()[0]?.addEventListener('ended', () => stopScreen());
+  useRoom.setState({ screen: stream, share });
+  // Сначала говорим, какой поток — показ, потом добавляем его
+  broadcastMedia();
+  links.forEach((l) => {
+    for (const t of stream.getTracks()) l.screen.push(l.pc.addTrack(t, stream));
+  });
+  tuneAll();
+}
+
+/** Весь экран или отдельное окно (вкладку браузера). */
+export async function shareDisplay(kind: 'screen' | 'window' = 'screen'): Promise<void> {
+  if (!can('screen')) return toast('Организатор запретил участникам показывать экран');
+  if (!navigator.mediaDevices?.getDisplayMedia) return toast('Это устройство не умеет показывать экран');
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: { ideal: 15, max: 30 }, displaySurface: kind === 'window' ? 'window' : 'monitor' },
+      audio: true,
+    } as DisplayMediaStreamOptions);
+    const label = stream.getVideoTracks()[0]?.label || (kind === 'window' ? 'Окно' : 'Экран');
+    startShare(stream, { kind, label });
+  } catch {
+    // отменили выбор
+  }
+}
+
+export async function toggleScreen(): Promise<void> {
+  if (useRoom.getState().screen) return stopScreen();
+  await shareDisplay('screen');
+}
+
+/** Показать фото всем: картинка рисуется на холсте и уходит потоком показа. */
+export async function sharePhoto(file: File): Promise<void> {
+  if (!can('screen')) return toast('Организатор запретил участникам показывать экран');
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.src = url;
+  try {
+    await img.decode();
+  } catch {
+    URL.revokeObjectURL(url);
+    return toast({ text: 'Не получилось открыть фото', kind: 'error' });
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = 1280;
+  canvas.height = 720;
+  const ctx = canvas.getContext('2d')!;
+  const draw = () => {
+    ctx.fillStyle = '#0b0d12';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const k = Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
+    const w = img.naturalWidth * k;
+    const h = img.naturalHeight * k;
+    ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+  };
+  draw();
+  // Кадры раз в полсекунды: иначе браузер считает поток «замершим»
+  const timer = window.setInterval(draw, 500);
+  startShare(canvas.captureStream(5), { kind: 'photo', label: file.name }, () => {
+    window.clearInterval(timer);
+    URL.revokeObjectURL(url);
+  });
+}
+
+/** Показать видеофайл всем — со звуком. */
+export async function shareVideo(file: File): Promise<void> {
+  if (!can('screen')) return toast('Организатор запретил участникам показывать экран');
+  const url = URL.createObjectURL(file);
+  const video = document.createElement('video');
+  video.src = url;
+  video.loop = true;
+  video.playsInline = true;
+  try {
+    await video.play();
+  } catch {
+    URL.revokeObjectURL(url);
+    return toast({ text: 'Не получилось воспроизвести видео', kind: 'error' });
+  }
+  const capture = (video as HTMLVideoElement & { captureStream?: () => MediaStream }).captureStream?.();
+  if (!capture) {
+    video.pause();
+    URL.revokeObjectURL(url);
+    return toast('Этот браузер не умеет показывать видеофайлы — включите показ экрана');
+  }
+  startShare(capture, { kind: 'video', label: file.name }, () => {
+    video.pause();
+    video.removeAttribute('src');
+    URL.revokeObjectURL(url);
+  });
+}
+
+export function stopScreen(): void {
   const s = useRoom.getState();
   if (!s.screen) return;
   s.screen.getTracks().forEach((t) => t.stop());
+  shareCleanup?.();
+  shareCleanup = null;
   links.forEach((l) => {
     for (const sender of l.screen) {
       try {
@@ -566,8 +682,141 @@ function stopScreen() {
     }
     l.screen = [];
   });
-  useRoom.setState({ screen: null });
+  useRoom.setState({ screen: null, share: null });
   broadcastMedia();
+}
+
+// ─── Музыка на фоне ─────────────────────────────────────────────────────────
+// Микрофон и музыка смешиваются в один звук, который получают участники;
+// себе музыка играет тише, чтобы не мешала говорить.
+
+interface MusicGraph {
+  ctx: AudioContext;
+  el: HTMLAudioElement;
+  gain: GainNode;
+  monitor: GainNode;
+  dest: MediaStreamAudioDestinationNode;
+  url: string;
+}
+let music: MusicGraph | null = null;
+
+export async function setMusic(file: File): Promise<void> {
+  stopMusic();
+  const url = URL.createObjectURL(file);
+  try {
+    const ctx = new AudioContext();
+    const el = new Audio(url);
+    el.loop = true;
+    const src = ctx.createMediaElementSource(el);
+    const gain = ctx.createGain();
+    const monitor = ctx.createGain();
+    const dest = ctx.createMediaStreamDestination();
+    const volume = 0.5;
+    gain.gain.value = volume;
+    monitor.gain.value = volume * 0.5;
+    src.connect(gain).connect(dest);
+    src.connect(monitor).connect(ctx.destination);
+    const mic = useRoom.getState().local;
+    if (mic?.getAudioTracks().length) ctx.createMediaStreamSource(mic).connect(dest);
+    music = { ctx, el, gain, monitor, dest, url };
+    const track = dest.stream.getAudioTracks()[0]!;
+    links.forEach((l) => void l.audio?.replaceTrack(track));
+    await el.play();
+    useRoom.setState({ music: { name: file.name.replace(/\.[^.]+$/, ''), playing: true, volume } });
+  } catch {
+    stopMusic();
+    URL.revokeObjectURL(url);
+    toast({ text: 'Не получилось включить музыку', kind: 'error' });
+  }
+}
+
+export function toggleMusic(): void {
+  const st = useRoom.getState().music;
+  if (!music || !st) return;
+  if (st.playing) music.el.pause();
+  else void music.el.play();
+  useRoom.setState({ music: { ...st, playing: !st.playing } });
+}
+
+export function setMusicVolume(volume: number): void {
+  const st = useRoom.getState().music;
+  if (!music || !st) return;
+  music.gain.gain.value = volume;
+  music.monitor.gain.value = volume * 0.5;
+  useRoom.setState({ music: { ...st, volume } });
+}
+
+export function stopMusic(): void {
+  if (!music) return;
+  const m = music;
+  music = null;
+  m.el.pause();
+  void m.ctx.close().catch(() => undefined);
+  URL.revokeObjectURL(m.url);
+  const mic = outgoingAudio();
+  links.forEach((l) => void l.audio?.replaceTrack(mic));
+  useRoom.setState({ music: null });
+}
+
+// ─── Права и управление звонком ──────────────────────────────────────────────
+
+export const isModerator = (m: RoomMember | undefined) => m?.role === 'owner' || m?.role === 'cohost';
+export const myMember = (room = useRoom.getState().room) => room?.members.find((m) => m.user.id === me());
+
+/** Можно ли мне сейчас это делать по правилам звонка. */
+export function can(what: 'mic' | 'camera' | 'screen' | 'chat' | 'invite', room = useRoom.getState().room): boolean {
+  const mine = myMember(room);
+  if (!room || isModerator(mine)) return true;
+  const st = room.settings;
+  if (what === 'mic') return st.allowMic || !!mine?.canSpeak;
+  if (what === 'camera') return st.allowCamera;
+  if (what === 'screen') return st.allowScreen;
+  if (what === 'chat') return st.allowChat;
+  return st.allowInvite && !st.locked;
+}
+
+/** Команда организатора: выключить микрофон, закрепить, дать слово, удалить… */
+export async function moderate(body: { action: string; userId?: string; on?: boolean; spotlight?: string | null; title?: string; settings?: Partial<CallRoom['settings']> }): Promise<void> {
+  const room = useRoom.getState().room;
+  if (!room) return;
+  try {
+    const next = await api.post<CallRoom>(`/calls/rooms/${room.id}/moderate`, body);
+    if (useRoom.getState().room?.id === next.id && next.status === 'active') useRoom.setState({ room: next });
+  } catch (e) {
+    toast({ text: errorMessage(e), kind: 'error' });
+  }
+}
+
+/** Правила звонка поменялись — выключаем то, что больше нельзя. */
+function enforce(room: CallRoom) {
+  const s = useRoom.getState();
+  if (!can('mic', room) && !s.muted) {
+    s.local?.getAudioTracks().forEach((t) => (t.enabled = false));
+    useRoom.setState({ muted: true });
+    broadcastMedia();
+    toast('Организатор разрешил говорить только по поднятой руке');
+  }
+  if (!can('camera', room) && !s.cameraOff && s.local?.getVideoTracks().length) {
+    s.local.getVideoTracks().forEach((t) => (t.enabled = false));
+    useRoom.setState({ cameraOff: true });
+    broadcastMedia();
+    toast('Организатор запретил участникам включать камеру');
+  }
+  if (!can('screen', room) && s.screen) {
+    stopScreen();
+    toast('Организатор запретил участникам показывать экран');
+  }
+  const hand = !!myMember(room)?.hand;
+  if (hand !== s.hand) {
+    useRoom.setState({ hand });
+    broadcastMedia();
+  }
+}
+
+/** Звонок из личного чата: окно звонка с этим человеком, итог появится в переписке. */
+export async function callChat(chat: { id: string; peer: { id: string } | null }, video: boolean): Promise<void> {
+  if (!chat.peer) return toast('Позвонить можно в личном чате');
+  await createRoom({ userIds: [chat.peer.id], usernames: [], video, chatId: chat.id });
 }
 
 /** Студия: вместо камеры участники видят собранную сцену (текст, фото, видео, экран). */
@@ -641,9 +890,55 @@ export async function handleRoomEvent(event: ServerEvent): Promise<void> {
     if (s.phase !== 'active') return;
     const mine = room.members.find((m) => m.user.id === me());
     // Вас нет в звонке (вошли с другого устройства или вышли) — закрываем
-    if (room.status === 'ended' || mine?.state !== 'joined') return cleanup('Звонок завершён');
+    if (room.status === 'ended' || mine?.state !== 'joined') return cleanup(mine?.state === 'removed' ? 'Организатор удалил вас из звонка' : 'Звонок завершён');
     useRoom.setState({ room });
+    enforce(room);
     await sync(room);
+    return;
+  }
+  if (event.t === 'room.control') {
+    if (s.room?.id !== event.roomId) return;
+    const by = event.by.displayName;
+    switch (event.action) {
+      case 'mute':
+        if (!s.muted) {
+          s.local?.getAudioTracks().forEach((t) => (t.enabled = false));
+          useRoom.setState({ muted: true });
+          broadcastMedia();
+        }
+        toast(`${by} выключил(а) вам микрофон`);
+        break;
+      case 'camera-off':
+        if (!s.cameraOff) {
+          s.local?.getVideoTracks().forEach((t) => (t.enabled = false));
+          useRoom.setState({ cameraOff: true });
+          broadcastMedia();
+        }
+        toast(`${by} выключил(а) вам камеру`);
+        break;
+      case 'stop-screen':
+        stopScreen();
+        toast(`${by} остановил(а) ваш показ экрана`);
+        break;
+      case 'lower-hand':
+        useRoom.setState({ hand: false });
+        broadcastMedia();
+        break;
+      case 'removed':
+        cleanup(`${by} удалил(а) вас из звонка`);
+        break;
+      case 'ended':
+        cleanup(`${by} завершил(а) звонок для всех`);
+        break;
+      case 'declined':
+        cleanup((s.room?.members.length ?? 0) > 2 ? 'Никто не ответил' : 'Звонок отклонён');
+        break;
+    }
+    return;
+  }
+  if (event.t === 'room.hand') {
+    if (s.room?.id !== event.roomId) return;
+    toast({ text: `✋ ${event.user.displayName} поднял(а) руку`, action: { label: 'Дать слово', onClick: () => void moderate({ action: 'allowSpeak', userId: event.user.id }) } });
     return;
   }
   if (event.t === 'room.signal') {
