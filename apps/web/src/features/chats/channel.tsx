@@ -104,7 +104,7 @@ function CommentRow({ chat, m, onBan }: { chat: ChatSummary; m: Message; onBan: 
     }
   };
   return (
-    <div className="comment-row" onContextMenu={(e) => (mine || isAdmin) && menu.openFromEvent(e)}>
+    <div className="chat-comment-row" onContextMenu={(e) => (mine || isAdmin) && menu.openFromEvent(e)}>
       {m.sender ? (
         <Link to={`/u/${m.sender.username}`}>
           <Avatar src={m.sender.avatarUrl} name={m.sender.displayName} id={m.sender.id} size={34} />
@@ -112,12 +112,12 @@ function CommentRow({ chat, m, onBan }: { chat: ChatSummary; m: Message; onBan: 
       ) : (
         <Avatar src={null} name="?" id={m.id} size={34} />
       )}
-      <div className="comment-row__body">
+      <div className="chat-comment-row__body">
         <div className="row gap-2" style={{ justifyContent: 'space-between' }}>
           {m.sender ? <UserName user={m.sender} className="small" /> : <b className="small">Удалённый аккаунт</b>}
           <span className="xs faint">{chatTime(m.createdAt)}</span>
         </div>
-        {m.media.length > 0 && <MediaGrid media={m.media} className="comment-row__media" />}
+        {m.media.length > 0 && <MediaGrid media={m.media} className="chat-comment-row__media" />}
         {m.text && <RichText text={m.text} className="small" />}
       </div>
       {(mine || isAdmin) && (
@@ -170,13 +170,13 @@ export function CommentsDialog({ chat, rootId, onClose }: { chat: ChatSummary; r
   };
 
   return (
-    <Modal open onClose={onClose} title={thread ? `${compactNumber(thread.root.commentCount)} ${plural(thread.root.commentCount, 'комментарий', 'комментария', 'комментариев')}` : 'Комментарии'} wide className="comments-modal">
+    <Modal open onClose={onClose} title={thread ? `${compactNumber(thread.root.commentCount)} ${plural(thread.root.commentCount, 'комментарий', 'комментария', 'комментариев')}` : 'Комментарии'} wide className="chat-comments-modal">
       {q.isLoading || !thread ? (
         <Loading />
       ) : (
-        <div className="comments">
-          <div className="comments__scroll" ref={listRef}>
-            <article className="comments__root">
+        <div className="chat-comments">
+          <div className="chat-comments__scroll" ref={listRef}>
+            <article className="chat-comments__root">
               <div className="post-head">
                 <Avatar src={chat.avatarUrl} name={chat.title} id={chat.id} size={28} />
                 <b className="ellipsis">{chat.title}</b>
@@ -200,14 +200,14 @@ export function CommentsDialog({ chat, rootId, onClose }: { chat: ChatSummary; r
           </div>
           {canComment ? (
             <form
-              className="comments__composer"
+              className="chat-comments__composer"
               onSubmit={(e) => {
                 e.preventDefault();
                 submit();
               }}
             >
               <textarea
-                className="input comments__input"
+                className="input chat-comments__input"
                 rows={1}
                 placeholder="Комментарий…"
                 value={text}

@@ -444,7 +444,7 @@ export const sections: NavSection[] = [
         ],
       },
       { id: 'settings.calls', label: 'Звонки', icon: Phone, path: '/settings/calls', keywords: ['проверка связи', 'микрофон', 'камера', 'turn', 'не соединяется'] },
-      { id: 'settings.space', label: 'Пространство', icon: Orbit, path: '/settings/space', keywords: ['окна', 'рабочий стол', 'масштаб', 'режим', 'поле'] },
+      { id: 'settings.space', label: 'Рабочий стол', icon: Orbit, path: '/settings/space', keywords: ['окна', 'обои', 'док', 'кнопки окон', 'пространство'] },
       { id: 'settings.behavior', label: 'Поведение', icon: Gauge, path: '/settings/behavior', keywords: ['стартовая страница', 'орфография', 'enter', 'эмодзи'] },
       { id: 'settings.power', label: 'Энергосбережение', icon: BatteryCharging, path: '/settings/power', keywords: ['батарея', 'экономия', 'анимации'] },
       {

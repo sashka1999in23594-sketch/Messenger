@@ -229,6 +229,11 @@ function ChatItem({ chat, active, myId, base }: { chat: ChatSummary; active: boo
     el.classList.toggle('chat-item--settling', settle);
     el.classList.toggle('chat-item--swiping', !settle);
     el.style.transform = x ? `translateX(${x}px)` : '';
+    // Цветные кнопки под строкой видны только пока её смахивают или она открыта
+    const row = el.parentElement;
+    if (!row) return;
+    if (x !== 0 || !settle) row.classList.add('chat-row--swiped');
+    else setTimeout(() => offset.current === 0 && row.classList.remove('chat-row--swiped'), 260);
   };
   const close = () => setOffset(0, true);
 

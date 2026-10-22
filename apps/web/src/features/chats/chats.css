@@ -326,6 +326,10 @@
   bottom: 0;
   display: flex;
   align-items: stretch;
+  visibility: hidden;
+}
+.chat-row--swiped .chat-row__actions {
+  visibility: visible;
 }
 .chat-row__actions--right {
   right: 0;
@@ -2694,47 +2698,47 @@
 }
 
 /* ─── Ветка комментариев ─── */
-.comments-modal .modal__body {
+.chat-comments-modal .modal__body {
   padding: 0;
   display: flex;
   flex-direction: column;
   min-height: min(70vh, 640px);
 }
-.comments {
+.chat-comments {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
 }
-.comments__scroll {
+.chat-comments__scroll {
   flex: 1;
   overflow-y: auto;
   padding: 0 16px 12px;
   max-height: 62vh;
 }
-.comments__root {
+.chat-comments__root {
   margin: 4px 0 12px;
   padding: 12px 14px 4px;
   border-radius: var(--radius-lg);
   background: var(--surface-2);
   border: 1px solid var(--border);
 }
-.comments__root .media-grid {
+.chat-comments__root .media-grid {
   margin-bottom: 8px;
   border-radius: var(--radius-md);
   overflow: hidden;
 }
-.comment-row {
+.chat-comment-row {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 10px 0;
   border-bottom: 1px solid var(--border);
 }
-.comment-row:last-child {
+.chat-comment-row:last-child {
   border-bottom: 0;
 }
-.comment-row__body {
+.chat-comment-row__body {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -2742,20 +2746,20 @@
   gap: 2px;
   overflow-wrap: anywhere;
 }
-.comment-row__media {
+.chat-comment-row__media {
   max-width: 320px;
   margin: 4px 0;
   border-radius: var(--radius-md);
   overflow: hidden;
 }
-.comments__composer {
+.chat-comments__composer {
   display: flex;
   align-items: flex-end;
   gap: 8px;
   padding: 10px 12px;
   border-top: 1px solid var(--border);
 }
-.comments__input {
+.chat-comments__input {
   flex: 1;
   resize: none;
   min-height: 42px;
