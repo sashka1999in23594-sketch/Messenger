@@ -1,14 +1,17 @@
 'use strict';
 // Sunnet для компьютера: одно окно, в котором открыт сайт Sunnet.
-// Вся логика мессенджера живёт на сайте; здесь — окно, разрешения, ссылки и экран «нет сети».
+// Вся логика мессенджера живёт на сайте; здесь — окно, разрешения, ссылки,
+// экран загрузки, пока сервер просыпается, обновления и ярлыки Sunnet/Lynnet.
 
 const path = require('node:path');
-const { app, BrowserWindow, Menu, session } = require('electron');
+const { app, BrowserWindow, Menu, net, session } = require('electron');
 const { resolveSiteUrl } = require('./config');
 const windowState = require('./window-state');
 const { originOf, setupNavigation, setupPermissions } = require('./security');
 const { attachContextMenu, buildAppMenu } = require('./menu');
-const { watchDayNight } = require('./daynight');
+const { isNight, watchDayNight } = require('./daynight');
+const { syncShortcuts } = require('./shortcuts');
+const { startUpdater } = require('./updater');
 
 const SITE_URL = resolveSiteUrl();
 const APP_ORIGIN = new URL(SITE_URL).origin;
@@ -47,8 +50,10 @@ function start() {
   setupPermissions(ses, APP_ORIGIN);
 
   createWindow();
-  // Ночью значок — луна (Lynnet), днём — закат (Sunnet)
-  dayNight = watchDayNight(() => mainWindow);
+  // Ночью значок и ярлыки — луна и «Lynnet», днём — закат и «Sunnet»
+  dayNight = watchDayNight(() => mainWindow, syncShortcuts);
+  // Вышла новая версия — окно с загрузкой и перезапуск
+  startUpdater({ getMainWindow: () => mainWindow, isNight });
   app.on('activate', showMainWindow); // клик по значку в Dock
 }
 
@@ -81,8 +86,8 @@ function createWindow() {
   windowState.track(mainWindow);
   dayNight?.refresh();
   if (state.isMaximized) mainWindow.maximize();
-  // Показываем окно сразу (тёмный фон), не дожидаясь сайта: бесплатный сервер
-  // может просыпаться до минуты, и без окна казалось бы, что приложение не запустилось.
+  // Окно показываем сразу — с экраном загрузки: бесплатный сервер может
+  // просыпаться до минуты, и без окна казалось бы, что приложение не запустилось.
   mainWindow.show();
 
   const contents = mainWindow.webContents;
@@ -92,20 +97,20 @@ function createWindow() {
   contents.on('did-fail-load', (_event, code, description, url, isMainFrame) => {
     // -3 (ERR_ABORTED) — загрузку прервала другая навигация, это не обрыв связи.
     if (!isMainFrame || code === -3 || originOf(url) !== APP_ORIGIN) return;
-    showOffline(description || `Ошибка ${code}`);
+    wake('reconnect');
   });
 
-  // Сервер недоступен или ещё просыпается — вместо «Bad Gateway» показываем свой экран.
+  // Сервер недоступен или ещё просыпается — вместо «Bad Gateway» экран загрузки.
   contents.on('did-navigate', (_event, url, httpCode) => {
     const serverDown = httpCode >= 502 && httpCode <= 504;
-    if (serverDown && originOf(url) === APP_ORIGIN) showOffline(`HTTP ${httpCode}`);
+    if (serverDown && originOf(url) === APP_ORIGIN) wake('reconnect');
   });
 
   // Страница упала — перезагружаем сайт, но не чаще раза в 30 секунд, чтобы не уйти в цикл.
   contents.on('render-process-gone', (_event, details) => {
     if (quitting || details.reason === 'clean-exit' || Date.now() - lastCrashAt < 30_000) return;
     lastCrashAt = Date.now();
-    loadSite();
+    wake('reconnect');
   });
 
   // macOS: красная кнопка прячет окно, а приложение остаётся в Dock и получает сообщения.
@@ -123,7 +128,7 @@ function createWindow() {
     mainWindow = null;
   });
 
-  loadSite();
+  wake('start');
 }
 
 function loadSite() {
@@ -132,13 +137,39 @@ function loadSite() {
   mainWindow.loadURL(SITE_URL).catch(() => {});
 }
 
-// Локальная страница «Нет соединения»: сама проверяет сеть каждые 10 секунд
-// и возвращает на сайт, как только он отвечает.
-function showOffline(reason) {
+// Экран загрузки: закат с лучами, которые следуют за мышью, и прогресс внизу.
+// Главный процесс тем временем стучится в сервер и, как только тот ответил,
+// открывает Sunnet. Так спящий сервер выглядит как загрузка, а не как ошибка.
+let waking = 0;
+function wake(mode) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
+  const run = ++waking;
+  const startedAt = Date.now();
   mainWindow
-    .loadFile(path.join(__dirname, 'offline.html'), { query: { url: SITE_URL, reason } })
+    .loadFile(path.join(__dirname, 'loading.html'), { query: { mode, night: isNight() ? '1' : '0' } })
     .catch(() => {});
+  const health = new URL('/api/v1/health', SITE_URL).href;
+  const alive = () => run === waking && mainWindow && !mainWindow.isDestroyed();
+  const poll = async () => {
+    if (!alive()) return;
+    try {
+      const res = await net.fetch(health, { cache: 'no-store', signal: AbortSignal.timeout(15_000) });
+      if (res.ok && alive()) {
+        // Экран загрузки показываем хотя бы секунду, чтобы он не мигал
+        const wait = Math.max(0, 1000 - (Date.now() - startedAt));
+        setTimeout(async () => {
+          if (!alive()) return;
+          await mainWindow.webContents.executeJavaScript('window.sunnetReady && window.sunnetReady()').catch(() => {});
+          setTimeout(() => alive() && loadSite(), 650);
+        }, wait);
+        return;
+      }
+    } catch {
+      // сервер ещё не отвечает или нет сети
+    }
+    setTimeout(poll, 1500);
+  };
+  void poll();
 }
 
 function showMainWindow() {

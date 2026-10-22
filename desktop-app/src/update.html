@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' file: data:" />
+    <title>Обновление Sunnet</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #14161d;
+        --card: #1b1e27;
+        --text: #f4f5f9;
+        --muted: rgba(244, 245, 249, 0.62);
+        --track: rgba(255, 255, 255, 0.1);
+        --from: #ffd68a;
+        --to: #ff8f3f;
+        --glow: rgba(255, 180, 90, 0.55);
+        --edge: rgba(255, 255, 255, 0.08);
+        --danger: #ff7a7a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+        font: 14px/1.45 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-app-region: drag;
+      }
+      main {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 28px 30px 26px;
+        border: 1px solid var(--edge);
+        background: radial-gradient(70% 55% at 50% 30%, rgba(255, 170, 90, 0.16), transparent 70%), var(--bg);
+      }
+      .icon {
+        position: relative;
+        width: 112px;
+        height: 112px;
+        margin-bottom: 14px;
+      }
+      .icon img {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 26px;
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+        animation: float 3.2s ease-in-out infinite;
+      }
+      .icon::before {
+        content: '';
+        position: absolute;
+        inset: -40px;
+        border-radius: 50%;
+        background: repeating-conic-gradient(from 0deg, rgba(255, 220, 160, 0.16) 0deg 4deg, transparent 4deg 14deg);
+        -webkit-mask-image: radial-gradient(circle, #000 30%, transparent 70%);
+        mask-image: radial-gradient(circle, #000 30%, transparent 70%);
+        animation: spin 18s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes float {
+        50% {
+          transform: translateY(-4px);
+        }
+      }
+      h1 {
+        margin: 0;
+        font-size: 19px;
+        font-weight: 700;
+      }
+      .status {
+        margin: 0 0 18px;
+        color: var(--muted);
+        text-align: center;
+        min-height: 1.45em;
+      }
+      .status.is-error {
+        color: var(--danger);
+      }
+      .bar {
+        position: relative;
+        width: 100%;
+        height: 8px;
+        border-radius: 4px;
+        background: var(--track);
+        overflow: hidden;
+      }
+      .bar > i {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 0;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--from), var(--to));
+        box-shadow: 0 0 14px var(--glow);
+        transition: width 0.3s ease;
+      }
+      .bar.is-busy > i {
+        width: 30% !important;
+        animation: busy 1.2s ease-in-out infinite;
+      }
+      @keyframes busy {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(340%);
+        }
+      }
+      .meta {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="icon"><img id="icon" src="assets/icon-day.png" alt="" /></div>
+      <h1 id="title">Обновление Sunnet</h1>
+      <p class="status" id="status" role="status" aria-live="polite">Проверяем обновления…</p>
+      <div class="bar is-busy" id="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"><i id="fill"></i></div>
+      <div class="meta"><span id="left"></span><span id="right"></span></div>
+    </main>
+    <script>
+      'use strict';
+      const params = new URLSearchParams(location.search);
+      if (params.get('night') === '1') {
+        document.getElementById('icon').src = 'assets/icon-night.png';
+        document.getElementById('title').textContent = 'Обновление Lynnet';
+      }
+      const $ = (id) => document.getElementById(id);
+      const mb = (b) => `${(b / 1048576).toFixed(1)} МБ`;
+      // Состояние присылает главный процесс
+      window.updateState = (s) => {
+        const bar = $('bar');
+        const status = $('status');
+        status.classList.toggle('is-error', s.phase === 'error');
+        if (s.phase === 'downloading') {
+          bar.classList.remove('is-busy');
+          const p = Math.max(0, Math.min(100, s.percent || 0));
+          $('fill').style.width = `${p}%`;
+          bar.setAttribute('aria-valuenow', String(Math.round(p)));
+          status.textContent = `Загружаем версию ${s.version}`;
+          $('left').textContent = s.total ? `${mb(s.transferred || 0)} из ${mb(s.total)}` : '';
+          $('right').textContent = s.speed ? `${Math.round(p)}% · ${mb(s.speed)}/с` : `${Math.round(p)}%`;
+        } else if (s.phase === 'installing') {
+          bar.classList.remove('is-busy');
+          $('fill').style.width = '100%';
+          status.textContent = 'Устанавливаем — Sunnet перезапустится сам';
+          $('left').textContent = '';
+          $('right').textContent = '100%';
+        } else if (s.phase === 'error') {
+          bar.classList.remove('is-busy');
+          status.textContent = 'Не получилось обновиться — открываем текущую версию';
+        } else {
+          bar.classList.add('is-busy');
+          status.textContent = s.version ? `Найдена версия ${s.version}` : 'Проверяем обновления…';
+        }
+      };
+    </script>
+  </body>
+</html>

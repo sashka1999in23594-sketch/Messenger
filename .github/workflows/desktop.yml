@@ -37,7 +37,8 @@ jobs:
           - name: Windows
             os: windows-latest
             platform: --win
-            files: Sunnet-Setup.exe
+            # latest.yml — описание версии для встроенного обновления
+            files: Sunnet-Setup.exe latest.yml
           - name: macOS
             os: macos-latest
             platform: --mac # dmg для arm64 и x64 — см. build.mac в package.json
@@ -45,7 +46,7 @@ jobs:
           - name: Linux
             os: ubuntu-latest
             platform: --linux
-            files: Sunnet.AppImage sunnet_amd64.deb
+            files: Sunnet.AppImage sunnet_amd64.deb latest-linux.yml
     defaults:
       run:
         shell: bash
@@ -129,12 +130,14 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             release-files/Sunnet-Setup.exe
+            release-files/latest.yml
+            release-files/latest-linux.yml
             release-files/Sunnet-mac-arm64.dmg
             release-files/Sunnet-mac-x64.dmg
             release-files/Sunnet.AppImage
             release-files/sunnet_amd64.deb
           body: |
-            Приложение Sunnet для компьютера — окно с мессенджером, которое живёт в панели задач / Dock, присылает уведомления и не теряется среди вкладок браузера. Внутри — тот же Sunnet, что и на сайте: обновления сайта приходят сами, переустанавливать ничего не нужно.
+            Приложение Sunnet для компьютера — окно с мессенджером, которое живёт в панели задач / Dock, присылает уведомления и не теряется среди вкладок браузера. Внутри — тот же Sunnet, что и на сайте: обновления сайта приходят сами. Новые версии самого приложения в Windows и Linux (AppImage) устанавливаются при запуске — появится окно с прогрессом загрузки.
 
             ## Что скачать
 

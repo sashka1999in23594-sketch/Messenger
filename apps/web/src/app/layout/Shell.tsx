@@ -1,3 +1,4 @@
+import { AppUpdate } from './AppUpdate';
 import { Suspense, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { exactNode, sectionFor } from '../navigation';
@@ -122,6 +123,7 @@ export function Shell() {
       <CommandPalette />
       <CallScreen />
       <RoomScreen />
+      <AppUpdate />
       <LockScreen />
     </div>
   );

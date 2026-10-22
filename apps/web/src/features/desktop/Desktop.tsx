@@ -4,6 +4,7 @@
  * В каждом окне — полноценный раздел со своей историей переходов, окна можно
  * двигать, тянуть за края, прилеплять к половинам экрана и сворачивать в док.
  */
+import { AppUpdate } from '../../app/layout/AppUpdate';
 import { useEffect, useMemo, useRef, type ComponentProps, type CSSProperties } from 'react';
 import { createPath, Router } from 'react-router';
 import { useShallow } from 'zustand/react/shallow';
@@ -265,6 +266,7 @@ export function Desktop() {
       </div>
       <CallScreen />
       <RoomScreen />
+      <AppUpdate />
       <LockScreen />
     </>
   );

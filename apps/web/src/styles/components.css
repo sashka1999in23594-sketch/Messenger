@@ -1614,3 +1614,31 @@ a.list-item:hover {
   color: var(--text-3);
   margin-left: auto;
 }
+
+/* ─── Новая версия приложения для компьютера ─── */
+.app-update {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+.app-update__text {
+  margin: var(--space-2) 0 0;
+  line-height: 1.5;
+}
+.app-update__note {
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.app-update__actions {
+  display: flex;
+  gap: var(--space-2);
+  width: 100%;
+  margin-top: var(--space-2);
+}
+.app-update__actions .btn {
+  flex: 1;
+}

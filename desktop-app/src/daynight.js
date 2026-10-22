@@ -99,8 +99,8 @@ function isNight(now = new Date()) {
 
 const icon = (name) => nativeImage.createFromPath(path.join(__dirname, 'assets', name));
 
-/** Следит за временем суток и меняет значки; проверка раз в минуту. */
-function watchDayNight(getWindow) {
+/** Следит за временем суток и меняет значки; проверка раз в минуту. `onChange` — ярлыки и прочее. */
+function watchDayNight(getWindow, onChange) {
   let current = null;
   const apply = () => {
     const night = isNight();
@@ -109,6 +109,11 @@ function watchDayNight(getWindow) {
     const win = getWindow();
     if (win && !win.isDestroyed() && process.platform !== 'darwin') win.setIcon(icon(night ? 'icon-night.png' : 'icon-day.png'));
     if (process.platform === 'darwin' && app.dock) app.dock.setIcon(icon(night ? 'icon-night-mac.png' : 'icon-day-mac.png'));
+    try {
+      onChange?.(night);
+    } catch {
+      // ярлыки не обязательны
+    }
   };
   apply();
   const timer = setInterval(apply, 60000);

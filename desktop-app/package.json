@@ -1,7 +1,7 @@
 {
   "name": "sunnet-desktop",
   "productName": "Sunnet",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Sunnet для компьютера — приложение-обёртка над веб-версией мессенджера",
   "author": {
@@ -17,6 +17,9 @@
     "config": "node scripts/write-config.js",
     "dist": "node scripts/write-config.js && electron-builder --publish never"
   },
+  "dependencies": {
+    "electron-updater": "6.8.9"
+  },
   "devDependencies": {
     "electron": "44.9.0",
     "electron-builder": "26.15.3"
@@ -25,7 +28,11 @@
     "appId": "app.spaceup.desktop",
     "productName": "Sunnet",
     "copyright": "© Sunnet",
-    "publish": null,
+    "publish": {
+      "provider": "generic",
+      "url": "https://github.com/sashka1999in23594-sketch/Messenger/releases/latest/download",
+      "channel": "latest"
+    },
     "directories": {
       "output": "dist",
       "buildResources": "build"
