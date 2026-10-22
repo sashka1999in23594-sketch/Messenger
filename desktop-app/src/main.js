@@ -141,6 +141,31 @@ function loadSite() {
 // Главный процесс тем временем стучится в сервер и, как только тот ответил,
 // открывает Sunnet. Так спящий сервер выглядит как загрузка, а не как ошибка.
 let waking = 0;
+/** Сколько ждём ответа проверки, прежде чем всё равно открыть сайт */
+const OPEN_ANYWAY_MS = 30_000;
+/** Одна попытка проверки — не дольше этого: зависший запрос не должен останавливать загрузку */
+const PROBE_TIMEOUT_MS = 8_000;
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+function withTimeout(promise, ms) {
+  return Promise.race([promise, delay(ms).then(() => Promise.reject(new Error('timeout')))]);
+}
+
+/** Сервер ответил хоть чем-то, кроме «шлюз недоступен» (502–504, пока Render будит сервер). */
+async function serverAnswers(url) {
+  const check = async (doFetch) => {
+    const res = await doFetch(url, { cache: 'no-store' });
+    if (res.status >= 502 && res.status <= 504) throw new Error(`HTTP ${res.status}`);
+    return true;
+  };
+  try {
+    // Два сетевых стека параллельно: Chromium (net) и Node — какой ответит первым
+    return await Promise.any([withTimeout(check(net.fetch), PROBE_TIMEOUT_MS), withTimeout(check(fetch), PROBE_TIMEOUT_MS)]);
+  } catch {
+    return false;
+  }
+}
+
 function wake(mode) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   const run = ++waking;
@@ -150,23 +175,23 @@ function wake(mode) {
     .catch(() => {});
   const health = new URL('/api/v1/health', SITE_URL).href;
   const alive = () => run === waking && mainWindow && !mainWindow.isDestroyed();
-  const poll = async () => {
+  let opened = false;
+  const open = async () => {
+    if (opened || !alive()) return;
+    opened = true;
+    // Экран загрузки показываем хотя бы секунду, чтобы он не мигал
+    await delay(Math.max(0, 1000 - (Date.now() - startedAt)));
     if (!alive()) return;
-    try {
-      const res = await net.fetch(health, { cache: 'no-store', signal: AbortSignal.timeout(15_000) });
-      if (res.ok && alive()) {
-        // Экран загрузки показываем хотя бы секунду, чтобы он не мигал
-        const wait = Math.max(0, 1000 - (Date.now() - startedAt));
-        setTimeout(async () => {
-          if (!alive()) return;
-          await mainWindow.webContents.executeJavaScript('window.sunnetReady && window.sunnetReady()').catch(() => {});
-          setTimeout(() => alive() && loadSite(), 650);
-        }, wait);
-        return;
-      }
-    } catch {
-      // сервер ещё не отвечает или нет сети
-    }
+    await withTimeout(mainWindow.webContents.executeJavaScript('window.sunnetReady && window.sunnetReady()'), 2000).catch(() => {});
+    await delay(650);
+    if (alive()) loadSite();
+  };
+  // Проверка молчит слишком долго — открываем сайт: загрузка страницы сама дождётся сервера,
+  // а экран загрузки остаётся на месте, пока сайт не откроется
+  setTimeout(() => void open(), OPEN_ANYWAY_MS);
+  const poll = async () => {
+    if (!alive() || opened) return;
+    if (await serverAnswers(health)) return void open();
     setTimeout(poll, 1500);
   };
   void poll();
