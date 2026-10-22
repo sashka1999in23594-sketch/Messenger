@@ -13,6 +13,7 @@ import { useMe } from '../../shared/stores/session';
 import { toast } from '../../shared/stores/ui';
 import { cn, fullDate, randomId, timeAgo } from '../../shared/lib/format';
 import { Avatar, confirm, EmptyState, ListSkeleton, Menu, Modal, ReportDialog, useMenu, UserName } from '../../shared/ui';
+import { shortAgo } from '../misc/kit';
 import { refreshStories } from './api';
 import { AddToHighlightDialog } from './highlight-dialogs';
 import './stories.css';
@@ -70,6 +71,16 @@ export function StoryViewer({
       setS(0);
     }
   }, [g, s]);
+
+  const jumpGroup = (d: number) => {
+    const to = g + d;
+    if (to < 0) return;
+    if (to >= groups.length) return onClose();
+    setProgress(0);
+    setG(to);
+    const list = groups[to]!.stories;
+    setS(Math.max(0, list.findIndex((x) => !x.viewed)));
+  };
 
   const patchStory = (id: string, patch: Partial<Story>) =>
     setGroups((list) => list.map((gr) => ({ ...gr, stories: gr.stories.map((x) => (x.id === id ? { ...x, ...patch } : x)) })));
@@ -207,6 +218,8 @@ export function StoryViewer({
           const dy = e.changedTouches[0]!.clientY - t.y;
           const dx = e.changedTouches[0]!.clientX - t.x;
           if (dy > 90 && Math.abs(dx) < 60) onClose();
+          // Смахивание влево/вправо — к следующему или предыдущему автору
+          else if (Math.abs(dx) > 70 && Math.abs(dy) < 60) jumpGroup(dx < 0 ? 1 : -1);
         }}
       >
         {story.media.kind === 'video' ? (
@@ -240,7 +253,7 @@ export function StoryViewer({
             <b>{mine ? 'Ваша история' : story.author.displayName}</b>
           </Link>
           <span className="story-viewer__time" title={fullDate(story.createdAt)}>
-            {story.expired ? fullDate(story.createdAt) : timeAgo(story.createdAt)}
+            {story.expired ? fullDate(story.createdAt) : shortAgo(story.createdAt)}
           </span>
           {closeFriends && (
             <span className="story-viewer__badge" title="Видят только близкие друзья">
@@ -264,8 +277,8 @@ export function StoryViewer({
           </button>
         </div>
 
-        <button type="button" className="story-viewer__tap" style={{ left: 0 }} aria-label="Предыдущая" onClick={prev} />
-        <button type="button" className="story-viewer__tap" style={{ right: 0 }} aria-label="Следующая" onClick={next} />
+        <button type="button" className="story-viewer__tap story-viewer__tap--prev" aria-label="Предыдущая" onClick={prev} />
+        <button type="button" className="story-viewer__tap story-viewer__tap--next" aria-label="Следующая" onClick={next} />
         {story.text && !typing && <div className="story-viewer__text">{story.text}</div>}
         {burst && (
           <span key={burst.key} className="story-burst" onAnimationEnd={() => setBurst(null)} aria-hidden>

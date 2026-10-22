@@ -88,7 +88,7 @@ export function parentPath(path: string): string | null {
 
 /** Разделы со своим списком слева — боковая панель по умолчанию скрыта. */
 const OWN_LIST = ['messenger', 'channels', 'reels', 'search', 'help', 'download'];
-export const SIDE_W = 248;
+export const SIDE_W = 264;
 export function defaultSide(appId: string, width: number): boolean {
   return !OWN_LIST.includes(appId) && width >= 940;
 }

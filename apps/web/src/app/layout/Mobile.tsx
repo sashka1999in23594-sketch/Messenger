@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { NavLink, useLocation, useNavigate } from 'react-router';
-import { Bookmark, ChevronRight, Download, LayoutGrid, LifeBuoy, LogOut, Moon, Settings, Sun } from 'lucide-react';
+import { Bookmark, ChevronDown, ChevronRight, Download, LayoutGrid, LifeBuoy, LogOut, Moon, Settings, Sun } from 'lucide-react';
 import { mobileTabs, sectionFor, sections, type NavSection } from '../navigation';
 import { usePrefs } from '../../shared/stores/prefs';
 import { useSession } from '../../shared/stores/session';
@@ -104,6 +104,7 @@ export function MobileDrawer() {
   const navigate = useNavigate();
   const panel = useRef<HTMLDivElement>(null);
   const drag = useRef<{ y: number; dy: number } | null>(null);
+  const [treeOpen, setTreeOpen] = useState(false);
   const close = () => setDrawer(false);
   useEscape(close, open);
   useEffect(() => {
@@ -165,10 +166,18 @@ export function MobileDrawer() {
 
           {section.children.length > 1 && (
             <section className="more-card">
-              <div className="more-card__title">{section.label}</div>
-              <div className="more-tree">
-                <NavTreeView section={section} onNavigate={close} />
-              </div>
+              <button type="button" className="more-row more-row--toggle" aria-expanded={treeOpen} onClick={() => setTreeOpen((v) => !v)}>
+                <span className="more-row__icon more-row__icon--blue">
+                  <section.icon size={18} />
+                </span>
+                <span className="more-row__label">Разделы: {section.label}</span>
+                <ChevronDown size={18} className={cn('more-row__chevron', treeOpen && 'more-row__chevron--open')} />
+              </button>
+              {treeOpen && (
+                <div className="more-tree">
+                  <NavTreeView section={section} onNavigate={close} />
+                </div>
+              )}
             </section>
           )}
 

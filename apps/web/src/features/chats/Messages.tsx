@@ -480,7 +480,7 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
               {out && <Ticks msg={msg} chat={chat} />}
             </span>
           )}
-          {(msg.reactions.length > 0 || (post && !msg.local && !!chat.role)) && (
+          {!post && msg.reactions.length > 0 && (
             <div className="reactions">
               {msg.reactions.map((r) => (
                 <button
@@ -510,17 +510,50 @@ const Bubble = memo(function Bubble({ msg, chat, myId, grouped, groupedNext, sec
             </div>
           )}
           {post && (
-            <span className="post-meta">
-              {msg.local?.status === 'sending' && <Clock size={12} />}
-              {msg.local?.status === 'failed' && <AlertCircle size={13} style={{ color: 'var(--danger)' }} />}
-              {msg.viewCount !== null && !msg.local && (
-                <span className="row gap-1" title="Просмотры">
-                  <Eye size={13} /> {compactNumber(msg.viewCount)}
-                </span>
+            <div className="post-foot">
+              {!msg.local && (msg.reactions.length > 0 || !!chat.role) ? (
+                <div className="reactions">
+                  {msg.reactions.map((r) => (
+                    <button
+                      key={r.emoji}
+                      className={cn('reaction', r.mine && 'reaction--mine')}
+                      onClick={() => !selecting && actions.react(msg, r.emoji)}
+                      aria-label={`${r.emoji} ${r.count}`}
+                      aria-pressed={r.mine}
+                    >
+                      {r.emoji}
+                      {(post || r.count > 1) && <span>{compactNumber(r.count)}</span>}
+                    </button>
+                  ))}
+                  {post && !msg.local && !!chat.role && (
+                    <button
+                      className="reaction reaction--add"
+                      aria-label="Поставить реакцию"
+                      title="Поставить реакцию"
+                      onClick={(ev) => {
+                        const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+                        setPicker({ x: rect.left + 160, y: rect.bottom });
+                      }}
+                    >
+                      <SmilePlus size={15} />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <span />
               )}
-              {msg.editedAt && <span>изм.</span>}
-              <span>{clockTime(msg.createdAt)}</span>
-            </span>
+              <span className="post-meta">
+                {msg.local?.status === 'sending' && <Clock size={12} />}
+                {msg.local?.status === 'failed' && <AlertCircle size={13} style={{ color: 'var(--danger)' }} />}
+                {msg.viewCount !== null && !msg.local && (
+                  <span className="row gap-1" title="Просмотры">
+                    <Eye size={13} /> {compactNumber(msg.viewCount)}
+                  </span>
+                )}
+                {msg.editedAt && <span>изм.</span>}
+                <span>{clockTime(msg.createdAt)}</span>
+              </span>
+            </div>
           )}
           {post && chat.commentsEnabled && !msg.local && (
             <button type="button" className="post-comments" onClick={() => actions.comments?.(msg)}>

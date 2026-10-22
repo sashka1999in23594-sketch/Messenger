@@ -7,10 +7,10 @@ import { memo, useId } from 'react';
 import type { WallpaperId } from './store';
 
 /** Веер лучей: длинные узкие клинья из центра солнца, расходятся неравномерно. */
-const RAYS = Array.from({ length: 36 }, (_, i) => {
-  const a = (i / 36) * Math.PI * 2 + (i % 3) * 0.035;
-  const half = (i % 2 ? 0.9 : 1.7) * (Math.PI / 180);
-  const r = i % 4 === 0 ? 100 : i % 2 ? 72 : 88;
+const RAYS = Array.from({ length: 22 }, (_, i) => {
+  const a = (i / 22) * Math.PI * 2 + ((i * 7) % 5) * 0.045;
+  const half = (i % 3 === 0 ? 2.6 : i % 2 ? 1.1 : 1.8) * (Math.PI / 180);
+  const r = i % 4 === 0 ? 100 : i % 2 ? 64 : 82;
   const p = (ang: number, rad: number) => `${(Math.cos(ang) * rad).toFixed(2)} ${(Math.sin(ang) * rad).toFixed(2)}`;
   return `M0 0L${p(a - half, r)}L${p(a + half, r)}Z`;
 }).join('');
@@ -29,9 +29,9 @@ export const Wallpaper = memo(function Wallpaper({ kind }: { kind: WallpaperId }
             <svg className="wall__rays" viewBox="-100 -100 200 200" preserveAspectRatio="xMidYMid meet">
               <defs>
                 <radialGradient id={`${id}-ray`} cx="0" cy="0" r="100" gradientUnits="userSpaceOnUse">
-                  <stop offset="0.04" style={{ stopColor: 'var(--desk-ray)', stopOpacity: 0.9 }} />
-                  <stop offset="0.35" style={{ stopColor: 'var(--desk-ray)', stopOpacity: 0.35 }} />
-                  <stop offset="1" style={{ stopColor: 'var(--desk-ray)', stopOpacity: 0 }} />
+                  <stop offset="0.02" style={{ stopColor: 'var(--desk-ray)', stopOpacity: 0.8 }} />
+                  <stop offset="0.22" style={{ stopColor: 'var(--desk-ray)', stopOpacity: 0.3 }} />
+                  <stop offset="0.62" style={{ stopColor: 'var(--desk-ray)', stopOpacity: 0 }} />
                 </radialGradient>
               </defs>
               <path d={RAYS} fill={`url(#${id}-ray)`} />

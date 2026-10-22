@@ -118,6 +118,9 @@ export function cascadePlace(size: { w: number; h: number }, wins: Placed[], a: 
     x += step;
     y += step;
   }
+  // Окно целиком в рабочей области: не уходит под док и за правый край
+  x = Math.max(a.x + SNAP_GAP, Math.min(x, a.x + a.w - size.w - SNAP_GAP));
+  y = Math.max(a.y + SNAP_GAP, Math.min(y, a.y + a.h - size.h - SNAP_GAP));
   return clampRect({ x, y, ...size }, a);
 }
 
@@ -169,19 +172,11 @@ export function firstRunLayout(a: Rect): { path: string; rect: Rect }[] {
       { path: '/home', rect: { x: a.x + g * 2 + chats, y, w: home, h } },
     ];
   }
-  if (a.w >= 1280) {
-    const inner = a.w - g * 3;
-    const chats = Math.round(inner * 0.53);
-    return [
-      { path: '/chats', rect: { x: a.x + g, y, w: chats, h } },
-      { path: '/home', rect: { x: a.x + g * 2 + chats, y, w: inner - chats, h } },
-    ];
-  }
-  // Небольшой экран: Чаты пошире, Главная поверх справа
-  const chats = Math.round(a.w * 0.64);
-  const home = Math.max(MIN_W + 40, Math.round(a.w * 0.46));
+  // 1280–1760: Чаты чуть шире; меньше — ровно пополам
+  const inner = a.w - g * 3;
+  const chats = Math.round(inner * (a.w >= 1280 ? 0.53 : 0.5));
   return [
-    { path: '/chats', rect: { x: a.x + SNAP_GAP, y, w: chats, h } },
-    { path: '/home', rect: { x: a.x + a.w - home - SNAP_GAP, y: y + 20, w: home, h: h - 20 } },
+    { path: '/chats', rect: { x: a.x + g, y, w: chats, h } },
+    { path: '/home', rect: { x: a.x + g * 2 + chats, y, w: inner - chats, h } },
   ];
 }

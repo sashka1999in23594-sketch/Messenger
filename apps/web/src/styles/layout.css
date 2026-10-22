@@ -1239,3 +1239,12 @@
     height: 32px;
   }
 }
+.more-row__chevron--open {
+  transform: rotate(180deg);
+}
+.more-row--toggle .more-row__chevron {
+  transition: transform var(--dur) var(--ease);
+}
+.more-tree {
+  border-top: 1px solid var(--border);
+}

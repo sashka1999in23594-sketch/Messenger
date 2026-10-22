@@ -55,7 +55,7 @@ export function ProfileSettings() {
   };
 
   return (
-    <SettingsPage title="Профиль" subtitle="Так вас видят другие" icon={<PenLine size={22} />}>
+    <SettingsPage title="Профиль" icon={<PenLine size={22} />}>
       <Panel>
         <div
           className="profile__banner"
@@ -87,7 +87,7 @@ export function ProfileSettings() {
         <input ref={bannerInput} type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && void uploadImage(e.target.files[0], 'banner')} />
       </Panel>
       <Panel title="О себе">
-        <div className="col gap-3" style={{ padding: '0 16px 16px' }}>
+        <div className="col gap-3" style={{ padding: 16 }}>
           <Input
             label="Имя"
             value={displayName}
@@ -108,7 +108,7 @@ export function ProfileSettings() {
         title="День рождения"
         footer="Дату никто не видит. В ваш день рождения подписчики, контакты и те, с кем вы переписывались, получат напоминание поздравить вас, а мы пришлём письмо и поздравим в чате Sunnet."
       >
-        <div className="col gap-3" style={{ padding: '0 16px 16px' }}>
+        <div className="col gap-3" style={{ padding: 16 }}>
           <Input label="Дата рождения" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} min="1906-01-01" error={fields.birthDate} />
           <div className="field">
             <span className="field__label">Пол</span>
@@ -169,7 +169,7 @@ export function UsernameSettings() {
     },
   });
   return (
-    <SettingsPage title="Имя пользователя" subtitle="Ваш уникальный адрес в Sunnet" icon={<AtSign size={22} />}>
+    <SettingsPage title="Имя пользователя" icon={<AtSign size={22} />}>
       <Panel footer="Старые ссылки на профиль перестанут работать. Для подтверждения нужен пароль.">
         <div className="col gap-3" style={{ padding: 16 }}>
           <Input label="Имя пользователя" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} error={fields.username} hint={`${location.host}/u/${username}`} />
@@ -219,7 +219,7 @@ export function PhoneSettings() {
 
 export function ExportSettings() {
   return (
-    <SettingsPage title="Экспорт данных" subtitle="Право на копию своих данных" icon={<Download size={22} />}>
+    <SettingsPage title="Экспорт данных" icon={<Download size={22} />}>
       <Panel footer="Содержимое секретных чатов не экспортируется: сервер его не знает. Файл содержит личные данные — храните его бережно.">
         <div className="col gap-3" style={{ padding: 16 }}>
           <p>Вы получите JSON-файл с профилем, публикациями, комментариями, подписками, сообщениями из обычных чатов и журналом безопасности.</p>

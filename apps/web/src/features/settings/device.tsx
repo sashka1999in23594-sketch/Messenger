@@ -110,7 +110,7 @@ const CORNERS: { id: Corners; label: string; r: number }[] = [
 export function FontSettings() {
   const prefs = usePrefs();
   return (
-    <SettingsPage title="Шрифт и углы" subtitle="Характер интерфейса. Применяется мгновенно" icon={<Type size={22} />}>
+    <SettingsPage title="Шрифт и углы" icon={<Type size={22} />}>
       <Panel title="Шрифт">
         <div className="choice-grid">
           {FONTS.map((f) => (

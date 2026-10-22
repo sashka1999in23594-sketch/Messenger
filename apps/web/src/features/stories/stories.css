@@ -253,10 +253,19 @@
 }
 .story-viewer__tap {
   position: absolute;
-  top: 70px;
-  bottom: 90px;
-  width: 35%;
+  top: calc(72px + var(--safe-top));
+  bottom: calc(84px + var(--safe-bottom));
   z-index: 2;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Как в Instagram: левая треть — назад, остальное — вперёд */
+.story-viewer__tap--prev {
+  left: 0;
+  width: 30%;
+}
+.story-viewer__tap--next {
+  right: 0;
+  width: 70%;
 }
 .story-viewer__text {
   position: absolute;
@@ -412,12 +421,38 @@
   gap: var(--space-8);
   align-items: start;
 }
-@media (max-width: 760px) {
+@container page (max-width: 760px) {
   .story-editor {
     grid-template-columns: minmax(0, 1fr);
     justify-items: center;
     gap: var(--space-5);
   }
+  .story-editor .story-canvas {
+    width: min(300px, 100%, calc(56dvh * 9 / 16));
+  }
+}
+.story-new {
+  padding-top: 0;
+}
+.story-new .pk-large-title {
+  padding-left: 0;
+  padding-right: 0;
+}
+.story-new__mode {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+}
+.story-canvas label svg {
+  align-self: center;
+}
+/* Кнопка «Опубликовать» прилипает к низу экрана */
+.story-new__publish {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: 10px 0 calc(10px + var(--safe-bottom));
+  background: linear-gradient(transparent, var(--bg) 35%);
 }
 .story-canvas {
   position: relative;

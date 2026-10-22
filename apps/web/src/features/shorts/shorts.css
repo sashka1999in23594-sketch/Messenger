@@ -1381,10 +1381,12 @@
 .rl-sheet__body .comments__head h3 {
   display: none;
 }
+/* display: block — у chats.css есть одноимённый класс с display: flex */
 .rl-sheet__body .comments__composer {
   position: sticky;
   bottom: 0;
   z-index: 2;
+  display: block;
   margin: auto -16px 0;
   padding: 0 16px;
   background: var(--panel-solid);

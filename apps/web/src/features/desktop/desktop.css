@@ -41,21 +41,22 @@ body:has(.desk:not(.desk--wp-aurora)) .aurora {
   background: radial-gradient(
     circle,
     var(--desk-sun-core) 0%,
-    var(--desk-sun-core) 5%,
-    var(--desk-sun-glow) 9%,
-    color-mix(in oklab, var(--desk-sun-glow) 45%, transparent) 17%,
-    var(--desk-sun-halo) 30%,
-    transparent 68%
+    var(--desk-sun-core) 3.5%,
+    color-mix(in oklab, var(--desk-sun-glow) 85%, transparent) 7%,
+    color-mix(in oklab, var(--desk-sun-glow) 32%, transparent) 15%,
+    var(--desk-sun-halo) 28%,
+    transparent 66%
   );
 }
 .wall__rays {
   position: absolute;
   left: var(--desk-sun-x);
   top: var(--desk-sun-y);
-  width: 260vmax;
-  height: 260vmax;
+  width: 200vmax;
+  height: 200vmax;
   translate: -50% -50%;
   opacity: var(--desk-ray-opacity);
+  filter: blur(14px);
   mix-blend-mode: screen;
 }
 .wall__haze {
@@ -394,8 +395,8 @@ body:has(.desk:not(.desk--wp-aurora)) .aurora {
   container: desk-win / inline-size;
 }
 .desk-side {
-  flex: 0 0 248px;
-  width: 248px;
+  flex: 0 0 264px;
+  width: 264px;
   min-height: 0;
   display: flex;
   flex-direction: column;

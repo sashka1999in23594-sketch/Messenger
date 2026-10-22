@@ -106,20 +106,20 @@ function MiniHost() {
         <span className="vmini__expand" aria-hidden>
           <Maximize2 size={18} />
         </span>
+        <span className="vmini__progress" aria-hidden>
+          <span style={{ width: `${pct}%` }} />
+        </span>
       </div>
       <div className="vmini__info" onClick={expand}>
         <b className="vmini__title ellipsis">{post.title ?? post.text}</b>
         <span className="vmini__author ellipsis">{post.author.displayName}</span>
       </div>
-      <button type="button" className="vmini__btn" onClick={() => (paused ? void el.play() : el.pause())} aria-label={paused ? 'Смотреть' : 'Пауза'}>
+      <button type="button" className="vmini__btn vmini__btn--play" onClick={() => (paused ? void el.play() : el.pause())} aria-label={paused ? 'Смотреть' : 'Пауза'}>
         {paused ? <Play size={20} fill="currentColor" /> : <Pause size={20} fill="currentColor" />}
       </button>
-      <button type="button" className="vmini__btn" onClick={closeMini} aria-label="Закрыть мини-плеер">
+      <button type="button" className="vmini__btn vmini__btn--close" onClick={closeMini} aria-label="Закрыть мини-плеер">
         <X size={20} />
       </button>
-      <span className="vmini__progress" aria-hidden>
-        <span style={{ width: `${pct}%` }} />
-      </span>
     </div>
   );
 }

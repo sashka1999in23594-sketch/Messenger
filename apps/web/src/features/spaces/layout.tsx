@@ -10,9 +10,11 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronRight,
+  Compass,
   Crown,
   FolderPlus,
   Hash,
+  LayoutGrid,
   Lock,
   LogIn,
   LogOut,
@@ -36,7 +38,7 @@ import { ChatHeaderExtra } from '../chats/ChatView';
 import { SenderColors } from '../chats/Messages';
 import { useChatUi } from '../chats/store';
 import { ChatWallpaper } from '../chats/wallpapers';
-import { can, refreshSpace, spaceBase, topRole, useSpace, useSpaceMembers } from './api';
+import { can, refreshSpace, spaceBase, spacePath, topRole, useSpace, useSpaceMembers, useSpaces } from './api';
 import { SpaceSettings, type SettingsTab } from './settings';
 
 function RoomRow({ space, room, active }: { space: SpaceDetails; room: SpaceRoom; active: boolean }) {
@@ -217,6 +219,41 @@ function CategoryDialog({ space, onClose }: { space: SpaceDetails; onClose: () =
   );
 }
 
+/** Рельса слева, как в Discord: все ваши компании и сообщества, создать и найти. */
+function SpaceRail({ current }: { current: SpaceDetails }) {
+  const companies = useSpaces('company').data?.items ?? [];
+  const communities = useSpaces('community').data?.items ?? [];
+  const list = [...companies, ...communities].filter((s) => s.joined || s.id === current.id);
+  if (!list.some((s) => s.id === current.id)) list.unshift({ ...current, unreadRooms: 0 });
+  return (
+    <nav className="space-rail" aria-label="Компании и сообщества">
+      <Link to={spaceBase(current.kind)} className="space-rail__btn" aria-label={current.kind === 'company' ? 'Все компании' : 'Все сообщества'} title="Все">
+        <LayoutGrid size={20} />
+      </Link>
+      <span className="space-rail__sep" />
+      {list.map((s) => (
+        <Link
+          key={s.id}
+          to={spacePath(s)}
+          className={cn('space-rail__item', s.id === current.id && 'space-rail__item--on', s.unreadRooms > 0 && 'space-rail__item--unread')}
+          title={s.name}
+          aria-label={s.name}
+          aria-current={s.id === current.id ? 'page' : undefined}
+        >
+          <Avatar src={s.avatarUrl} name={s.name} id={s.id} size={44} />
+        </Link>
+      ))}
+      <span className="space-rail__sep" />
+      <Link to={`${spaceBase(current.kind)}/new`} className="space-rail__btn space-rail__btn--add" aria-label={current.kind === 'company' ? 'Создать компанию' : 'Создать сообщество'} title="Создать">
+        <Plus size={20} />
+      </Link>
+      <Link to="/communities/discover" className="space-rail__btn space-rail__btn--add" aria-label="Найти сообщество" title="Найти сообщество">
+        <Compass size={20} />
+      </Link>
+    </nav>
+  );
+}
+
 function Sidebar({ space, activeId, onSettings }: { space: SpaceDetails; activeId: string | null; onSettings: (tab: SettingsTab) => void }) {
   const navigate = useNavigate();
   const me = useMe();
@@ -252,6 +289,8 @@ function Sidebar({ space, activeId, onSettings }: { space: SpaceDetails; activeI
 
   return (
     <aside className="chats__list space-side" aria-label={space.name}>
+      <SpaceRail current={space} />
+      <div className="space-side__main">
       <div className="space-side__head">
         <IconButton label="Назад" size="sm" className="mobile-only" onClick={() => navigate(spaceBase(space.kind))}>
           <ArrowLeft size={18} />
@@ -310,6 +349,7 @@ function Sidebar({ space, activeId, onSettings }: { space: SpaceDetails; activeI
         )}
         {space.rooms.length === 0 && <EmptyState icon={<Hash size={24} />} title="Чатов пока нет" text={manage ? 'Создайте первый чат' : undefined} />}
       </nav>
+      </div>
       {newRoom && <RoomDialog space={space} categoryId={newRoom.categoryId} onClose={() => setNewRoom(null)} />}
       {newCat && <CategoryDialog space={space} onClose={() => setNewCat(false)} />}
     </aside>
@@ -392,6 +432,7 @@ export function SpaceLayout() {
 
   return (
     <SenderColors.Provider value={colors}>
+      <div className="chats-host">
       <div className={cn('chats space', !!chatId && 'chats--detail', side && 'chats--info')}>
         <Sidebar space={space} activeId={chatId ?? null} onSettings={setSettings} />
         <section className="chats__detail">
@@ -411,6 +452,7 @@ export function SpaceLayout() {
         {side === 'info' && chatId && <ChatInfo chatId={chatId} onClose={() => setInfo(false)} />}
         {side === 'members' && <MembersPanel space={space} onClose={() => setMembersOpen(false)} />}
         {settings && <SpaceSettings space={space} tab={settings} onTab={setSettings} onClose={() => setSettings(null)} />}
+      </div>
       </div>
     </SenderColors.Provider>
   );

@@ -1951,8 +1951,16 @@
   .chat-page .page {
     padding: var(--space-3) var(--space-4) calc(var(--space-8) + var(--safe-bottom));
   }
-  .chat-page .page-header .page-icon {
+  /* Заголовок уже в шапке экрана — в странице остаётся только пояснение */
+  .chat-page .page-header .page-icon,
+  .chat-page .page-header__text h1 {
     display: none;
+  }
+  .chat-page .page-header {
+    margin-bottom: var(--space-3);
+  }
+  .chat-page .page-header__sub {
+    margin-top: 0;
   }
 }
 
@@ -2812,4 +2820,26 @@
   font-size: var(--fs-sm);
   font-weight: 650;
   color: var(--accent-fg);
+}
+/* Подвал поста канала: реакции слева, просмотры и время справа */
+.post-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  clear: both;
+}
+.post-foot .reactions {
+  flex: 1;
+  min-width: 0;
+  margin: 8px 0 8px;
+}
+.post-foot .post-meta {
+  flex: 0 0 auto;
+  padding: 0 0 10px;
+}
+.reaction--add {
+  width: 30px;
+  padding: 0;
+  justify-content: center;
 }

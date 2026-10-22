@@ -635,8 +635,6 @@
   --desk-light-ring: rgba(0, 0, 0, 0.14);
   --desk-cap-close: #e81123;
   --desk-cap-close-fg: #ffffff;
-  /* Приветствие на пустом столе */
-  --desk-greet: #ffffff;
 }
 [data-theme='dark'] {
   /* Вечернее небо: солнце садится за облака справа внизу */
@@ -651,13 +649,12 @@
   --desk-sun-glow: #ffc65a;
   --desk-sun-halo: rgba(255, 168, 72, 0.3);
   --desk-ray: #ffd27a;
-  --desk-ray-opacity: 0.14;
+  --desk-ray-opacity: 0.12;
   --desk-haze: rgba(255, 168, 110, 0.2);
   --desk-cloud: rgba(26, 34, 74, 0.94);
   --desk-cloud-2: rgba(64, 60, 108, 0.72);
   --desk-cloud-rim: rgba(255, 186, 120, 0.22);
   --desk-star: rgba(255, 255, 255, 0.8);
-  --desk-greet-shadow: 0 2px 28px rgba(0, 0, 0, 0.4);
   /* Строка меню и док */
   --desk-menubar-bg: rgba(10, 14, 32, 0.52);
   --desk-menubar-edge: rgba(255, 255, 255, 0.07);
@@ -697,13 +694,12 @@
   --desk-sun-glow: #fff1b8;
   --desk-sun-halo: rgba(255, 238, 170, 0.55);
   --desk-ray: #ffffff;
-  --desk-ray-opacity: 0.24;
+  --desk-ray-opacity: 0.2;
   --desk-haze: rgba(255, 247, 228, 0.55);
   --desk-cloud: rgba(255, 255, 255, 0.96);
   --desk-cloud-2: rgba(236, 245, 255, 0.78);
   --desk-cloud-rim: rgba(255, 255, 255, 0.45);
   --desk-star: transparent;
-  --desk-greet-shadow: 0 2px 22px rgba(16, 60, 140, 0.38);
   --desk-menubar-bg: rgba(255, 255, 255, 0.48);
   --desk-menubar-edge: rgba(255, 255, 255, 0.5);
   --desk-menubar-fg: #0d1026;
@@ -772,7 +768,6 @@
   --desk-cloud: rgba(14, 22, 50, 0.94);
   --desk-cloud-2: rgba(28, 42, 82, 0.66);
   --desk-star: rgba(255, 255, 255, 0.9);
-  --desk-greet-shadow: 0 2px 28px rgba(0, 0, 0, 0.5);
   --desk-menubar-bg: rgba(8, 12, 30, 0.5);
   --desk-menubar-edge: rgba(255, 255, 255, 0.07);
   --desk-menubar-fg: rgba(242, 244, 255, 0.96);
@@ -780,17 +775,12 @@
   --desk-menubar-hover: rgba(255, 255, 255, 0.13);
   --desk-menubar-field: rgba(255, 255, 255, 0.09);
 }
-/* Однотонные обои и «Сияние» — цвет фона темы, текст как в интерфейсе */
+/* Однотонные обои — цвет фона темы */
 .desk--wp-plain {
   --desk-sky-1: var(--bg-tint);
   --desk-sky-2: var(--bg);
   --desk-sky-3: var(--bg);
   --desk-sky-4: var(--bg-tint);
-}
-.desk--wp-plain,
-.desk--wp-aurora {
-  --desk-greet: var(--text);
-  --desk-greet-shadow: none;
 }
 
 /* ─── Reels ─── */

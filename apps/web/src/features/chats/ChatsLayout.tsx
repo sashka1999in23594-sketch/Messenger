@@ -1,7 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ChevronLeft, Compass, Lock, Megaphone, MessageCircle, Plus, Search, ShieldCheck, Users } from 'lucide-react';
+import { Compass, Lock, Megaphone, MessageCircle, Plus, Search, ShieldCheck, Users } from 'lucide-react';
 import type { ChatSummary } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { qk, queryClient } from '../../shared/api/query';
@@ -14,6 +14,8 @@ import { useBareLayout } from '../../app/layout/Shell';
 import { usePrefs } from '../../shared/stores/prefs';
 import { ChatInfo } from './ChatInfo';
 import { ChatList } from './ChatList';
+import { DetailHead } from './DetailHead';
+export { DetailHead };
 import { useChatUi } from './store';
 import { ChatWallpaper } from './wallpapers';
 import './chats.css';
@@ -41,37 +43,12 @@ export function ChatsLayout({ variant = 'chats' }: { variant?: 'chats' | 'channe
       <div className={cn('chats', hasDetail && 'chats--detail', infoOpen && chatId && 'chats--info')} style={{ '--msg-scale': msgScale / 100 } as React.CSSProperties}>
         <ChatList folder={folder} variant={variant} activeId={chatId ?? null} onFolder={(f) => navigate(f === 'all' ? '/chats' : `/chats/folder/${f}`)} />
         <section className="chats__detail">
-          <ChatWallpaper chatId={chatId} />
+          {chatId && <ChatWallpaper chatId={chatId} />}
           <Outlet />
         </section>
         {infoOpen && chatId && <ChatInfo chatId={chatId} onClose={() => setInfo(false)} />}
       </div>
     </div>
-  );
-}
-
-/**
- * Шапка вложенного экрана мессенджера (новый чат, папки, обзор) — видна, когда
- * мессенджер в одну колонку (телефон, узкое окно): «Назад» к списку и заголовок.
- */
-export function DetailHead({ title, back, actions }: { title: string; back?: string; actions?: ReactNode }) {
-  const navigate = useNavigate();
-  const { pathname, key } = useLocation();
-  const fallback = back ?? (pathname.startsWith('/channels') ? '/channels' : '/chats');
-  return (
-    <header className="detail-head">
-      <button
-        type="button"
-        className="chat-back"
-        style={{ display: 'inline-flex' }}
-        aria-label="Назад"
-        onClick={() => (key !== 'default' ? navigate(-1) : navigate(fallback, { replace: true }))}
-      >
-        <ChevronLeft size={28} strokeWidth={2.2} />
-      </button>
-      <span className="detail-head__title">{title}</span>
-      {actions}
-    </header>
   );
 }
 

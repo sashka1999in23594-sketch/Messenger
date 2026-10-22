@@ -61,6 +61,9 @@ export function CreateShortPage() {
 
 // ─── Мои Reels ──────────────────────────────────────────────────────────────
 
+/** Слово после числа: после «6,5 тыс.» всегда «просмотров». */
+const countWord = (n: number, one: string, few: string, many: string) => (n >= 1000 ? many : plural(n, one, few, many));
+
 function ReelThumb({ post, canHover }: { post: Post; canHover: boolean }) {
   const m = post.media[0];
   const [hover, setHover] = useState(false);
@@ -107,8 +110,8 @@ export function MyShortsPage() {
         <header className="rl-mine__head">
           <Avatar src={me.avatarUrl} name={me.displayName} id={me.id} size={64} />
           <div className="rl-mine__who">
-            <h1>Мои Reels</h1>
-            <span className="rl-mine__user">@{me.username}</span>
+            <h1>{me.displayName}</h1>
+            <span className="rl-mine__user">@{me.username} · Мои Reels</span>
           </div>
           <ButtonLink to="/reels/new" size="sm" pill icon={<Plus size={16} />}>
             Загрузить
@@ -125,14 +128,14 @@ export function MyShortsPage() {
               </dd>
             </div>
             <div>
-              <dt>{plural(totals.views, 'просмотр', 'просмотра', 'просмотров')}</dt>
+              <dt>{countWord(totals.views, 'просмотр', 'просмотра', 'просмотров')}</dt>
               <dd>
                 {compactNumber(totals.views)}
                 {plus}
               </dd>
             </div>
             <div>
-              <dt>{plural(totals.likes, 'отметка', 'отметки', 'отметок')} «Нравится»</dt>
+              <dt>{countWord(totals.likes, 'лайк', 'лайка', 'лайков')}</dt>
               <dd>
                 {compactNumber(totals.likes)}
                 {plus}

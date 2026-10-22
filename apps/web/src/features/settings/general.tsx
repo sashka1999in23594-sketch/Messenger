@@ -8,7 +8,7 @@ import { flatPages, queryClient, useCursorList } from '../../shared/api/query';
 import { usePrefs } from '../../shared/stores/prefs';
 import { toast } from '../../shared/stores/ui';
 import { fileSize, fullDate } from '../../shared/lib/format';
-import { Button, confirm, EmptyState, Notice, PageHeader, SettingRow, Switch } from '../../shared/ui';
+import { Button, confirm, EmptyState, Notice, SettingRow, Switch } from '../../shared/ui';
 import { Panel, SettingsPage, useNotificationPrefs } from './common';
 import { useWallpaper, WallpaperPicker } from '../chats/wallpapers';
 
@@ -77,7 +77,7 @@ function WallpaperSettings() {
     <SettingsPage title="Обои и текст" icon={<Palette size={22} />}>
       <ChatPreview />
       <Panel title="Обои для всех чатов">
-        <div style={{ padding: '4px 16px 16px' }}>
+        <div style={{ padding: 16 }}>
           <WallpaperPicker value={prefs.wallpaper ?? 'aurora'} onChange={(w) => w && prefs.set({ wallpaper: w })} />
         </div>
       </Panel>
@@ -269,9 +269,7 @@ export function AdminReports() {
   });
   const items = flatPages(list.data);
   return (
-    <div className="scroll">
-      <div className="page">
-        <PageHeader title="Модерация" subtitle="Открытые жалобы пользователей" icon={<Flag size={22} />} />
+    <SettingsPage title="Модерация" subtitle="Открытые жалобы пользователей" icon={<Flag size={22} />}>
         {list.error ? <Notice kind="danger">Нет доступа: раздел только для модераторов</Notice> : null}
         {items.length === 0 && !list.isLoading && !list.error && <EmptyState icon={<Flag size={28} />} title="Жалоб нет" />}
         <div className="col gap-3">
@@ -305,7 +303,6 @@ export function AdminReports() {
             </div>
           ))}
         </div>
-      </div>
-    </div>
+    </SettingsPage>
   );
 }

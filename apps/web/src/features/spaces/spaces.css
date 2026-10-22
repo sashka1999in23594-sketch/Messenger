@@ -133,7 +133,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 38px;
+  min-height: 40px;
   padding: 0 10px;
   margin: 1px 0;
   border-radius: var(--radius-md);
@@ -183,7 +183,9 @@
 }
 @media (hover: none) {
   .room__gear {
-    opacity: 1;
+    opacity: 0.55;
+    width: 32px;
+    height: 32px;
   }
 }
 
@@ -330,14 +332,15 @@
   }
 }
 
-/* Боковая панель пространства уже списка чатов — с 1200 px участники
-   и информация о чате помещаются третьей колонкой, а не поверх переписки */
-@media (min-width: 1200px) {
+/* Колонки пространства: шире списка чатов — в ней ещё рельса пространств */
+@container chats (min-width: 700px) {
   .chats.space {
-    grid-template-columns: 280px minmax(0, 1fr);
+    grid-template-columns: minmax(300px, 330px) minmax(0, 1fr);
   }
+}
+@container chats (min-width: 1100px) {
   .chats.space.chats--info {
-    grid-template-columns: 280px minmax(0, 1fr) 300px;
+    grid-template-columns: minmax(300px, 340px) minmax(0, 1fr) 300px;
   }
   .chats.space.chats--info .chats__info {
     position: static;
@@ -348,4 +351,102 @@
     box-shadow: var(--panel-highlight), var(--shadow-panel);
     animation: none;
   }
+}
+
+/* ─── Рельса пространств (как в Discord) ─── */
+.chats__list.space-side {
+  flex-direction: row;
+}
+.space-side__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.space-rail {
+  flex: 0 0 var(--space-rail-w);
+  width: var(--space-rail-w);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: calc(10px + var(--safe-top)) 0 calc(16px + var(--safe-bottom));
+  overflow-y: auto;
+  scrollbar-width: none;
+  border-right: 1px solid var(--border);
+  background: color-mix(in oklab, var(--bg) 60%, transparent);
+}
+.space-rail::-webkit-scrollbar {
+  display: none;
+}
+.space-rail__sep {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+.space-rail__btn {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--surface-3);
+  color: var(--text-2) !important;
+  transition:
+    border-radius var(--dur) var(--ease),
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.space-rail__btn:hover {
+  border-radius: 14px;
+  color: var(--text) !important;
+}
+.space-rail__btn--add {
+  color: var(--success) !important;
+}
+.space-rail__btn--add:hover {
+  background: var(--success);
+  color: var(--accent-text) !important;
+}
+.space-rail__item {
+  position: relative;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: block;
+}
+.space-rail__item .avatar__img,
+.space-rail__item .avatar__fallback {
+  transition: border-radius var(--dur) var(--ease);
+}
+.space-rail__item:hover .avatar__img,
+.space-rail__item:hover .avatar__fallback,
+.space-rail__item--on .avatar__img,
+.space-rail__item--on .avatar__fallback {
+  border-radius: 14px;
+}
+/* Полоска слева: активное пространство — высокая, непрочитанное — точка */
+.space-rail__item::before {
+  content: '';
+  position: absolute;
+  left: calc((var(--space-rail-w) - 44px) / -2);
+  top: 50%;
+  width: 4px;
+  height: 0;
+  border-radius: 0 4px 4px 0;
+  background: var(--text);
+  transform: translateY(-50%);
+  transition: height var(--dur) var(--ease);
+}
+.space-rail__item--unread::before {
+  height: 8px;
+}
+.space-rail__item:hover::before {
+  height: 20px;
+}
+.space-rail__item--on::before {
+  height: 36px;
 }

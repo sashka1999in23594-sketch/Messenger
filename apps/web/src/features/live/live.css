@@ -1,416 +1,865 @@
 /* ─── Прямые эфиры и премьеры ───────────────────────────────────────────── */
-.live-section {
-  margin: 18px 0 10px 4px;
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-3);
+
+/* ─── Комната эфира: плеер и чат справа ─── */
+.lroom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-areas:
+    'player chat'
+    'main chat';
+  align-items: start;
+  column-gap: 24px;
+  max-width: 1754px;
+  margin: 0 auto;
+  padding: 24px 24px 48px;
 }
-.live-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 9px;
-  border-radius: var(--radius-sm);
-  background: var(--danger);
-  color: var(--accent-text);
-  font-size: var(--fs-xs);
-  font-weight: 750;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  width: max-content;
+.lroom__player {
+  grid-area: player;
+  min-width: 0;
 }
-.live-badge::before {
-  content: '';
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: currentColor;
-  animation: live-pulse 1.4s ease-in-out infinite;
+.lroom__main {
+  grid-area: main;
+  min-width: 0;
 }
-.live-badge--sm {
-  padding: 2px 7px;
-  font-size: 10px;
+.lroom__chat {
+  grid-area: chat;
+  position: sticky;
+  top: 24px;
+  min-width: 0;
 }
-@keyframes live-pulse {
-  50% {
-    opacity: 0.35;
+.lroom__chat .live-chat {
+  height: min(720px, calc(100dvh - 120px));
+}
+.lroom--nochat {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.lroom--compact {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'player'
+    'main'
+    'chat';
+  padding: 16px 16px 40px;
+}
+.lroom--compact .lroom__chat {
+  position: static;
+  margin-top: 16px;
+}
+.lroom--compact .lroom__chat .live-chat {
+  height: min(480px, 70dvh);
+}
+@container vroot (max-width: 640px) {
+  .lroom--compact {
+    padding: 0 0 32px;
+  }
+  .lroom--compact .vp,
+  .lroom--compact .lended {
+    border-radius: 0;
+  }
+  .lroom--compact .lroom__main,
+  .lroom--compact .lroom__chat {
+    padding: 0 12px;
   }
 }
-.stream-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 14px;
-}
-.stream-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  color: inherit;
-}
-.stream-card:hover {
-  text-decoration: none;
-}
-.stream-card__thumb {
-  position: relative;
-  aspect-ratio: 16 / 9;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-lg);
-  background: var(--grad);
-  overflow: hidden;
-}
-.stream-card__thumb .live-badge,
-.stream-card__ended {
-  position: absolute;
-  left: 8px;
-  top: 8px;
-}
-.stream-card__ended {
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-elevated-solid);
-  font-size: var(--fs-xs);
-  font-weight: 650;
-}
-.stream-card__viewers {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
+.lshow-chat {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-elevated-solid);
-  font-size: var(--fs-xs);
-  font-weight: 650;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 20px;
+  background: var(--surface-3);
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
 }
-.stream-card__info {
+.lshow-chat:hover {
+  background: color-mix(in oklab, var(--text) 16%, transparent);
+}
+
+.lended {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  aspect-ratio: 16 / 9;
+  padding: 20px;
+  border-radius: 12px;
+  background: var(--surface-3);
+  color: var(--text-2);
+  text-align: center;
+  font-size: 14px;
+}
+.lended b {
+  color: var(--text);
+  font-size: 18px;
+}
+.lended__icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--text-2);
+}
+.lmore {
+  display: inline-block;
+  margin-top: 16px;
+  color: var(--link);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Панель ведущего */
+.lhost {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+}
+.lhost__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.lstatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: var(--surface-3);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.lstatus__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-3);
+}
+.lstatus--ready .lstatus__dot {
+  background: var(--success);
+}
+.lstatus--live {
+  background: var(--vid-live);
+  color: var(--vid-on-media);
+}
+.lstatus--live .lstatus__dot {
+  background: currentColor;
+  animation: vpulse 1.6s ease-in-out infinite;
+}
+.lround {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--text);
+}
+.lround:hover {
+  background: color-mix(in oklab, var(--text) 16%, transparent);
+}
+.lround--off,
+.lround--off:hover {
+  background: var(--danger);
+  color: var(--vid-on-media);
+}
+.lend {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 20px;
+  background: var(--danger);
+  color: var(--vid-on-media);
+  font-weight: 600;
+}
+.lend:disabled {
+  opacity: 0.6;
+}
+.lstats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+.lstat {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.lstat__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-2);
+  font-size: 12px;
+}
+.lstat__value {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Запись после эфира */
+.lrec {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+}
+.lrec__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+}
+.lrec__head span {
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+/* ─── Чат эфира и премьеры ─── */
+.live-chat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--panel-solid);
+}
+.live-chat--loading {
+  height: 420px;
+  background: var(--skeleton);
+}
+.live-chat__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.live-chat__titles {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
 }
-
-/* Подготовка к эфиру */
-.live-source {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+.live-chat__titles b {
+  font-size: 16px;
 }
-.live-preview {
-  aspect-ratio: 16 / 9;
+.live-chat__sub {
+  color: var(--text-2);
+  font-size: 12px;
+}
+.live-chat__icon {
+  flex: none;
   display: grid;
   place-items: center;
-  border-radius: var(--radius-lg);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  overflow: hidden;
-  text-align: center;
-  padding: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--text-2);
 }
-.live-preview video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: var(--chart-surface);
+.live-chat__icon:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.live-chat__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+}
+.live-chat__welcome {
+  margin: 4px 16px 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 17px;
+}
+.live-chat__empty {
+  padding: 4px 16px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+.live-chat__msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 4px 16px;
+  font-size: 13.5px;
+  line-height: 20px;
+}
+.live-chat__msg:hover {
+  background: var(--surface-2);
+}
+.live-chat__msg--mention {
+  background: var(--vid-mention);
+}
+.live-chat__avatar {
+  flex: none;
+  padding-top: 0;
+}
+.live-chat__body {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.live-chat__time {
+  display: none;
+  margin-right: 6px;
+  color: var(--text-3);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.live-chat__msg:hover .live-chat__time {
+  display: inline;
+}
+.live-chat__name {
+  margin-right: 8px;
+  color: var(--text-2);
+  font-weight: 600;
+  text-decoration: none !important;
+}
+.live-chat__name--owner {
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--vid-owner);
+  color: var(--vid-owner-text);
+}
+.live-chat__name--me {
+  color: var(--link);
+}
+.live-chat__text {
+  color: var(--text);
+}
+.live-chat__new {
+  position: absolute;
+  left: 50%;
+  bottom: 108px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 16px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  transform: translateX(-50%);
+  box-shadow: var(--shadow-md);
+}
+.live-chat__closed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: 13px;
+}
+.live-chat__form {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 12px 16px;
+  border-top: 1px solid var(--border);
+}
+.live-chat__who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+.live-chat__field {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-left: 32px;
+}
+.live-chat__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 34px;
+  border: 0;
+  border-bottom: 1px solid var(--border-strong);
+  outline: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+.live-chat__input:focus {
+  border-bottom: 2px solid var(--text);
+}
+.live-chat__count {
+  min-width: 46px;
+  color: var(--text-3);
+  font-size: 11px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.live-chat__count--warn {
+  color: var(--warning);
+}
+.live-chat__send {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--text);
+}
+.live-chat__send:hover:not(:disabled) {
+  background: var(--surface-3);
+}
+.live-chat__send:disabled {
+  color: var(--text-3);
+}
+.live-chat__emoji {
+  position: absolute;
+  right: 8px;
+  bottom: calc(100% + 4px);
+  z-index: 5;
 }
 
-/* Комната эфира: видео и чат справа */
-.live-room {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 16px;
-  padding: 16px;
-  max-width: 1500px;
+/* ─── Студия: подготовка к эфиру ─── */
+.lstudio {
+  max-width: 1400px;
   margin: 0 auto;
-  min-height: 100%;
+  padding: 16px 24px 48px;
 }
-.live-room__main {
+.lstudio__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 20px;
+}
+.lstudio__head h1 {
+  font-size: 28px;
+  font-weight: 750;
+}
+.lstudio__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 24px;
+  align-items: start;
+}
+.lstudio__main {
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-width: 0;
 }
-.live-stage {
+.lstudio__side {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+}
+.lstudio__note {
+  margin-top: -4px;
+  color: var(--text-2);
+  font-size: 12.5px;
+  text-align: center;
+}
+.lstudio__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+@container vroot (max-width: 900px) {
+  .lstudio__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .lstudio__side {
+    position: static;
+  }
+}
+@container vroot (max-width: 560px) {
+  .lstudio {
+    padding: 8px 12px 32px;
+  }
+  .lstudio__head h1 {
+    font-size: 22px;
+  }
+}
+.lstage {
   position: relative;
   aspect-ratio: 16 / 9;
-  border-radius: var(--radius-xl);
-  background: var(--chart-surface);
   overflow: hidden;
-  display: grid;
-  place-items: center;
+  border-radius: 12px;
+  background: var(--vid-player-bg);
+  color: var(--vid-on-media);
+  container: lstage / inline-size;
 }
-.live-stage__video {
+.lstage__video {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
-.live-stage__note {
+.lstage__badges {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  gap: 6px;
+}
+.lstage__pick {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 20px;
+  gap: 16px;
+  padding: 16px;
   text-align: center;
-  color: var(--text-2);
 }
-.live-stage__top {
-  position: absolute;
-  left: 12px;
-  top: 12px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
+.lstage__pick > b {
+  font-size: 18px;
 }
-.live-stage__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-elevated);
-  backdrop-filter: blur(var(--blur));
-  font-size: var(--fs-xs);
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
-}
-.live-stage__sound {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: var(--radius-full);
-  background: var(--bg-elevated);
-  backdrop-filter: blur(var(--blur));
-  font-weight: 650;
-  font-size: var(--fs-sm);
-}
-.live-controls {
+.lstage__choices {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  justify-content: center;
+  gap: 12px;
 }
-.live-recording {
+.lchoice {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px;
-}
-
-/* Чат эфира и премьеры */
-.live-chat {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  max-height: calc(100dvh - 140px);
-  border-radius: var(--radius-xl);
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  overflow: hidden;
-}
-.live-room > .live-chat {
-  position: sticky;
-  top: 0;
-  height: min(720px, calc(100dvh - 140px));
-}
-.watch__side .live-chat {
-  height: 420px;
-}
-.live-chat__head {
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border);
-  font-weight: 700;
-}
-.live-chat__list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.live-chat__msg {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  font-size: var(--fs-sm);
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-.live-chat__msg b {
-  color: var(--text-2);
-  font-weight: 650;
-}
-.live-chat__empty {
-  padding: 12px 14px;
-  margin: 0;
-}
-.live-chat__form {
-  display: flex;
+  align-items: center;
   gap: 6px;
-  padding: 10px;
-  border-top: 1px solid var(--border);
+  width: 200px;
+  padding: 18px 14px;
+  border-radius: 12px;
+  background: var(--vid-glass);
+  color: var(--vid-on-media);
+  transition: background var(--dur-fast);
 }
-.live-chat__form .input {
-  flex: 1;
-  min-width: 0;
+.lchoice:hover {
+  background: var(--vid-glass-strong);
 }
-@media (max-width: 1000px) {
-  .live-room {
-    grid-template-columns: minmax(0, 1fr);
-    padding: 0 0 16px;
+.lchoice span {
+  color: var(--vid-on-media-2);
+  font-size: 12.5px;
+}
+@container lstage (max-width: 460px) {
+  .lstage__pick {
+    gap: 10px;
   }
-  .live-stage {
-    border-radius: 0;
+  .lstage__pick > b {
+    font-size: 15px;
   }
-  .live-room__main > :not(.live-stage) {
-    padding-inline: 16px;
+  .lchoice {
+    width: 130px;
+    padding: 12px 10px;
   }
-  .live-room > .live-chat {
-    position: static;
-    height: 420px;
-    margin: 0 16px;
+  .lchoice span {
+    display: none;
+  }
+}
+.lselect {
+  height: 36px;
+  max-width: 220px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+}
+.lchecks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+.lcheck {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 13px;
+}
+.lcheck > span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-2);
+}
+.lcheck b {
+  color: var(--text);
+}
+.lcheck__ok {
+  flex: none;
+  color: var(--success);
+}
+.lcheck__wait {
+  flex: none;
+  color: var(--warning);
+}
+.lcheck__info {
+  flex: none;
+  color: var(--text-2);
+}
+.lmeter {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 12px;
+}
+.lmeter__bar {
+  width: 8px;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--surface-3);
+}
+.lmeter__bar--on {
+  background: var(--success);
+}
+.lmeter__bar--on.lmeter__bar--hot {
+  background: var(--warning);
+}
+.lgo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 48px;
+  border-radius: 24px;
+  background: var(--vid-live);
+  color: var(--vid-on-media);
+  font-size: 15px;
+  font-weight: 700;
+  transition: filter var(--dur-fast);
+}
+.lgo:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.lgo:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.lgo-link {
+  flex: none;
+}
+
+/* «Сейчас никто не в эфире» */
+.lempty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 20px;
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+}
+.lempty > div {
+  flex: 1 1 260px;
+}
+.lempty p {
+  margin-top: 4px;
+  color: var(--text-2);
+  font-size: 14px;
+}
+.lempty__icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--vid-live) 14%, transparent);
+  color: var(--vid-live);
+}
+@container vroot (max-width: 560px) {
+  .lempty {
+    margin: 0 12px;
   }
 }
 
-/* Премьеры */
-.premiere-badge {
+/* ─── Премьеры ─── */
+.vremind {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px;
-  border-radius: var(--radius-sm);
-  background: var(--accent);
-  color: var(--accent-text);
-  font-size: var(--fs-xs);
-  font-weight: 750;
-  font-variant-numeric: tabular-nums;
-  width: max-content;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 18px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
 }
-.premiere-badge--live {
-  background: var(--danger);
+.vremind:disabled {
+  opacity: 0.7;
 }
-.premiere-wait {
+.vremind--on {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.vremind--sm {
+  align-self: flex-start;
+  height: 30px;
+  margin-top: 8px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+/* Зал ожидания премьеры */
+.vwait {
+  container: vwait / inline-size;
   position: relative;
   display: grid;
   place-items: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--vid-player-bg);
+  color: var(--vid-on-media);
+}
+.vwait__bg {
+  position: absolute;
+  inset: -8%;
   background-size: cover;
   background-position: center;
+  filter: blur(18px) saturate(1.2);
 }
-.premiere-wait::before {
-  content: '';
+.vwait__scrim {
   position: absolute;
   inset: 0;
-  background: var(--chart-surface);
-  opacity: 0.72;
+  background: var(--vid-scrim);
 }
-.premiere-wait__inner {
+.vwait__badges {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  gap: 6px;
+}
+.vwait__inner {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  text-align: center;
+  gap: 14px;
   padding: 16px;
+  text-align: center;
 }
-.premiere-wait__count {
-  font-size: clamp(36px, 7vw, 64px);
+.vwait__label {
+  color: var(--vid-on-media-2);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.vwait__count {
+  display: flex;
+  gap: clamp(6px, 2cqw, 14px);
+}
+.vwait__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: clamp(56px, 14cqw, 104px);
+  padding: clamp(8px, 2cqw, 14px) clamp(8px, 2cqw, 16px);
+  border-radius: 12px;
+  background: var(--vid-glass);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.vwait__num {
+  font-size: clamp(26px, 8cqw, 64px);
   font-weight: 750;
-  letter-spacing: -0.02em;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-.premiere-live {
-  position: relative;
+.vwait__unit {
+  color: var(--vid-on-media-2);
+  font-size: 12px;
 }
-.premiere-live .premiere-badge {
-  position: absolute;
-  left: 12px;
-  top: 12px;
+.vwait__date {
+  color: var(--vid-on-media-2);
+  font-size: 14px;
 }
-.premiere-sync {
-  position: absolute;
-  right: 12px;
-  top: 12px;
-  padding: 6px 12px;
-  border-radius: var(--radius-full);
-  background: var(--accent);
-  color: var(--accent-text);
-  font-weight: 650;
-  font-size: var(--fs-sm);
+.vwait__spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 4px solid var(--vid-track);
+  border-top-color: var(--vid-on-media);
+  animation: vspin 0.9s linear infinite;
 }
-.premiere-row {
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 14px;
-  align-items: start;
+.vwait .vremind {
+  background: var(--vid-on-media);
+  color: var(--vid-player-bg);
 }
-.premiere-row__thumb {
-  position: relative;
-  aspect-ratio: 16 / 9;
-  border-radius: var(--radius-lg);
-  background: var(--grad);
-  background-size: cover;
-  background-position: center;
+.vwait .vremind--on {
+  background: var(--vid-glass-strong);
+  color: var(--vid-on-media);
 }
-.premiere-row__thumb .premiere-badge {
-  position: absolute;
-  left: 8px;
-  bottom: 8px;
-}
-.premiere-row__info {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: flex-start;
-  min-width: 0;
-}
-@media (max-width: 560px) {
-  .premiere-row {
-    grid-template-columns: minmax(0, 1fr);
+@container vwait (max-width: 440px) {
+  .vwait__inner {
+    gap: 8px;
+  }
+  .vwait__date {
+    display: none;
+  }
+  .vwait__label {
+    font-size: 11px;
+  }
+  .vwait .vremind {
+    height: 30px;
+    font-size: 13px;
   }
 }
-.premiere-pick {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px;
-}
-
-/* Полоса «Сейчас в эфире» над видео */
-.live-strip {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  margin-bottom: 16px;
-  padding-bottom: 4px;
-}
-.live-strip__item {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 260px;
-  padding: 10px 12px;
-  border-radius: var(--radius-lg);
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  color: inherit;
-}
-.live-strip__item:hover {
-  text-decoration: none;
-  border-color: var(--danger);
-}
-.video-thumb__premiere {
-  background: var(--accent) !important;
-  color: var(--accent-text) !important;
+@container vroot (max-width: 640px) {
+  .vwatch--compact .vwait {
+    border-radius: 0;
+  }
 }

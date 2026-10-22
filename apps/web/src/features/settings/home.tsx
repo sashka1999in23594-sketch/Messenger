@@ -12,6 +12,7 @@ import { usePrefs } from '../../shared/stores/prefs';
 import { cn } from '../../shared/lib/format';
 import { Avatar, Verified } from '../../shared/ui';
 import { SettingsSearch } from './search';
+import '../misc/kit.css';
 import './settings.css';
 
 /** Цвет плитки значка для каждого раздела (как в настройках iOS) */

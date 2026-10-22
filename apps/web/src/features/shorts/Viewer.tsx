@@ -284,7 +284,8 @@ function Feed({ mode, from, start, pool, layout, rootRef, onClean, onSheet }: Fe
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
-  }, [go]);
+    // Лента появляется после загрузки — тогда и вешаем обработчик
+  }, [go, total > 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Клавиатура: ↑/↓ — ролики, пробел — пауза, ←/→ — перемотка, M — звук, L — нравится, C — комментарии
   useEffect(() => {
