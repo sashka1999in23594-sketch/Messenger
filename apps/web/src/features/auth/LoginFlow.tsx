@@ -10,6 +10,7 @@ import type { AuthFlowResult, AuthFlowState, QrLoginPoll, QrLoginStart } from '@
 import { api, ApiError, errorMessage } from '../../shared/api/client';
 import { Avatar, Button, CodeInput, Input, Notice, PasswordInput } from '../../shared/ui';
 import { enterSession } from '../../app/session';
+import { useBrandName } from '../../shared/lib/brand';
 import { AuthLayout, AuthLinks, DOWNLOAD_LINK, HELP_LINK, minutes, mmss, PARTNERS_LINK, QrCode, StepTitle, useSecondsLeft } from './ui';
 
 type View =
@@ -105,6 +106,7 @@ function Identify({
   onQr: () => void;
 }) {
   const navigate = useNavigate();
+  const name = useBrandName();
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -125,7 +127,7 @@ function Identify({
   };
   return (
     <form className="auth__form" onSubmit={submit} noValidate>
-      <StepTitle title="Вход в Sunnet" text="Введите почту или номер телефона — пришлём код для входа" />
+      <StepTitle title={`Вход в ${name}`} text="Введите почту или номер телефона — пришлём код для входа" />
       {notice && <Notice kind="warning">{notice}</Notice>}
       <Input
         value={login}
@@ -472,6 +474,7 @@ function NewPasswordStep({ s, onState, onError }: StepProps) {
 // ─── Вход по QR-коду ────────────────────────────────────────────────────────
 
 function QrLogin({ onApproved }: { onApproved: (s: AuthFlowState) => void }) {
+  const name = useBrandName();
   const [qr, setQr] = useState<QrLoginStart | null>(null);
   const [status, setStatus] = useState<'pending' | 'expired' | 'rejected' | 'error'>('pending');
   const latest = useRef(0);
@@ -520,7 +523,7 @@ function QrLogin({ onApproved }: { onApproved: (s: AuthFlowState) => void }) {
   const url = qr ? `${location.origin}/qr/${qr.token}` : '';
   return (
     <div className="auth__form">
-      <StepTitle title="Вход по QR-коду" text="Отсканируйте код устройством, на котором вы уже вошли в Sunnet" />
+      <StepTitle title="Вход по QR-коду" text={`Отсканируйте код устройством, на котором вы уже вошли в ${name}`} />
       <div className="auth__qr">
         {qr ? <QrCode value={url} size={212} /> : <div className="qr qr--loading" style={{ width: 212, height: 212 }} />}
         {status !== 'pending' && (
@@ -533,7 +536,7 @@ function QrLogin({ onApproved }: { onApproved: (s: AuthFlowState) => void }) {
         )}
       </div>
       <ol className="auth__steps">
-        <li>Откройте камеру на телефоне, где вы уже вошли в Sunnet</li>
+        <li>Откройте камеру на телефоне, где вы уже вошли в {name}</li>
         <li>Наведите её на QR-код и откройте ссылку</li>
         <li>Нажмите «Разрешить вход» — останется ввести пароль</li>
       </ol>

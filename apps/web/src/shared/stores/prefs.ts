@@ -151,7 +151,8 @@ export const usePrefs = create<PrefsState>()(
 /** Применяет тему, палитру, акцент и масштаб к <html>. */
 export function applyPrefs(p: VisualPrefs) {
   const d = document.documentElement;
-  const theme = p.theme === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : p.theme;
+  const theme =
+    d.dataset.lynnet === '1' ? 'dark' : p.theme === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : p.theme;
   d.dataset.theme = theme;
   d.dataset.palette = p.palette;
   d.dataset.accent = p.accent;

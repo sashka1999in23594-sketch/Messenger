@@ -8,8 +8,9 @@ import { Link } from 'react-router';
 import QRCodeLib from 'qrcode';
 import { useAuthConfig } from '../../shared/api/config';
 import { useMediaQuery } from '../../shared/hooks';
+import { useBrand } from '../../shared/lib/brand';
 import { usePrefs } from '../../shared/stores/prefs';
-import { Logo } from '../../shared/ui';
+import { Logo, MoonScene } from '../../shared/ui';
 import { DevMailbox } from './DevMailbox';
 import { Sky } from './Sky';
 import './auth.css';
@@ -19,6 +20,7 @@ export function AuthLayout({ children, links }: { children: ReactNode; links?: R
   const wide = useMediaQuery('(min-width: 900px)');
   const mouse = useMediaQuery('(pointer: fine)');
   const tilt = wide && mouse && !reduceMotion;
+  const moon = useBrand((s) => s.night);
   const panel = useRef<HTMLDivElement>(null);
 
   // Карточка чуть наклоняется за курсором, по стеклу скользит блик (только мышь)
@@ -46,9 +48,10 @@ export function AuthLayout({ children, links }: { children: ReactNode; links?: R
   }, [tilt]);
 
   return (
-    // Днём на небе карточка светлая при любой теме; на телефоне — тема пользователя
-    <div className={tilt ? 'auth auth--tilt' : 'auth'} data-theme={wide ? 'light' : undefined}>
-      {wide && <Sky still={reduceMotion} />}
+    // Днём на небе карточка светлая при любой теме; на телефоне — тема пользователя.
+    // В часы Lynnet — лунная сцена и тёмная карточка
+    <div className={['auth', tilt && 'auth--tilt', moon && 'auth--moon'].filter(Boolean).join(' ')} data-theme={moon ? 'dark' : wide ? 'light' : undefined}>
+      {wide && (moon ? <MoonScene className="auth__moon" still={reduceMotion} landX={0.8} earth={{ x: 0.16, y: 0.2, r: 0.1 }} /> : <Sky still={reduceMotion} />)}
       <main className="auth__main">
         <div className="auth__panel" ref={panel}>
           {children}

@@ -4,6 +4,9 @@
  * В каждом окне — полноценный раздел со своей историей переходов, окна можно
  * двигать, тянуть за края, прилеплять к половинам экрана и сворачивать в док.
  */
+import { brandName, useBrand } from '../../shared/lib/brand';
+import { usePrefs } from '../../shared/stores/prefs';
+import { MoonScene } from '../../shared/ui';
 import { AppUpdate } from '../../app/layout/AppUpdate';
 import { useEffect, useMemo, useRef, type ComponentProps, type CSSProperties } from 'react';
 import { createPath, Router } from 'react-router';
@@ -116,7 +119,7 @@ function useShortcuts() {
 function syncLocation(w: Win | undefined) {
   const path = w?.path ?? '/';
   if (window.location.pathname + window.location.search !== path) window.history.replaceState(window.history.state, '', path);
-  document.title = w ? `${titleFor(w.path).text} · Sunnet` : 'Sunnet';
+  document.title = w ? `${titleFor(w.path).text} · ${brandName()}` : brandName();
 }
 
 /** Ctrl + колесо или щипок на тачпаде — масштаб вокруг курсора; перетаскивание обоев — сдвиг отдалённого стола. */
@@ -164,6 +167,9 @@ export function Desktop() {
   useZoomGestures(deskRef);
   const empty = useDesktop((s) => s.wins.every((w) => w.min));
   const wallpaper = useDesktop((s) => s.wallpaper);
+  // В часы Lynnet на обоях — луна с ракетами
+  const moon = useBrand((s) => s.night);
+  const reduceMotion = usePrefs((s) => s.reduceMotion);
   const ctx = useDeskMenu();
   useShortcuts();
 
@@ -226,7 +232,7 @@ export function Desktop() {
         onPointerUp={() => (panning.current = null)}
         onPointerCancel={() => (panning.current = null)}
       >
-        <Wallpaper kind={wallpaper} />
+        {moon ? <MoonScene className="wall wall--moon" still={reduceMotion} landX={0.74} earth={{ x: 0.18, y: 0.2, r: 0.09 }} /> : <Wallpaper kind={wallpaper} />}
         {empty && <EmptyDesk />}
         <div
           className="desk__windows"

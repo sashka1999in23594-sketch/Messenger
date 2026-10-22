@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <!-- Локальная страница без внешних ресурсов. Сервер проверяет главный процесс и сообщает сюда, когда можно открывать Sunnet. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' file: data:" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' file:; img-src 'self' file: data:" />
     <title>Sunnet</title>
     <style>
       :root {
@@ -216,6 +216,34 @@
       .leaving .scene {
         transform: scale(1.04);
       }
+      /* Lynnet: на весь экран — луна, ракеты и космонавты */
+      body.is-moon {
+        --bg: #02030a;
+        --text: #eef2ff;
+        --muted: rgba(226, 232, 255, 0.72);
+        --bar-from: #dfe6ff;
+        --bar-to: #6f95ff;
+        --bar-glow: rgba(120, 160, 255, 0.8);
+        --shade: rgba(2, 3, 10, 0.75);
+      }
+      body.is-moon .photo,
+      body.is-moon .rays,
+      body.is-moon .glow,
+      body.is-moon .halo,
+      body.is-moon #flares,
+      body.is-moon #motes {
+        display: none;
+      }
+      #moon {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: none;
+      }
+      body.is-moon #moon {
+        display: block;
+      }
       @media (prefers-reduced-motion: reduce) {
         .bar > i::after {
           animation: none;
@@ -225,6 +253,7 @@
   </head>
   <body>
     <div class="scene" aria-hidden="true">
+      <canvas id="moon"></canvas>
       <div class="photo" id="photo"></div>
       <div class="rays" id="rays"><i id="r1"></i><i id="r2"></i></div>
       <div class="glow" id="glow"></div>
@@ -243,6 +272,7 @@
       <p class="hint" id="hint"></p>
     </footer>
 
+    <script src="moon-scene.js"></script>
     <script>
       'use strict';
       const params = new URLSearchParams(location.search);
@@ -251,6 +281,8 @@
       if (night) {
         document.getElementById('name').textContent = 'Lynnet';
         document.getElementById('logo').src = 'assets/icon-night.png';
+        document.body.classList.add('is-moon');
+        window.MoonScene?.startMoonScene(document.getElementById('moon'), { landX: 0.72, earth: { x: 0.18, y: 0.2, r: 0.1 } });
       }
       const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -349,6 +381,7 @@
       const lerp = (a, b, t) => a + (b - a) * t;
       let t0 = performance.now();
       function frame(now) {
+        if (night) return;
         const t = (now - t0) / 1000;
         const sunX = layout.left + SUN.x * layout.size;
         const sunY = layout.top + SUN.y * layout.size;
@@ -435,7 +468,6 @@
         'Подвигайте мышью — солнце следит за курсором.',
         'Звонки до 50 человек — во вкладке «Звонки», кнопка «+».',
         'Ctrl + колесо мыши на рабочем столе — отдалить или приблизить окна.',
-        'Ночью приложение становится Lynnet — с луной вместо солнца.',
       ];
       let hintIndex = mode === 'reconnect' ? 0 : Math.floor(Math.random() * HINTS.length);
       function nextHint() {

@@ -34,6 +34,7 @@ import { useLock } from '../../shared/lib/passcode';
 import { usePrefs } from '../../shared/stores/prefs';
 import { useRealtime } from '../../shared/stores/realtime';
 import { useUi } from '../../shared/stores/ui';
+import { useBrandName } from '../../shared/lib/brand';
 import { cn } from '../../shared/lib/format';
 import { Logo } from '../../shared/ui';
 import { AccountMenu, MeAvatar } from './Account';
@@ -86,6 +87,7 @@ function Clock() {
 }
 
 export function MenuBar() {
+  const brand = useBrandName();
   const [open, setOpen] = useState<{ id: MenuId; anchor: MenuAnchor } | null>(null);
   const refs = useRef<Record<MenuId, HTMLButtonElement | null>>({ sunnet: null, app: null, window: null });
   const active = useDesktop((s) => activeWin(s.wins));
@@ -126,7 +128,7 @@ export function MenuBar() {
 
   const items: Record<MenuId, DeskMenuEntry[]> = {
     sunnet: [
-      { label: 'О Sunnet', icon: <Info size={18} />, onClick: () => openPath('/settings/about') },
+      { label: `О ${brand}`, icon: <Info size={18} />, onClick: () => openPath('/settings/about') },
       { label: 'Настройки', icon: <Settings size={18} />, onClick: () => openPath('/settings') },
       { label: 'Рабочий стол и обои', icon: <Wallpaper size={18} />, onClick: () => openPath('/settings/space') },
       'separator',
@@ -166,7 +168,7 @@ export function MenuBar() {
   return (
     <header className="menubar" onDoubleClick={(e) => e.target === e.currentTarget && store().showDesktop()}>
       <div className="menubar__left">
-        <button type="button" {...trigger('sunnet')} aria-label="Меню Sunnet">
+        <button type="button" {...trigger('sunnet')} aria-label={`Меню ${brand}`}>
           <Logo size={18} />
         </button>
         <button type="button" {...trigger('app')}>
@@ -178,7 +180,7 @@ export function MenuBar() {
       </div>
       <button type="button" className="menubar__search" onClick={() => useUi.getState().setPalette(true)} aria-label="Поиск и переход">
         <Search size={15} />
-        <span className="ellipsis">Поиск по Sunnet</span>
+        <span className="ellipsis">Поиск по {brand}</span>
         <span className="menubar__kbd">{isMac ? '⌘K' : 'Ctrl K'}</span>
       </button>
       <div className="menubar__right">
@@ -199,7 +201,7 @@ export function MenuBar() {
           <MeAvatar size={22} />
         </button>
       </div>
-      {open && <DeskMenu anchor={open.anchor} onClose={close} items={items[open.id]} label={open.id === 'window' ? 'Окно' : open.id === 'app' ? app?.label : 'Sunnet'} />}
+      {open && <DeskMenu anchor={open.anchor} onClose={close} items={items[open.id]} label={open.id === 'window' ? 'Окно' : open.id === 'app' ? app?.label : brand} />}
       <AccountMenu anchor={account.anchor} onClose={account.close} />
     </header>
   );

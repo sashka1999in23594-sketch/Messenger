@@ -1084,3 +1084,8 @@ body:has(.desk:not(.desk--wp-aurora)) .aurora {
   font-variant-numeric: tabular-nums;
   min-width: 58px !important;
 }
+.wall--moon {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

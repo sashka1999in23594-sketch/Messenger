@@ -1,14 +1,14 @@
 /**
  * Приложение для компьютера старой версии (без встроенного обновления):
  * один раз за запуск предлагаем поставить новую — с окном обновлений,
- * экраном загрузки и ярлыками Sunnet/Lynnet. Новые версии обновляются сами.
+ * экраном загрузки и ярлыками. Новые версии обновляются сами.
  */
 import { useState } from 'react';
 import { Download } from 'lucide-react';
 import { Logo, Modal } from '../../shared/ui';
 
 /** Последняя версия приложения для компьютера (desktop-app/package.json) */
-export const DESKTOP_LATEST = '1.3.1';
+export const DESKTOP_LATEST = '1.4.0';
 /** С этой версии Windows и Linux обновляются сами */
 const SELF_UPDATING = '1.2.0';
 const RELEASES = 'https://github.com/sashka1999in23594-sketch/Messenger/releases/latest/download';
@@ -60,8 +60,7 @@ export function AppUpdate() {
       <div className="app-update">
         <Logo size={72} />
         <p className="app-update__text">
-          У вас Sunnet {app.version}, доступна {DESKTOP_LATEST}: окно запуска с солнцем, обновления сами — без браузера, запуск вместе с системой и ярлыки, которые ночью
-          становятся Lynnet.
+          У вас Sunnet {app.version}, доступна {DESKTOP_LATEST}: окно запуска с солнцем, обновления сами — без браузера и запуск вместе с системой.
         </p>
         <p className="app-update__note">
           {file ? 'Скачайте установщик и запустите его — старая версия заменится, настройки и вход сохранятся. Дальше обновления будут ставиться сами.' : 'Скачайте файл для вашего Mac и перетащите Sunnet в «Программы».'}

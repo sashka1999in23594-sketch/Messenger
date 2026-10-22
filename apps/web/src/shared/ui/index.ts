@@ -12,3 +12,4 @@ export * from './Theme';
 export * from './EmojiPicker';
 export * from './UserPicker';
 export * from './ScheduleDialog';
+export * from './MoonScene';

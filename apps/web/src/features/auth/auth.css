@@ -855,3 +855,19 @@
     font-size: 24px;
   }
 }
+
+/* ─── Lynnet: лунная сцена за карточкой ─── */
+.auth--moon {
+  background: var(--moon-space);
+}
+.auth__moon {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+}
+.auth--moon .auth__panel {
+  background: var(--moon-card);
+  box-shadow: var(--panel-highlight), var(--moon-card-shadow);
+}
