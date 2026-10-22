@@ -23,7 +23,7 @@ import { DeskMenu, useDeskMenu, type DeskMenuEntry } from './DeskMenu';
 import { closeWindow, minimizeWindow, openPath, playOpen, playRestore, restoreOrigin, winEls, withGlide } from './fx';
 import { clampRect, MENUBAR_H, MIN_H, MIN_W, snapRect, useArea, type Rect, type Snap } from './geometry';
 import { AppTile } from './AppTile';
-import { fresh, useDesktop, type Win } from './store';
+import { fresh, useDesktop, visibleArea, type Win } from './store';
 
 type Kind = 'move' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 const GRIPS: Exclude<Kind, 'move'>[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
@@ -180,8 +180,12 @@ function WindowShell({ win, active, area, mac }: { win: Win; active: boolean; ar
   const menu = useDeskMenu();
 
   const { app, sub, text: title } = titleFor(path);
+  const view = useDesktop((s) => s.view);
+  // Стол отдалён или приближен: окна живут в его координатах, а не экрана
+  const box = visibleArea(area, view);
 
-  const normal = clampRect(win, area);
+  // При обычном масштабе окно всегда достижимо; при отдалении размер не трогаем
+  const normal = view.zoom === 1 ? clampRect(win, area) : { x: win.x, y: win.y, w: win.w, h: win.h };
   const fixed = win.max ? snapRect('max', area) : win.snap ? snapRect(win.snap, area) : null;
   const shown = live.current ?? fixed ?? normal;
   const isMax = !busy && win.max;
@@ -237,24 +241,26 @@ function WindowShell({ win, active, area, mac }: { win: Win; active: boolean; ar
   const move = (e: React.PointerEvent<HTMLElement>) => {
     const g = gesture.current;
     if (!g) return;
-    const dx = e.clientX - g.sx;
-    const dy = e.clientY - g.sy;
+    const dx = (e.clientX - g.sx) / view.zoom;
+    const dy = (e.clientY - g.sy) / view.zoom;
     if (!g.moved) {
       if (Math.abs(dx) + Math.abs(dy) < 5) return;
       g.moved = true;
       if (g.kind === 'move' && (win.max || win.snap)) {
         // Окно «отлипает» от края: обычный размер, курсор на той же доле заголовка
-        const w = Math.min(win.w, area.w);
-        const h = Math.min(win.h, area.h);
-        const ratio = (g.sx - g.start.x) / g.start.w;
-        g.start = { x: g.sx - ratio * w, y: g.start.y, w, h };
+        const w = Math.min(win.w, box.w);
+        const h = Math.min(win.h, box.h);
+        const sx = (g.sx - view.x) / view.zoom;
+        const ratio = (sx - g.start.x) / g.start.w;
+        g.start = { x: sx - ratio * w, y: g.start.y, w, h };
       }
       setBusy(g.kind === 'move' ? 'move' : 'resize');
     }
     let r: Rect;
     if (g.kind === 'move') {
-      r = { ...g.start, x: Math.round(g.start.x + dx), y: Math.round(Math.max(MENUBAR_H, g.start.y + dy)) };
-      const zone = zoneAt(e.clientX, e.clientY, area);
+      r = { ...g.start, x: Math.round(g.start.x + dx), y: Math.round(Math.max(view.zoom === 1 ? MENUBAR_H : box.y, g.start.y + dy)) };
+      // Прилипание к краям — только при обычном масштабе
+      const zone = view.zoom === 1 ? zoneAt(e.clientX, e.clientY, area) : null;
       if (zone !== g.zone) {
         g.zone = zone;
         usePreview.setState({ rect: zone ? snapRect(zone, area) : null, z: win.z });
@@ -263,15 +269,15 @@ function WindowShell({ win, active, area, mac }: { win: Win; active: boolean; ar
       const s = g.start;
       r = { ...s };
       const k = g.kind;
-      const maxW = area.w;
-      if (k.includes('e')) r.w = Math.min(Math.max(MIN_W, s.w + dx), maxW - Math.max(0, s.x));
+      const maxW = box.x + box.w;
+      if (k.includes('e')) r.w = Math.min(Math.max(MIN_W, s.w + dx), maxW - Math.max(box.x, s.x));
       if (k.includes('w')) {
-        r.w = Math.min(Math.max(MIN_W, s.w - dx), s.x + s.w);
+        r.w = Math.min(Math.max(MIN_W, s.w - dx), s.x + s.w - box.x);
         r.x = s.x + s.w - r.w;
       }
       if (k.includes('s')) r.h = Math.max(MIN_H, s.h + dy);
       if (k.includes('n')) {
-        r.h = Math.min(Math.max(MIN_H, s.h - dy), s.y + s.h - area.y);
+        r.h = Math.min(Math.max(MIN_H, s.h - dy), s.y + s.h - box.y);
         r.y = s.y + s.h - r.h;
       }
       r = { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.w), h: Math.round(r.h) };
@@ -297,7 +303,7 @@ function WindowShell({ win, active, area, mac }: { win: Win; active: boolean; ar
       return;
     }
     live.current = null;
-    if (r) store.place(win.id, g.kind === 'move' ? clampRect(r, area) : r);
+    if (r) store.place(win.id, g.kind === 'move' && view.zoom === 1 ? clampRect(r, area) : r);
     setBusy(false);
   };
 

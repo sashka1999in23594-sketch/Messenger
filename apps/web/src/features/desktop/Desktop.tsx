@@ -4,10 +4,10 @@
  * В каждом окне — полноценный раздел со своей историей переходов, окна можно
  * двигать, тянуть за края, прилеплять к половинам экрана и сворачивать в док.
  */
-import { useEffect, useMemo, type ComponentProps, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, type ComponentProps, type CSSProperties } from 'react';
 import { createPath, Router } from 'react-router';
 import { useShallow } from 'zustand/react/shallow';
-import { Eye, EyeOff, LayoutGrid, Settings, XSquare } from 'lucide-react';
+import { Eye, EyeOff, LayoutGrid, Settings, XSquare, ZoomIn, ZoomOut } from 'lucide-react';
 import { CommandPalette } from '../../app/layout/CommandPalette';
 import { LockScreen } from '../../app/layout/LockScreen';
 import { setRealtimeNavigate } from '../../app/realtime';
@@ -18,7 +18,7 @@ import { Dock } from './Dock';
 import { activate, closeWindow, closeWindows, minimizeWindow, openPath, withGlide } from './fx';
 import { DOCK_ZONE, firstRunLayout, MENUBAR_H, useArea, type Snap } from './geometry';
 import { MenuBar } from './MenuBar';
-import { activeWin, useDesktop, WALLPAPERS, type Win } from './store';
+import { activeWin, useDesktop, WALLPAPERS, ZOOM_MAX, ZOOM_MIN, type Win } from './store';
 import { Wallpaper } from './Wallpaper';
 import { DeskWindow, SnapPreview } from './Window';
 import './desktop.css';
@@ -91,6 +91,12 @@ function useShortcuts() {
         st.cycle(e.shiftKey ? -1 : 1);
         const next = activeWin(useDesktop.getState().wins);
         if (next) activate(next.id);
+      } else if (mod && !e.altKey && (e.code === 'Equal' || e.code === 'Minus' || e.code === 'Digit0' || e.code === 'NumpadAdd' || e.code === 'NumpadSubtract')) {
+        // Масштаб стола: Ctrl + / Ctrl − / Ctrl 0
+        e.preventDefault();
+        const z = st.view.zoom;
+        if (e.code === 'Digit0') st.zoomTo(1);
+        else st.zoomTo(e.code === 'Equal' || e.code === 'NumpadAdd' ? z + 0.1 : z - 0.1);
       } else if (e.ctrlKey && e.altKey && a && e.code.startsWith('Arrow')) {
         const to = snapByKey(a, e.code);
         if (to === undefined) return;
@@ -111,8 +117,49 @@ function syncLocation(w: Win | undefined) {
   document.title = w ? `${titleFor(w.path).text} · Sunnet` : 'Sunnet';
 }
 
+/** Ctrl + колесо или щипок на тачпаде — масштаб вокруг курсора; перетаскивание обоев — сдвиг отдалённого стола. */
+function useZoomGestures(ref: React.RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const st = useDesktop.getState();
+      const step = Math.max(-0.25, Math.min(0.25, -e.deltaY * (e.deltaMode === 1 ? 0.04 : 0.0012)));
+      st.zoomTo(st.view.zoom * (1 + step), { x: e.clientX, y: e.clientY });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [ref]);
+}
+
+/** Масштаб над доком: виден, только когда стол отдалён или приближен. */
+function ZoomPill() {
+  const zoom = useDesktop((s) => s.view.zoom);
+  if (zoom === 1) return null;
+  const st = useDesktop.getState;
+  return (
+    <div className="desk__zoom" role="group" aria-label="Масштаб стола">
+      <button type="button" onClick={() => st().zoomTo(zoom - 0.1)} disabled={zoom <= ZOOM_MIN} aria-label="Отдалить">
+        <ZoomOut size={15} />
+      </button>
+      <button type="button" className="desk__zoom-value" onClick={() => st().zoomTo(1)} title="Вернуть 100 %">
+        {Math.round(zoom * 100)} %
+      </button>
+      <button type="button" onClick={() => st().zoomTo(zoom + 0.1)} disabled={zoom >= ZOOM_MAX} aria-label="Приблизить">
+        <ZoomIn size={15} />
+      </button>
+    </div>
+  );
+}
+
 export function Desktop() {
   const ids = useDesktop(useShallow((s) => s.wins.map((w) => w.id)));
+  const view = useDesktop((s) => s.view);
+  const deskRef = useRef<HTMLDivElement>(null);
+  const panning = useRef<{ x: number; y: number } | null>(null);
+  useZoomGestures(deskRef);
   const empty = useDesktop((s) => s.wins.every((w) => w.min));
   const wallpaper = useDesktop((s) => s.wallpaper);
   const ctx = useDeskMenu();
@@ -152,24 +199,44 @@ export function Desktop() {
   return (
     <>
       <div
-        className={`desk desk--wp-${wallpaper}`}
+        ref={deskRef}
+        className={view.zoom !== 1 ? `desk desk--wp-${wallpaper} desk--zoomed` : `desk desk--wp-${wallpaper}`}
         style={{ '--desk-menubar-h': `${MENUBAR_H}px`, '--desk-dock-zone': `${DOCK_ZONE}px` } as CSSProperties}
         onContextMenu={onContextMenu}
         onPointerDown={(e) => {
           // Щелчок по обоям снимает фокус с окон
           const t = e.target as HTMLElement;
-          if (t === e.currentTarget || t.closest('.wall, .desk__empty')) (document.activeElement as HTMLElement | null)?.blur?.();
+          if (t === e.currentTarget || t.closest('.wall, .desk__empty')) {
+            (document.activeElement as HTMLElement | null)?.blur?.();
+            // Отдалённый стол двигается за обои
+            if (e.button === 0 && useDesktop.getState().view.zoom !== 1 && !t.closest('button')) {
+              panning.current = { x: e.clientX, y: e.clientY };
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }
+          }
         }}
+        onPointerMove={(e) => {
+          const p = panning.current;
+          if (!p) return;
+          useDesktop.getState().pan(e.clientX - p.x, e.clientY - p.y);
+          panning.current = { x: e.clientX, y: e.clientY };
+        }}
+        onPointerUp={() => (panning.current = null)}
+        onPointerCancel={() => (panning.current = null)}
       >
         <Wallpaper kind={wallpaper} />
         {empty && <EmptyDesk />}
-        <div className="desk__windows">
+        <div
+          className="desk__windows"
+          style={view.zoom !== 1 || view.x || view.y ? { transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})` } : undefined}
+        >
           <SnapPreview />
           {ids.map((id) => (
             <DeskWindow key={id} id={id} />
           ))}
         </div>
         <MenuBar />
+        <ZoomPill />
         <Dock />
         <Launcher />
         <DeskMenu
@@ -182,6 +249,11 @@ export function Desktop() {
               ? { label: 'Показать окна', icon: <Eye size={18} />, onClick: () => st().showDesktop() }
               : { label: 'Свернуть все', icon: <EyeOff size={18} />, disabled: empty, onClick: () => st().showDesktop() },
             { label: 'Закрыть все окна', icon: <XSquare size={18} />, disabled: !count, onClick: () => closeWindows(st().wins.map((w) => w.id)) },
+            'separator',
+            { title: `Масштаб · ${Math.round(view.zoom * 100)} %` },
+            { label: 'Приблизить', icon: <ZoomIn size={18} />, disabled: view.zoom >= ZOOM_MAX, onClick: () => st().zoomTo(view.zoom + 0.1) },
+            { label: 'Отдалить', icon: <ZoomOut size={18} />, disabled: view.zoom <= ZOOM_MIN, onClick: () => st().zoomTo(view.zoom - 0.1) },
+            { label: 'Обычный масштаб', disabled: view.zoom === 1, onClick: () => st().zoomTo(1) },
             'separator',
             { title: 'Обои' },
             ...WALLPAPERS.map((w) => ({ label: w.label, checked: w.id === wallpaper, onClick: () => st().setWallpaper(w.id) })),

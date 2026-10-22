@@ -31,6 +31,22 @@ export interface Win {
   go?: { path: string; n: number };
 }
 
+/** Масштаб стола: отдалить, чтобы увидеть все окна, или приблизить до 150 % */
+export interface View {
+  x: number;
+  y: number;
+  zoom: number;
+}
+export const ZOOM_MIN = 0.3;
+export const ZOOM_MAX = 1.5;
+export const DEFAULT_VIEW: View = { x: 0, y: 0, zoom: 1 };
+
+/** Видимая часть стола в координатах окон (при масштабе 100 % — рабочая область). */
+export function visibleArea(area: Rect, v: View): Rect {
+  if (v.zoom === 1 && !v.x && !v.y) return area;
+  return { x: (area.x - v.x) / v.zoom, y: (area.y - v.y) / v.zoom, w: area.w / v.zoom, h: area.h / v.zoom };
+}
+
 export type WallpaperId = 'sky' | 'dawn' | 'night' | 'aurora' | 'plain';
 export const WALLPAPERS: { id: WallpaperId; label: string }[] = [
   { id: 'sky', label: 'Солнечное небо' },
@@ -58,6 +74,10 @@ interface DesktopState {
   controls: ControlsStyle;
   /** Окна, свёрнутые кнопкой «Свернуть все» — вернутся повторным нажатием */
   stash: string[] | null;
+  view: View;
+  /** Масштаб вокруг точки экрана (по умолчанию — центр рабочей области) */
+  zoomTo: (zoom: number, at?: { x: number; y: number }) => void;
+  pan: (dx: number, dy: number) => void;
   open: (path: string, opts?: OpenOptions) => string;
   focus: (id: string) => void;
   close: (id: string) => void;
@@ -104,6 +124,22 @@ export const useDesktop = create<DesktopState>()(
         wallpaper: 'sky',
         controls: 'auto',
         stash: null,
+        view: DEFAULT_VIEW,
+        zoomTo: (zoom, at) => {
+          const v = get().view;
+          const z = Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom)) * 100) / 100;
+          if (Math.abs(z - 1) < 0.02) return set({ view: DEFAULT_VIEW });
+          const a = useArea.getState().area;
+          const c = at ?? { x: a.x + a.w / 2, y: a.y + a.h / 2 };
+          // Точка под курсором остаётся на месте
+          const dx = (c.x - v.x) / v.zoom;
+          const dy = (c.y - v.y) / v.zoom;
+          set({ view: { zoom: z, x: Math.round(c.x - dx * z), y: Math.round(c.y - dy * z) } });
+        },
+        pan: (dx, dy) => {
+          const v = get().view;
+          if (v.zoom !== 1) set({ view: { ...v, x: v.x + dx, y: v.y + dy } });
+        },
         open: (path, opts = {}) => {
           const { wins, top } = get();
           const app = appFor(path);
@@ -116,7 +152,7 @@ export const useDesktop = create<DesktopState>()(
               return same.id;
             }
           }
-          const area = useArea.getState().area;
+          const area = visibleArea(useArea.getState().area, get().view);
           const rect = opts.rect ?? cascadePlace(sizeFor(path, area), wins, area);
           const win: Win = { id: uid(), path, ...rect, z: top + 1, min: false, max: false, snap: null };
           fresh.set(win.id, opts.origin ?? null);
@@ -135,15 +171,19 @@ export const useDesktop = create<DesktopState>()(
         minimize: (id) => patch(id, () => ({ min: true })),
         toggleMax: (id) => {
           const w = get().wins.find((x) => x.id === id);
+          // Развёрнутое окно занимает экран — масштаб возвращается к 100 %
+          if (w) set({ view: DEFAULT_VIEW });
           if (w) raise(id, { min: false, max: !(w.max || w.snap), snap: null });
         },
-        snapTo: (id, snap, normal) =>
+        snapTo: (id, snap, normal) => {
+          if (snap) set({ view: DEFAULT_VIEW });
           raise(id, {
             ...(normal ?? {}),
             min: false,
             max: snap === 'max',
             snap: snap && snap !== 'max' ? snap : null,
-          }),
+          });
+        },
         place: (id, rect) => patch(id, () => ({ ...rect, max: false, snap: null })),
         setPath: (id, path) => {
           const w = get().wins.find((x) => x.id === id);
@@ -156,6 +196,7 @@ export const useDesktop = create<DesktopState>()(
             .wins.filter((w) => !w.min)
             .sort((a, b) => b.z - a.z);
           if (!visible.length) return;
+          set({ view: DEFAULT_VIEW });
           const rects = tileRects(visible.length, useArea.getState().area);
           const at = new Map(visible.map((w, i) => [w.id, rects[i]!]));
           set({ wins: get().wins.map((w) => (at.has(w.id) ? { ...w, ...at.get(w.id)!, max: false, snap: null } : w)) });
@@ -181,7 +222,7 @@ export const useDesktop = create<DesktopState>()(
         setWallpaper: (wallpaper) => set({ wallpaper }),
         setControls: (controls) => set({ controls }),
         reset: () => {
-          set({ wins: [], top: 1, stash: null });
+          set({ wins: [], top: 1, stash: null, view: DEFAULT_VIEW });
           // На компьютере сразу раскладываем окна, как при первом запуске
           if (typeof window !== 'undefined' && matchMedia(DESKTOP_QUERY).matches) {
             for (const { path, rect } of firstRunLayout(useArea.getState().area)) get().open(path, { newWindow: true, rect });
@@ -192,7 +233,7 @@ export const useDesktop = create<DesktopState>()(
     {
       name: 'spaceup.desktop',
       version: 2,
-      partialize: (s) => ({ wins: s.wins.map(({ go: _go, ...w }) => w), top: s.top, wallpaper: s.wallpaper, controls: s.controls }),
+      partialize: (s) => ({ wins: s.wins.map(({ go: _go, ...w }) => w), top: s.top, wallpaper: s.wallpaper, controls: s.controls, view: s.view }),
       // v1 («Пространство»): окна на поле с масштабом и доком слева шириной 76 px.
       // Переводим в экранные координаты и возвращаем окна в видимую область.
       migrate: (persisted, version) => {

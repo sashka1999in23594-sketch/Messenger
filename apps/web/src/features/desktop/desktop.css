@@ -175,6 +175,7 @@ body:has(.desk:not(.desk--wp-aurora)) .aurora {
   inset: 0;
   z-index: 1;
   pointer-events: none;
+  transform-origin: 0 0;
 }
 
 /* ─── Окно ─── */
@@ -1034,4 +1035,52 @@ body:has(.desk:not(.desk--wp-aurora)) .aurora {
   color: var(--warning);
   font-size: 12px;
   font-weight: 650;
+}
+
+/* ─── Масштаб стола ─── */
+.desk--zoomed .wall {
+  cursor: grab;
+}
+.desk--zoomed .wall:active {
+  cursor: grabbing;
+}
+.desk__zoom {
+  position: absolute;
+  top: calc(var(--desk-menubar-h) + 10px);
+  left: 50%;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: var(--desk-menubar-bg);
+  color: var(--desk-menubar-fg);
+  box-shadow:
+    inset 0 0 0 1px var(--desk-menubar-edge),
+    var(--shadow-md);
+  backdrop-filter: blur(var(--blur-strong)) saturate(1.6);
+  -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(1.6);
+  transform: translateX(-50%);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.desk__zoom button {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius-full);
+  color: inherit;
+}
+.desk__zoom button:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+.desk__zoom button:disabled {
+  opacity: 0.4;
+}
+.desk__zoom-value {
+  font-variant-numeric: tabular-nums;
+  min-width: 58px !important;
 }
