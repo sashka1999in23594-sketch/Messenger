@@ -8,6 +8,7 @@ import { useRealtime } from '../shared/stores/realtime';
 import { useSession } from '../shared/stores/session';
 import { toast } from '../shared/stores/ui';
 import { handleCallEvent, restoreIncomingCall } from '../shared/calls/engine';
+import { handleRoomEvent, restoreRoom } from '../shared/calls/room';
 import { desktopNotify, playSound } from '../shared/lib/sounds';
 import { isQuietNow, usePrefs } from '../shared/stores/prefs';
 import { activeChat, forgetChat, onIncomingMessage, patchChat, patchMessage, removeMessage } from '../features/chats/cache';
@@ -117,6 +118,12 @@ function handle(event: ServerEvent): void {
     case 'call.signal':
       void handleCallEvent(event).catch(() => undefined);
       break;
+    case 'room.invite':
+    case 'room.updated':
+    case 'room.signal':
+    case 'room.chat':
+      void handleRoomEvent(event).catch(() => undefined);
+      break;
     case 'session.revoked':
       sessionEvents.dispatchEvent(new Event('revoked'));
       break;
@@ -137,6 +144,7 @@ export function startRealtime(): void {
   });
   realtime.connect();
   void restoreIncomingCall();
+  void restoreRoom();
 }
 
 export function stopRealtime(): void {

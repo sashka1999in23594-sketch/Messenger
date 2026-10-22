@@ -40,6 +40,7 @@ const OpenSaved = lazyNamed(chats, 'OpenSaved');
 const FoldersPage = lazyNamed(chats, 'FoldersPage');
 const JoinPage = lazyNamed(chats, 'JoinPage');
 const CallsPage = lazyNamed(calls, 'CallsPage');
+const NewCallPage = lazyNamed(calls, 'NewCallPage');
 const stats = () => import('../features/stats');
 const live = () => import('../features/live');
 const LiveHome = lazyNamed(live, 'LiveHome');
@@ -195,7 +196,10 @@ export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
           <Route path=":chatId" element={<ChatView />} />
         </Route>
         <Route path="join/:token" element={<JoinPage />} />
-        <Route path="calls" element={<Navigate to="/stats/calls" replace />} />
+        {/* Звонки */}
+        <Route path="calls" element={<CallsPage filter="all" />} />
+        <Route path="calls/missed" element={<CallsPage filter="missed" />} />
+        <Route path="calls/new" element={<NewCallPage />} />
         <Route path="contacts/following" element={<FollowListPage which="following" />} />
         <Route path="contacts/followers" element={<FollowListPage which="followers" />} />
         <Route path="contacts/suggestions" element={<FollowListPage which="suggestions" />} />
@@ -273,8 +277,8 @@ export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
         <Route path="stats/channels" element={<ChannelsStatsPage />} />
         <Route path="stats/channels/:id" element={<ChannelStatsPage />} />
         <Route path="stats/subscriptions" element={<SubscriptionsPage />} />
-        <Route path="stats/calls" element={<CallsPage filter="all" />} />
-        <Route path="stats/calls/missed" element={<CallsPage filter="missed" />} />
+        <Route path="stats/calls" element={<Navigate to="/calls" replace />} />
+        <Route path="stats/calls/missed" element={<Navigate to="/calls/missed" replace />} />
 
         {/* Уведомления */}
         <Route path="notifications" element={<NotificationsPage />} />

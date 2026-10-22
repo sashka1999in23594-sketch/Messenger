@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronDown, ChevronLeft, ChevronUp, Clapperboard, LayoutGrid, Plus, RotateCcw, Sparkles, UserPlus, WifiOff } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronUp, Clapperboard, LayoutGrid, Plus, RotateCcw, Send, Sparkles, UserPlus, WifiOff } from 'lucide-react';
 import type { Post } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { flatPages, qk, useCursorList } from '../../shared/api/query';
@@ -15,6 +15,7 @@ import { useIsMobile } from '../../shared/hooks';
 import { useMe } from '../../shared/stores/session';
 import { cn } from '../../shared/lib/format';
 import { useImmersive } from '../../app/layout/Shell';
+import { ShareSheet } from '../misc/kit';
 import { CommentsSheet } from './CommentsSheet';
 import { ReelSlide, type SlideControl, type SlideStatus } from './ReelSlide';
 import { setMuted, useReducedMotion, useSound, VideoPool } from './lib';
@@ -47,6 +48,7 @@ export function ShortsFeed({ mode }: { mode: FeedMode }) {
   const [inWindow, setInWindow] = useState(false);
   const [clean, setClean] = useState(false);
   const [sheet, setSheet] = useState<SheetMode>('none');
+  const [current, setCurrent] = useState<Post | undefined>();
   const isMobile = useIsMobile();
   // Пул видео живёт дольше ленты: при смене вкладки звук остаётся разрешённым
   const [pool] = useState(() => new VideoPool(3));
@@ -78,11 +80,40 @@ export function ShortsFeed({ mode }: { mode: FeedMode }) {
     };
   }, [pool]);
 
+  // На телефоне внизу — «Назад» и «Скинуть» (кому отправить ролик)
+  const bar = isMobile && !inWindow && layout === 'narrow';
   return (
-    <div ref={root} className={cn('rl', `rl--${layout}`, sheet !== 'none' && `rl--${sheet}`, clean && 'rl--clean')} tabIndex={-1}>
-      <TopBar mode={mode} mine={from === 'mine'} wide={layout !== 'narrow'} showBack={from === 'mine' || (isMobile && !inWindow)} />
-      <Feed key={from ?? mode} mode={mode} from={from} start={start} pool={pool} layout={layout} rootRef={root} onClean={setClean} onSheet={setSheet} />
+    <div ref={root} className={cn('rl', `rl--${layout}`, sheet !== 'none' && `rl--${sheet}`, clean && 'rl--clean', bar && 'rl--bar')} tabIndex={-1}>
+      <TopBar mode={mode} mine={from === 'mine'} wide={layout !== 'narrow'} showBack={from === 'mine' || (isMobile && !inWindow && !bar)} />
+      <Feed key={from ?? mode} mode={mode} from={from} start={start} pool={pool} layout={layout} rootRef={root} onClean={setClean} onSheet={setSheet} onActive={setCurrent} />
+      {bar && <ReelsBar post={current} mine={from === 'mine'} />}
     </div>
+  );
+}
+
+// ─── Нижняя панель на телефоне ───────────────────────────────────────────────
+
+function ReelsBar({ post, mine }: { post: Post | undefined; mine: boolean }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [share, setShare] = useState(false);
+  const back = () => {
+    if (mine) return navigate('/reels/mine');
+    if (location.key !== 'default') navigate(-1);
+    else navigate('/home');
+  };
+  return (
+    <>
+      <nav className="rl-bar" aria-label="Reels">
+        <button type="button" className="rl-bar__btn" onClick={back}>
+          <ChevronLeft size={22} /> Назад
+        </button>
+        <button type="button" className="rl-bar__btn rl-bar__btn--send" onClick={() => setShare(true)} disabled={!post}>
+          <Send size={19} /> Скинуть
+        </button>
+      </nav>
+      {share && post && <ShareSheet path={`/reels?start=${post.id}`} title={`Reels @${post.author.username}`} onClose={() => setShare(false)} />}
+    </>
   );
 }
 
@@ -168,9 +199,11 @@ interface FeedProps {
   rootRef: RefObject<HTMLDivElement | null>;
   onClean: (on: boolean) => void;
   onSheet: (mode: SheetMode) => void;
+  /** Какой ролик сейчас на экране */
+  onActive?: (post: Post | undefined) => void;
 }
 
-function Feed({ mode, from, start, pool, layout, rootRef, onClean, onSheet }: FeedProps) {
+function Feed({ mode, from, start, pool, layout, rootRef, onClean, onSheet, onActive }: FeedProps) {
   const me = useMe();
   const reduced = useReducedMotion();
   const sound = useSound();
@@ -223,6 +256,9 @@ function Feed({ mode, from, start, pool, layout, rootRef, onClean, onSheet }: Fe
       setActive(i);
     }
   }, [total]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const activePost = all[active];
+  useEffect(() => onActive?.(activePost), [activePost, onActive]);
 
   // Подгрузка заранее, за три ролика до конца
   useEffect(() => {

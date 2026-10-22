@@ -1593,3 +1593,45 @@
 [data-reduce-motion='true'] .rl-spinner {
   opacity: 1;
 }
+
+/* ─── Нижняя панель на телефоне: «Назад» и «Скинуть» ─── */
+.rl--bar .rl-feed {
+  bottom: calc(56px + var(--safe-bottom));
+}
+.rl-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  display: flex;
+  gap: 10px;
+  height: calc(56px + var(--safe-bottom));
+  padding: 6px 12px calc(6px + var(--safe-bottom));
+  background: var(--reels-bg);
+  border-top: 1px solid var(--reels-glass);
+}
+.rl-bar__btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  color: var(--reels-fg);
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  transition:
+    background var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.rl-bar__btn:active {
+  transform: scale(0.97);
+}
+.rl-bar__btn--send {
+  background: var(--accent);
+  color: var(--room-accent-fg);
+}
+.rl-bar__btn:disabled {
+  opacity: 0.5;
+}

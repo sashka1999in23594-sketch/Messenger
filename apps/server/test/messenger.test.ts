@@ -261,6 +261,52 @@ describe('звонки', () => {
     expect(history.some((h) => h.status === 'busy')).toBe(true);
   });
 
+  it('групповой звонок: создание по id и имени, вход, приглашение, выход, история', async () => {
+    const a = await registerUser(app);
+    const b = await registerUser(app);
+    const c = await registerUser(app);
+    const d = await registerUser(app);
+    const room = await a.client.post('/calls/rooms', { userIds: [b.user.id], usernames: ['@' + c.user.username], video: true, title: 'Планёрка' });
+    expect(room.status).toBe(201);
+    expect(room.body.status).toBe('active');
+    expect(room.body.members.map((m: { state: string }) => m.state)).toEqual(['joined', 'invited', 'invited']);
+    // Посторонний звонок не видит и войти не может
+    expect((await d.client.get(`/calls/rooms/${room.body.id}`)).status).toBe(404);
+    expect((await d.client.post(`/calls/rooms/${room.body.id}/join`)).status).toBe(404);
+    // Приглашённый видит текущий звонок и входит
+    expect((await b.client.get('/calls/rooms/current')).body.room.id).toBe(room.body.id);
+    const joined = await b.client.post(`/calls/rooms/${room.body.id}/join`);
+    expect(joined.body.members.find((m: { user: { id: string } }) => m.user.id === b.user.id).state).toBe('joined');
+    // Приглашать может участник; приглашённый, но не вошедший — нет
+    expect((await c.client.post(`/calls/rooms/${room.body.id}/invite`, { userIds: [d.user.id] })).status).toBe(403);
+    const invited = await b.client.post(`/calls/rooms/${room.body.id}/invite`, { userIds: [d.user.id] });
+    expect(invited.body.members).toHaveLength(4);
+    // Отказ приглашённого
+    expect((await c.client.post(`/calls/rooms/${room.body.id}/leave`)).body.members.find((m: { user: { id: string } }) => m.user.id === c.user.id).state).toBe('declined');
+    // Чат звонка — только для участников
+    expect((await d.client.post(`/calls/rooms/${room.body.id}/chat`, { text: 'Привет' })).status).toBe(403);
+    expect((await a.client.post(`/calls/rooms/${room.body.id}/chat`, { text: 'Привет всем' })).body.text).toBe('Привет всем');
+    // Сигналы — только с устройства, с которого человек в звонке
+    expect(() => app.ctx.services.rooms.signal(b.user.id, 'other-session', room.body.id, a.user.id, { type: 'answer', sdp: 'v=0' })).toThrow();
+    // Вышли все — звонок завершён
+    await a.client.post(`/calls/rooms/${room.body.id}/leave`);
+    const last = await b.client.post(`/calls/rooms/${room.body.id}/leave`);
+    expect(last.body.status).toBe('ended');
+    expect((await d.client.post(`/calls/rooms/${room.body.id}/join`)).status).toBe(400);
+    const history = (await b.client.get('/calls/rooms')).body.items as { id: string; title: string }[];
+    expect(history[0]).toMatchObject({ id: room.body.id, title: 'Планёрка' });
+  });
+
+  it('групповой звонок: не больше 50 человек, заблокировавшего не позвать', async () => {
+    const a = await registerUser(app);
+    const b = await registerUser(app);
+    await b.client.post(`/users/${a.user.id}/block`);
+    expect((await a.client.post('/calls/rooms', { userIds: [b.user.id] })).status).toBe(400);
+    expect((await a.client.post('/calls/rooms', { usernames: ['nobody_here_xyz'] })).status).toBe(400);
+    const many = Array.from({ length: 50 }, (_, i) => `user_${i}`);
+    expect((await a.client.post('/calls/rooms', { usernames: many })).status).toBe(400);
+  });
+
   it('в группу и заблокировавшему не позвонить; отклонённый звонок', async () => {
     const a = await registerUser(app);
     const b = await registerUser(app);

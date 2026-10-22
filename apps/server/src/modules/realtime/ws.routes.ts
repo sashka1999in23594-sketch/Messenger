@@ -62,6 +62,11 @@ export async function wsRoutes(app: FastifyInstance): Promise<void> {
             services.calls.signal(userId, sessionId, event.callId, event.signal);
             break;
           }
+          case 'room.signal': {
+            if (typeof event.roomId !== 'string' || event.roomId.length > 64 || typeof event.to !== 'string' || event.to.length > 64 || typeof event.signal !== 'object' || !event.signal) return;
+            services.rooms.signal(userId, sessionId, event.roomId, event.to, event.signal);
+            break;
+          }
           case 'live.signal': {
             if (typeof event.streamId !== 'string' || event.streamId.length > 64 || typeof event.peer !== 'string' || typeof event.signal !== 'object' || !event.signal) return;
             services.live.signal(userId, sessionId, event.streamId, event.peer, event.signal);

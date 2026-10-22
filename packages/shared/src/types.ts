@@ -468,6 +468,32 @@ export interface CallInfo {
   endedAt: ISODate | null;
 }
 
+/** Участник группового звонка: приглашён, в звонке, вышел или отказался */
+export type RoomMemberState = 'invited' | 'joined' | 'left' | 'declined';
+
+export interface RoomMember {
+  user: UserSummary;
+  state: RoomMemberState;
+  /** Создатель звонка или участник */
+  role: 'owner' | 'member';
+  invitedAt: ISODate;
+  joinedAt: ISODate | null;
+}
+
+/** Групповой звонок до 50 человек: идёт, пока в нём есть хотя бы один участник. */
+export interface CallRoom {
+  id: ID;
+  title: string | null;
+  video: boolean;
+  status: 'active' | 'ended';
+  owner: UserSummary;
+  members: RoomMember[];
+  /** Длительность, секунды (у идущего — с начала до сейчас) */
+  durationSec: number;
+  createdAt: ISODate;
+  endedAt: ISODate | null;
+}
+
 export interface ChatFolderInfo {
   id: ID;
   name: string;

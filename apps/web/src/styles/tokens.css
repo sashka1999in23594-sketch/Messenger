@@ -112,6 +112,34 @@
   --call-green: #22c55e;
   --call-red: #ef4444;
 
+  /* Групповой звонок и студия: всегда тёмные, как в видеоредакторах */
+  --room-bg: #0b0d12;
+  --room-stage: #05060a;
+  --room-panel: #12151c;
+  --room-panel-2: #1a1e27;
+  --room-panel-3: #232836;
+  --room-border: rgba(255, 255, 255, 0.08);
+  --room-border-strong: rgba(255, 255, 255, 0.16);
+  --room-fg: #eef1f7;
+  --room-fg-2: rgba(238, 241, 247, 0.7);
+  --room-fg-3: rgba(238, 241, 247, 0.45);
+  --room-accent: #3d8bff;
+  --room-accent-soft: rgba(61, 139, 255, 0.18);
+  --room-accent-fg: #ffffff;
+  --room-live: #3ccf7f;
+  --room-live-soft: rgba(60, 207, 127, 0.18);
+  --room-danger: #ef4444;
+  --room-danger-hover: #dc2626;
+  --room-warn: #fbbf24;
+  --room-speaking: #3ccf7f;
+  --room-select: #3ccf7f;
+  --room-shadow: 0 24px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --room-glass: rgba(14, 17, 24, 0.72);
+  --room-scrim: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent);
+  --room-backdrop: rgba(0, 0, 0, 0.55);
+  --room-pip-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+  --room-text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+
   /* Истории: просмотрщик всегда тёмный */
   --story-bg: #07070b;
   --story-fg: #ffffff;

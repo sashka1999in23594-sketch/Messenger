@@ -7,6 +7,7 @@ import { useUi } from '../../shared/stores/ui';
 import { cn } from '../../shared/lib/format';
 import { Loading } from '../../shared/ui';
 import { CallScreen } from '../../features/calls/CallScreen';
+import { RoomScreen } from '../../features/calls/RoomScreen';
 import { CommandPalette } from './CommandPalette';
 import { LockScreen } from './LockScreen';
 import { BottomTabs, MobileDrawer } from './Mobile';
@@ -120,6 +121,7 @@ export function Shell() {
       <MobileDrawer />
       <CommandPalette />
       <CallScreen />
+      <RoomScreen />
       <LockScreen />
     </div>
   );

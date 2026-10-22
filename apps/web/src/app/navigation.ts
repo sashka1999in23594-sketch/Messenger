@@ -54,6 +54,7 @@ import {
   Palette,
   PenLine,
   Phone,
+  PhoneCall,
   PhoneMissed,
   Plus,
   Radio,
@@ -271,6 +272,19 @@ export const sections: NavSection[] = [
     ],
   },
   {
+    id: 'calls',
+    label: 'Звонки',
+    short: 'Звонки',
+    icon: Phone,
+    path: '/calls',
+    description: 'История звонков и групповые звонки до 50 человек',
+    children: [
+      { id: 'calls.all', label: 'Все звонки', icon: History, path: '/calls', keywords: ['звонок', 'видеозвонок', 'история звонков'] },
+      { id: 'calls.missed', label: 'Пропущенные', icon: PhoneMissed, path: '/calls/missed' },
+      { id: 'calls.new', label: 'Новый звонок', icon: PhoneCall, path: '/calls/new', keywords: ['позвонить', 'групповой звонок', 'конференция', 'созвон'] },
+    ],
+  },
+  {
     id: 'companies',
     label: 'Компании',
     short: 'Компании',
@@ -328,20 +342,11 @@ export const sections: NavSection[] = [
     short: 'Статист.',
     icon: ChartSpline,
     path: '/stats',
-    description: 'Рост подписчиков, каналы, подписки и звонки',
+    description: 'Рост подписчиков, каналы и подписки',
     children: [
       { id: 'stats.overview', label: 'Обзор', icon: ChartSpline, path: '/stats', keywords: ['подписчики', 'рост', 'график', 'просмотры профиля'] },
       { id: 'stats.channels', label: 'Каналы', icon: Megaphone, path: '/stats/channels', keywords: ['просмотры', 'охват', 'подписчики канала'] },
       { id: 'stats.subscriptions', label: 'Подписки', icon: UserCheck, path: '/stats/subscriptions', keywords: ['на кого подписан', 'подписчики'] },
-      {
-        id: 'stats.calls',
-        label: 'Звонки',
-        icon: Phone,
-        children: [
-          { id: 'stats.calls.all', label: 'История звонков', icon: History, path: '/stats/calls', keywords: ['звонок', 'видеозвонок'] },
-          { id: 'stats.calls.missed', label: 'Пропущенные', icon: PhoneMissed, path: '/stats/calls/missed' },
-        ],
-      },
     ],
   },
   {
@@ -525,7 +530,7 @@ const SECTION_PREFIXES: [string, string][] = [
   ['/profile', 'profile'],
   ['/u/', 'profile'],
   ['/stats', 'stats'],
-  ['/calls', 'stats'],
+  ['/calls', 'calls'],
   ['/settings', 'settings'],
   ['/admin', 'settings'],
 ];
@@ -535,4 +540,5 @@ export function sectionFor(pathname: string): NavSection {
   return sections.find((s) => s.id === hit?.[1]) ?? sections[0]!;
 }
 
-export const mobileTabs = ['home', 'messenger', 'channels', 'reels'] as const;
+/** Нижняя панель телефона — как в Telegram */
+export const mobileTabs = ['messenger', 'video', 'reels', 'calls'] as const;

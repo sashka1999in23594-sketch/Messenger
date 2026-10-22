@@ -3,7 +3,7 @@
  * лёгкие сигналы (набор текста, пинг). Все изменения данных идут через REST,
  * поэтому протокол легко масштабировать (Redis pub/sub, NATS) без изменения клиента.
  */
-import type { AppNotification, CallInfo, Counters, ID, LiveChatMessage, LiveStream, Message } from './types.js';
+import type { AppNotification, CallInfo, CallRoom, Counters, ID, LiveChatMessage, LiveStream, Message, UserSummary } from './types.js';
 
 /** Что делает собеседник: печатает, записывает голосовое или кружок. */
 export type ChatActivity = 'typing' | 'voice' | 'round';
@@ -13,6 +13,16 @@ export type CallSignal =
   | { type: 'offer' | 'answer'; sdp: string }
   | { type: 'ice'; candidate: string; sdpMid: string | null; sdpMLineIndex: number | null }
   | { type: 'media'; audio: boolean; video: boolean };
+
+/**
+ * Сигнализация группового звонка: то же, что у звонка 1:1, плюс состояние
+ * участника — включены ли микрофон и камера, какой поток — демонстрация экрана,
+ * поднята ли рука.
+ */
+export type RoomSignal =
+  | { type: 'offer' | 'answer'; sdp: string }
+  | { type: 'ice'; candidate: string; sdpMid: string | null; sdpMLineIndex: number | null }
+  | { type: 'media'; audio: boolean; video: boolean; screen: string | null; hand: boolean };
 
 export type ServerEvent =
   | { t: 'hello'; userId: ID; serverTime: string }
@@ -38,6 +48,14 @@ export type ServerEvent =
   | { t: 'call.incoming'; call: CallInfo }
   | { t: 'call.updated'; call: CallInfo }
   | { t: 'call.signal'; callId: ID; signal: CallSignal }
+  /** Приглашение в групповой звонок */
+  | { t: 'room.invite'; room: CallRoom; from: UserSummary }
+  /** Изменился состав или состояние группового звонка */
+  | { t: 'room.updated'; room: CallRoom }
+  /** Сигнал WebRTC от участника группового звонка */
+  | { t: 'room.signal'; roomId: ID; from: ID; signal: RoomSignal }
+  /** Сообщение в чате звонка */
+  | { t: 'room.chat'; roomId: ID; message: LiveChatMessage }
   /** Прямой эфир: зритель подключился или ушёл (ведущему) */
   | { t: 'live.viewer'; streamId: ID; peer: string; joined: boolean }
   /** Сигнал WebRTC эфира: ведущему — от зрителя peer, зрителю — от ведущего */
@@ -52,6 +70,7 @@ export type ClientEvent =
   | { t: 'typing'; chatId: ID; activity?: ChatActivity }
   | { t: 'call.signal'; callId: ID; signal: CallSignal }
   | { t: 'live.signal'; streamId: ID; peer: string; signal: CallSignal }
+  | { t: 'room.signal'; roomId: ID; to: ID; signal: RoomSignal }
   | { t: 'ping' }
   | { t: 'presence.subscribe'; userIds: ID[] };
 

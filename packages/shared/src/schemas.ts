@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import {
   LIMITS,
+  MAX_ROOM_MEMBERS,
   REACTIONS,
   REPORT_REASONS,
   SECRET_TTL_OPTIONS,
@@ -518,6 +519,15 @@ export const createInviteSchema = z.object({
 });
 
 export const startCallSchema = z.object({ chatId: id, video: z.boolean().default(false) });
+
+/** Групповой звонок: кого позвать — по id или по имени пользователя */
+const roomPeople = {
+  userIds: z.array(id).max(MAX_ROOM_MEMBERS - 1).default([]),
+  usernames: z.array(z.string().trim().max(64)).max(MAX_ROOM_MEMBERS - 1).default([]),
+};
+export const createRoomSchema = z.object({ ...roomPeople, video: z.boolean().default(true), title: z.string().trim().max(80).optional() });
+export const inviteRoomSchema = z.object(roomPeople);
+export const roomChatSchema = z.object({ text: z.string().trim().min(1, 'Пустое сообщение').max(1000) });
 
 export const forwardMessageSchema = z.object({ toChatIds: z.array(id).min(1).max(20) });
 /** Реакция — любой одиночный эмодзи (быстрые реакции + полный выбор) */

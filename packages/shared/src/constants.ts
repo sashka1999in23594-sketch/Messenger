@@ -12,6 +12,9 @@ export const SYSTEM_USER_ID = '00000000000000000000000SYS';
 /** Почта поддержки */
 export const SUPPORT_EMAIL = 'spaceup.support@gmail.com';
 
+/** Сколько человек может быть в групповом звонке */
+export const MAX_ROOM_MEMBERS = 50;
+
 export const LIMITS = {
   usernameMin: 3,
   usernameMax: 32,

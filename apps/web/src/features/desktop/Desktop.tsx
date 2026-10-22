@@ -12,6 +12,7 @@ import { CommandPalette } from '../../app/layout/CommandPalette';
 import { LockScreen } from '../../app/layout/LockScreen';
 import { setRealtimeNavigate } from '../../app/realtime';
 import { CallScreen } from '../calls/CallScreen';
+import { RoomScreen } from '../calls/RoomScreen';
 import { isAppPath, isMac, titleFor } from './apps';
 import { DeskMenu, useDeskMenu } from './DeskMenu';
 import { Dock } from './Dock';
@@ -263,6 +264,7 @@ export function Desktop() {
         />
       </div>
       <CallScreen />
+      <RoomScreen />
       <LockScreen />
     </>
   );

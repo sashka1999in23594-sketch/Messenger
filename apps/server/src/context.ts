@@ -22,6 +22,7 @@ import { MessagesRepo } from './modules/chats/chats.repo.js';
 import { PollsRepo } from './modules/chats/polls.repo.js';
 import { CallsRepo } from './modules/calls/calls.repo.js';
 import { CallsService } from './modules/calls/calls.service.js';
+import { RoomsService } from './modules/calls/rooms.service.js';
 import { FoldersService } from './modules/chats/folders.service.js';
 import { InvitesService } from './modules/chats/invites.service.js';
 import { ScheduledService } from './modules/chats/scheduled.service.js';
@@ -74,6 +75,7 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub, storage
   const invites = new InvitesService(db, chats, usersRepo, media, config.publicOrigin);
   const scheduled = new ScheduledService(db, chats, media);
   const calls = new CallsService(db, callsRepo, chats, usersRepo, policy, hub);
+  const rooms = new RoomsService(db, usersRepo, policy, hub);
   const posts = new PostsService(db, usersRepo, policy, media, notifications);
   const comments = new CommentsService(db, usersRepo, policy, posts, notifications);
   const drafts = new DraftsService(db, media, posts);
@@ -121,6 +123,7 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub, storage
     chats,
     callsRepo,
     calls,
+    rooms,
     folders,
     invites,
     scheduled,

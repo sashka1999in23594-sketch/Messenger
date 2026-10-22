@@ -72,7 +72,6 @@ const STATS_TABS = [
   { to: '/stats', label: 'Обзор', end: true },
   { to: '/stats/channels', label: 'Каналы' },
   { to: '/stats/subscriptions', label: 'Подписки' },
-  { to: '/stats/calls', label: 'Звонки' },
 ];
 
 export function StatsPage() {

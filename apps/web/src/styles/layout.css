@@ -1128,6 +1128,30 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .bottom-tabs__icon--me .avatar {
+    box-shadow: 0 0 0 2px transparent;
+    transition: box-shadow var(--dur-fast) var(--ease);
+  }
+  .bottom-tabs__icon--me.is-on {
+    background: transparent;
+  }
+  .bottom-tabs__icon--me.is-on .avatar {
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+  /* Контекстная панель: «Назад» слева, вкладки раздела — справа */
+  .bottom-tabs--sub {
+    animation: tabs-swap var(--dur) var(--ease);
+  }
+  .bottom-tabs__item--back {
+    flex: 0.8;
+    color: var(--accent-fg) !important;
+  }
+  @keyframes tabs-swap {
+    from {
+      opacity: 0.4;
+      transform: translateY(6px);
+    }
+  }
   .bottom-tabs__badge {
     position: absolute;
     top: -3px;

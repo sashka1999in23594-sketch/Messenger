@@ -941,4 +941,34 @@ WHERE id = '00000000000000000000000SYS';
 ALTER TABLE media ADD COLUMN remote_enc INTEGER NOT NULL DEFAULT 0;
 `,
   },
+  {
+    version: '013_call_rooms',
+    sql: `
+-- Групповые звонки до 50 человек. Сервер хранит состав и пересылает сигналы,
+-- медиа идёт между участниками напрямую (DTLS-SRTP).
+CREATE TABLE call_rooms (
+  id          TEXT PRIMARY KEY,
+  owner_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title       TEXT,
+  video       INTEGER NOT NULL DEFAULT 1,
+  status      TEXT NOT NULL DEFAULT 'active',
+  created_at  INTEGER NOT NULL,
+  ended_at    INTEGER
+);
+CREATE TABLE call_room_members (
+  room_id     TEXT NOT NULL REFERENCES call_rooms(id) ON DELETE CASCADE,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role        TEXT NOT NULL DEFAULT 'member',
+  state       TEXT NOT NULL DEFAULT 'invited',
+  session_id  TEXT,
+  invited_by  TEXT,
+  invited_at  INTEGER NOT NULL,
+  joined_at   INTEGER,
+  left_at     INTEGER,
+  PRIMARY KEY (room_id, user_id)
+);
+CREATE INDEX idx_call_room_members_user ON call_room_members(user_id, invited_at DESC);
+CREATE INDEX idx_call_rooms_status ON call_rooms(status);
+`,
+  },
 ];

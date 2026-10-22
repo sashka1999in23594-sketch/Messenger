@@ -1,7 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { NavLink, useLocation, useNavigate } from 'react-router';
-import { Bookmark, ChevronDown, ChevronRight, Download, LayoutGrid, LifeBuoy, LogOut, Moon, Settings, Sun } from 'lucide-react';
+import {
+  Bookmark,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  CirclePlus,
+  Download,
+  LayoutGrid,
+  LifeBuoy,
+  ListVideo,
+  LogOut,
+  Megaphone,
+  MessageCircle,
+  Moon,
+  Settings,
+  SquarePlay,
+  Sun,
+  UserCheck,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import { mobileTabs, sectionFor, sections, type NavSection } from '../navigation';
 import { usePrefs } from '../../shared/stores/prefs';
 import { useSession } from '../../shared/stores/session';
@@ -14,6 +34,13 @@ import { NavTreeView } from './NavTree';
 import { useBadge } from './Rail';
 
 const fmtBadge = (n: number) => (n > 99 ? '99+' : String(n));
+
+/** Разделы, у которых на телефоне своя нижняя панель с «Назад». */
+type Group = 'chats' | 'video';
+const GROUPS: Record<string, Group> = { messenger: 'chats', channels: 'chats', communities: 'chats', video: 'video' };
+
+/** Откуда пришли в раздел с «Назад» — туда и вернёмся (по умолчанию — Главная). */
+let hubPath = '/home';
 
 function Tab({ id }: { id: (typeof mobileTabs)[number] }) {
   const section = sections.find((s) => s.id === id)!;
@@ -47,13 +74,78 @@ function Tab({ id }: { id: (typeof mobileTabs)[number] }) {
   );
 }
 
+/** Вкладка контекстной панели: ссылка с иконкой и подписью. */
+function SubTab({ to, label, icon: Icon, active, badge }: { to: string; label: string; icon: LucideIcon; active: boolean; badge?: number }) {
+  return (
+    <NavLink to={to} className={cn('bottom-tabs__item', active && 'bottom-tabs__item--active')} aria-current={active ? 'page' : undefined}>
+      <span className="bottom-tabs__icon">
+        <Icon size={23} strokeWidth={active ? 2.2 : 1.8} />
+        {!!badge && <span className="badge badge--red bottom-tabs__badge">{fmtBadge(badge)}</span>}
+      </span>
+      <span className="bottom-tabs__label">{label}</span>
+    </NavLink>
+  );
+}
+
+function BackTab() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" className="bottom-tabs__item bottom-tabs__item--back" onClick={() => navigate(hubPath)} aria-label="Назад к разделам">
+      <span className="bottom-tabs__icon">
+        <ChevronLeft size={26} strokeWidth={2} />
+      </span>
+      <span className="bottom-tabs__label">Назад</span>
+    </button>
+  );
+}
+
+/** Чаты: «Назад», Чаты, Каналы, Сообщества. */
+function ChatsBar({ section }: { section: string }) {
+  const chats = useBadge('chats');
+  const channels = useBadge('channels');
+  return (
+    <nav className="bottom-tabs bottom-tabs--sub" aria-label="Чаты">
+      <BackTab />
+      <SubTab to="/chats" label="Чаты" icon={MessageCircle} active={section === 'messenger'} badge={chats} />
+      <SubTab to="/channels" label="Каналы" icon={Megaphone} active={section === 'channels'} badge={channels} />
+      <SubTab to="/communities" label="Сообщества" icon={Users} active={section === 'communities'} />
+    </nav>
+  );
+}
+
+/** Видео: «Назад», Главная, Подписки, Загрузить, Библиотека — как в YouTube. */
+function VideoBar({ pathname }: { pathname: string }) {
+  const lib = ['/video/history', '/video/watch-later', '/video/liked', '/video/playlists'].some((p) => pathname.startsWith(p));
+  return (
+    <nav className="bottom-tabs bottom-tabs--sub" aria-label="Видео">
+      <BackTab />
+      <SubTab to="/video" label="Главная" icon={SquarePlay} active={pathname === '/video' || pathname.startsWith('/watch') || pathname.startsWith('/live') || pathname.startsWith('/premieres')} />
+      <SubTab to="/video/subscriptions" label="Подписки" icon={UserCheck} active={pathname.startsWith('/video/subscriptions')} />
+      <SubTab to="/video/upload" label="Загрузить" icon={CirclePlus} active={pathname.startsWith('/video/upload') || pathname.startsWith('/video/studio')} />
+      <SubTab to="/video/history" label="Библиотека" icon={ListVideo} active={lib} />
+    </nav>
+  );
+}
+
+/**
+ * Нижняя панель телефона. Главная — как в Telegram: Чаты, Видео, Reels,
+ * Звонки и профиль со всеми разделами. В чатах и видео — своя панель с «Назад».
+ */
 export function BottomTabs() {
   const setDrawer = useUi((s) => s.setDrawer);
   const drawerOpen = useUi((s) => s.drawerOpen);
+  const me = useSession((s) => s.me);
   const notif = useBadge('notifications');
   const { pathname } = useLocation();
-  // «Ещё» подсвечена, когда открыт раздел не из вкладок (видео, настройки…)
-  const inMore = !mobileTabs.includes(sectionFor(pathname).id as (typeof mobileTabs)[number]);
+  const section = sectionFor(pathname).id;
+  const group = GROUPS[section];
+  useEffect(() => {
+    if (!GROUPS[section] && section !== 'reels') hubPath = pathname;
+  }, [section, pathname]);
+  if (group === 'chats') return <ChatsBar section={section} />;
+  if (group === 'video') return <VideoBar pathname={pathname} />;
+  // Профиль подсвечен, когда открыт раздел не из вкладок (настройки, уведомления…)
+  const inMore = section !== 'home' && !mobileTabs.includes(section as (typeof mobileTabs)[number]);
   return (
     <nav className="bottom-tabs" aria-label="Основные разделы">
       {mobileTabs.map((id) => (
@@ -64,12 +156,13 @@ export function BottomTabs() {
         className={cn('bottom-tabs__item', (inMore || drawerOpen) && 'bottom-tabs__item--active')}
         onClick={() => setDrawer(true)}
         aria-haspopup="dialog"
+        aria-label="Профиль и все разделы"
       >
-        <span className="bottom-tabs__icon">
-          <LayoutGrid size={23} strokeWidth={inMore || drawerOpen ? 2.2 : 1.8} />
+        <span className={cn('bottom-tabs__icon bottom-tabs__icon--me', (inMore || drawerOpen) && 'is-on')}>
+          {me ? <Avatar src={me.avatarUrl} name={me.displayName} id={me.id} size={26} /> : <LayoutGrid size={23} />}
           {notif > 0 && <span className="badge badge--red bottom-tabs__badge">{fmtBadge(notif)}</span>}
         </span>
-        <span className="bottom-tabs__label">Ещё</span>
+        <span className="bottom-tabs__label">Профиль</span>
       </button>
     </nav>
   );

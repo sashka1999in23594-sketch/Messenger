@@ -1,0 +1,1513 @@
+/* ─── Групповой звонок ─────────────────────────────────────────────────────
+ * Окно на компьютере, полноэкранный звонок на телефоне, студия трансляции.
+ * Всегда тёмная палитра (--room-*), как у видеоредакторов и созвонов.
+ */
+
+.room-mirror {
+  transform: scaleX(-1);
+}
+
+/* ─── Окно ─── */
+.room-win {
+  position: fixed;
+  z-index: var(--z-call);
+  display: flex;
+  flex-direction: column;
+  min-width: 640px;
+  min-height: 440px;
+  color: var(--room-fg);
+  background: var(--room-bg);
+  border-radius: 14px;
+  box-shadow: var(--room-shadow);
+  overflow: hidden;
+  animation: room-in var(--dur) var(--ease);
+  font-size: var(--fs-sm);
+}
+.room-win--max {
+  inset: 0;
+  border-radius: 0;
+}
+@keyframes room-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+}
+.room-win__bar {
+  flex: none;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: 48px;
+  padding: 0 8px 0 14px;
+  border-bottom: 1px solid var(--room-border);
+  cursor: grab;
+  user-select: none;
+}
+.room-win--max .room-win__bar {
+  cursor: default;
+}
+.room-win__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.room-win__brand b {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.room-win__live {
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--room-live-soft);
+  color: var(--room-live);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+.room-win__timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+.room-win__tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+.room-win__sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 8px;
+  background: var(--room-border-strong);
+}
+.room-win__anchor {
+  position: relative;
+  display: inline-flex;
+}
+.room-win__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.room-win__center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.room-win__stage {
+  position: relative;
+  flex: 1;
+  min-height: 300px;
+  background: var(--room-stage);
+}
+.room-win--studio .room-win__stage {
+  flex: none;
+  height: clamp(260px, 38vh, 420px);
+}
+.room-win__side {
+  flex: none;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--room-border);
+  background: var(--room-panel);
+}
+.room-win__side > .room-panel {
+  flex: 1;
+  min-height: 0;
+}
+.room-win__side > .room-panel + .room-panel {
+  border-top: 1px solid var(--room-border);
+}
+.room-win__resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+}
+
+/* Кнопки-иконки в заголовке и панелях */
+.room-icon {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 7px;
+  border-radius: 9px;
+  color: var(--room-fg-2);
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.room-icon:hover,
+.room-icon.is-on {
+  background: var(--room-panel-3);
+  color: var(--room-fg);
+}
+.room-icon.is-off {
+  color: var(--room-danger);
+}
+.room-icon--close:hover,
+.room-icon--hang {
+  background: var(--room-danger);
+  color: var(--room-accent-fg);
+}
+.room-icon--hang:hover {
+  background: var(--room-danger-hover);
+}
+.room-icon__count {
+  position: absolute;
+  top: 2px;
+  right: 1px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--room-fg);
+}
+.room-icon__dot {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--room-accent);
+  box-shadow: 0 0 0 2px var(--room-bg);
+}
+
+/* Выпадающие меню */
+.room-menu {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  z-index: 5;
+  min-width: 220px;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--room-panel-2);
+  box-shadow: var(--room-shadow);
+  transform: translateX(-50%);
+  animation: room-in var(--dur-fast) var(--ease);
+}
+.room-menu--down {
+  top: calc(100% + 8px);
+  bottom: auto;
+  left: auto;
+  right: 0;
+  transform: none;
+}
+.room-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 8px;
+  color: var(--room-fg);
+  text-align: left;
+  white-space: nowrap;
+}
+.room-menu button:hover {
+  background: var(--room-panel-3);
+}
+.room-menu button.is-on {
+  color: var(--room-accent);
+}
+
+/* ─── Сцена и плитки ─── */
+.room-stage {
+  position: absolute;
+  inset: 0;
+  padding: 10px 10px 92px;
+}
+.room-stage--grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--rows), minmax(0, 1fr));
+  gap: 8px;
+}
+.room-stage--duo {
+  padding: 0;
+}
+.room-stage--duo > .room-tile {
+  position: absolute;
+  inset: 0;
+  border-radius: 0;
+}
+.room-stage__pip {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: clamp(120px, 18%, 220px);
+  aspect-ratio: 4 / 3;
+  z-index: 2;
+}
+.room-stage__pip .room-tile {
+  height: 100%;
+  box-shadow: var(--room-pip-shadow);
+}
+.room-stage--side {
+  display: flex;
+  gap: 8px;
+}
+.room-stage__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+.room-stage__main > .room-tile {
+  flex: 1;
+}
+.room-stage__strip {
+  flex: none;
+  width: clamp(140px, 20%, 220px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.room-stage__strip .room-tile {
+  flex: none;
+  aspect-ratio: 16 / 10;
+}
+.room-stage__pager {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: var(--room-glass);
+  backdrop-filter: blur(12px);
+  transform: translateX(-50%);
+  font-size: var(--fs-xs);
+  font-weight: 650;
+  z-index: 3;
+}
+.room-stage__pager button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--room-fg);
+}
+.room-stage__pager button:disabled {
+  opacity: 0.35;
+}
+
+.room-tile {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--room-panel-2);
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  transition: outline-color var(--dur-fast) var(--ease);
+}
+.room-tile.is-speaking {
+  outline-color: var(--room-speaking);
+}
+.room-tile__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--room-stage);
+}
+.room-tile--screen .room-tile__video {
+  object-fit: contain;
+}
+.room-tile__avatar {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 45%, var(--room-panel-3), var(--room-panel-2) 70%);
+}
+.room-tile__name {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  max-width: calc(100% - 16px);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  background: var(--room-glass);
+  backdrop-filter: blur(10px);
+  font-size: var(--fs-xs);
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.room-tile--compact .room-tile__name {
+  left: 5px;
+  bottom: 5px;
+  padding: 2px 7px;
+  font-size: 11px;
+}
+.room-tile__muted {
+  color: var(--room-danger);
+  flex: none;
+}
+.room-tile__hand {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--room-warn);
+  color: var(--room-stage);
+  animation: room-wave 1.2s var(--ease) infinite;
+}
+@keyframes room-wave {
+  50% {
+    transform: rotate(-14deg);
+  }
+}
+.room-tile__conn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: var(--room-glass);
+  font-size: 11px;
+  color: var(--room-fg-2);
+}
+.room-tile__pin {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--room-glass);
+  color: var(--room-fg);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+.room-tile:hover .room-tile__pin,
+.room-tile__pin.is-on,
+.room-tile__pin:focus-visible {
+  opacity: 1;
+}
+.room-tile__pin.is-on {
+  background: var(--room-accent);
+}
+
+/* ─── Панель управления ─── */
+.room-controls {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  z-index: 4;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 12px 6px;
+  border-radius: 18px;
+  background: var(--room-glass);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  transform: translateX(-50%);
+}
+.room-ctrl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 62px;
+  color: var(--room-fg);
+}
+.room-ctrl__btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--room-panel-3);
+  transition:
+    background var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.room-ctrl:hover .room-ctrl__btn {
+  background: var(--room-border-strong);
+}
+.room-ctrl:active .room-ctrl__btn {
+  transform: scale(0.94);
+}
+.room-ctrl.is-on .room-ctrl__btn {
+  background: var(--room-accent);
+  color: var(--room-accent-fg);
+}
+.room-ctrl.is-off .room-ctrl__btn {
+  background: var(--room-fg);
+  color: var(--room-stage);
+}
+.room-ctrl--danger .room-ctrl__btn,
+.room-ctrl--danger:hover .room-ctrl__btn {
+  background: var(--room-danger);
+  color: var(--room-accent-fg);
+}
+.room-ctrl--danger .room-ctrl__label {
+  color: var(--room-danger);
+}
+.room-ctrl__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--room-fg-2);
+  white-space: nowrap;
+}
+.room-ctrl__badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--room-danger);
+  color: var(--room-accent-fg);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+}
+.room-studio-btn {
+  position: absolute;
+  left: 14px;
+  bottom: 16px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 10px 10px;
+  border-radius: 14px;
+  background: var(--room-glass);
+  border: 1px solid var(--room-border-strong);
+  color: var(--room-fg);
+  backdrop-filter: blur(12px);
+}
+.room-studio-btn.is-on,
+.room-studio-btn:hover {
+  border-color: var(--room-select);
+  color: var(--room-select);
+}
+
+/* ─── Боковые панели ─── */
+.room-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--room-panel);
+}
+.room-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 10px 10px 16px;
+  font-size: var(--fs-md);
+}
+.room-panel__empty {
+  margin: 8px 16px;
+  color: var(--room-fg-3);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+.room-panel__invite {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 12px 8px;
+  padding: 9px;
+  border-radius: 10px;
+  background: var(--room-accent-soft);
+  color: var(--room-accent);
+  font-weight: 650;
+}
+.room-people {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 6px 10px;
+}
+.room-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 10px;
+}
+.room-person:hover {
+  background: var(--room-panel-2);
+}
+.room-person.is-away {
+  opacity: 0.55;
+}
+.room-person__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.room-person__text b {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.room-person__text span {
+  font-size: var(--fs-xs);
+  color: var(--room-fg-3);
+}
+.room-person__icon {
+  color: var(--room-danger);
+  flex: none;
+}
+.room-person__icon--hand {
+  color: var(--room-warn);
+}
+.room-chat {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 12px 12px;
+}
+.room-chat__msg {
+  max-width: 85%;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  padding: 7px 11px;
+  border-radius: 14px 14px 14px 4px;
+  background: var(--room-panel-3);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.room-chat__msg.is-mine {
+  align-self: flex-end;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--room-accent);
+  color: var(--room-accent-fg);
+}
+.room-chat__who {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--room-accent);
+}
+.room-chat__form {
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  border-top: 1px solid var(--room-border);
+}
+.room-chat__form input {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: var(--room-panel-2);
+  border: 1px solid var(--room-border);
+  color: var(--room-fg);
+}
+.room-chat__form input:focus {
+  outline: none;
+  border-color: var(--room-accent);
+}
+.room-chat__send {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--room-accent);
+  color: var(--room-accent-fg);
+}
+.room-chat__send:disabled {
+  opacity: 0.4;
+}
+
+/* ─── Диалог приглашения и выбор людей ─── */
+.room-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--room-backdrop);
+}
+.room-mobile .room-modal {
+  position: fixed;
+  align-items: end;
+  padding: 0;
+}
+.room-modal__card {
+  width: min(440px, 100%);
+  max-height: min(640px, 100%);
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  background: var(--room-panel);
+  color: var(--room-fg);
+  box-shadow: var(--room-shadow);
+  overflow: hidden;
+}
+.room-mobile .room-modal__card {
+  width: 100%;
+  max-height: 86dvh;
+  border-radius: 18px 18px 0 0;
+  padding-bottom: var(--safe-bottom);
+}
+.room-modal__go {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px 14px 14px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--room-accent);
+  color: var(--room-accent-fg);
+  font-weight: 700;
+}
+.room-modal__go:disabled {
+  opacity: 0.45;
+}
+.room-modal .pp {
+  --pp-bg: var(--room-panel-2);
+  --pp-fg: var(--room-fg);
+  --pp-fg-2: var(--room-fg-3);
+  --pp-hover: var(--room-panel-3);
+  --pp-accent: var(--room-accent);
+  --pp-border: var(--room-border);
+}
+
+/* ─── Приглашение ─── */
+.room-incoming {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-call);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: calc(var(--safe-top) + 24px) 24px calc(var(--safe-bottom) + 36px);
+  color: var(--room-fg);
+  background: radial-gradient(80% 60% at 50% 30%, var(--room-accent-soft), transparent 70%), var(--room-bg);
+  text-align: center;
+  animation: room-in var(--dur) var(--ease);
+}
+.room-incoming--card {
+  inset: auto;
+  top: 44px;
+  right: 16px;
+  width: 360px;
+  padding: 20px 18px 16px;
+  border-radius: 18px;
+  box-shadow: var(--room-shadow);
+}
+.room-incoming__faces {
+  display: flex;
+  justify-content: center;
+}
+.room-incoming__faces > * + * {
+  margin-left: -14px;
+}
+.room-incoming__faces > * {
+  box-shadow: 0 0 0 3px var(--room-bg);
+  border-radius: 50%;
+}
+.room-incoming__title {
+  font-size: var(--fs-lg);
+  font-weight: 750;
+}
+.room-incoming__text {
+  color: var(--room-fg-2);
+  font-size: var(--fs-sm);
+}
+.room-incoming__actions {
+  display: flex;
+  gap: 18px;
+  margin-top: 14px;
+}
+.room-incoming:not(.room-incoming--card) .room-incoming__actions {
+  margin-top: auto;
+}
+.room-incoming:not(.room-incoming--card) .room-incoming__faces {
+  margin-top: auto;
+}
+.room-incoming .room-ctrl.is-on .room-ctrl__btn {
+  background: var(--room-live);
+}
+
+/* ─── Свёрнутый звонок и итог ─── */
+.room-pill {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 84px);
+  z-index: var(--z-call);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 5px 5px 6px;
+  border-radius: var(--radius-full);
+  background: var(--room-panel-2);
+  color: var(--room-fg);
+  box-shadow: var(--room-shadow);
+  transform: translateX(-50%);
+  animation: room-in var(--dur) var(--ease);
+}
+.room-pill__main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-full);
+  color: inherit;
+  white-space: nowrap;
+}
+.room-pill__main span {
+  color: var(--room-fg-2);
+  font-variant-numeric: tabular-nums;
+}
+.room-pill__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--room-live);
+  box-shadow: 0 0 0 4px var(--room-live-soft);
+}
+.room-pill .room-icon {
+  border-radius: 50%;
+}
+.room-ended {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 84px);
+  z-index: var(--z-call);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius-full);
+  background: var(--room-panel-2);
+  color: var(--room-fg);
+  box-shadow: var(--room-shadow);
+  transform: translateX(-50%);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ─── Телефон ─── */
+.room-mobile {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-call);
+  display: flex;
+  flex-direction: column;
+  color: var(--room-fg);
+  background: var(--room-stage);
+  animation: room-in var(--dur) var(--ease);
+}
+.room-mobile__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(var(--safe-top) + 8px) 12px 8px;
+}
+.room-mobile__title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.room-mobile__title b {
+  font-size: var(--fs-md);
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.room-mobile__title span {
+  font-size: var(--fs-xs);
+  color: var(--room-fg-2);
+  font-variant-numeric: tabular-nums;
+}
+.room-round {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--room-panel-2);
+  color: var(--room-fg);
+}
+.room-mobile__stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.room-mobile .room-stage {
+  padding: 6px 6px 8px;
+}
+.room-mobile .room-stage--duo {
+  padding: 0;
+}
+.room-mobile .room-stage--grid {
+  grid-template-columns: repeat(min(var(--cols), 2), minmax(0, 1fr));
+  grid-template-rows: none;
+  grid-auto-rows: minmax(140px, 1fr);
+  overflow-y: auto;
+}
+.room-mobile .room-stage--side {
+  flex-direction: column;
+}
+.room-mobile .room-stage__strip {
+  width: auto;
+  height: 96px;
+  flex-direction: row;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.room-mobile .room-stage__strip .room-tile {
+  width: 128px;
+}
+.room-mobile .room-tile__pin {
+  opacity: 1;
+}
+.room-mobile__controls {
+  display: flex;
+  justify-content: space-around;
+  padding: 12px 8px calc(var(--safe-bottom) + 14px);
+  background: var(--room-bg);
+  border-radius: 22px 22px 0 0;
+}
+.room-mobile .room-ctrl {
+  min-width: 56px;
+}
+.room-mobile .room-ctrl__btn {
+  width: 54px;
+  height: 54px;
+}
+.room-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  background: var(--room-backdrop);
+}
+.room-sheet__card {
+  width: 100%;
+  height: min(78dvh, 640px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px 18px 0 0;
+  overflow: hidden;
+  padding-bottom: var(--safe-bottom);
+  background: var(--room-panel);
+  animation: room-up var(--dur) var(--ease);
+}
+.room-sheet__card > .room-panel {
+  flex: 1;
+}
+@keyframes room-up {
+  from {
+    transform: translateY(40%);
+    opacity: 0;
+  }
+}
+
+/* ─── Выбор людей (страница «Новый звонок» и приглашение) ─── */
+.pp {
+  --pp-bg: var(--surface-2);
+  --pp-fg: var(--text);
+  --pp-fg-2: var(--text-3);
+  --pp-hover: var(--surface-hover);
+  --pp-accent: var(--accent);
+  --pp-border: var(--border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  color: var(--pp-fg);
+}
+.pp__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 14px 8px;
+}
+.pp__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 3px;
+  border-radius: var(--radius-full);
+  background: var(--pp-hover);
+  color: var(--pp-fg);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.pp__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 14px;
+  padding: 0 12px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--pp-bg);
+  border: 1px solid var(--pp-border);
+  color: var(--pp-fg-2);
+}
+.pp__search:focus-within {
+  border-color: var(--pp-accent);
+}
+.pp__search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: transparent;
+  border: 0;
+  color: var(--pp-fg);
+  font-size: var(--fs-md);
+}
+.pp__search input:focus {
+  outline: none;
+}
+.pp__count {
+  margin: 8px 16px 4px;
+  font-size: var(--fs-xs);
+  color: var(--pp-fg-2);
+}
+.pp__list {
+  flex: 1;
+  min-height: 160px;
+  overflow-y: auto;
+  padding: 0 6px 8px;
+}
+.pp__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 12px;
+  color: var(--pp-fg);
+  text-align: left;
+}
+.pp__row:hover {
+  background: var(--pp-hover);
+}
+.pp__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pp__text b {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pp__text span {
+  font-size: var(--fs-xs);
+  color: var(--pp-fg-2);
+}
+.pp__check {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--pp-border);
+  color: var(--room-accent-fg);
+}
+.pp__row.is-on .pp__check {
+  background: var(--pp-accent);
+  border-color: var(--pp-accent);
+}
+.pp__at {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--pp-hover);
+  color: var(--pp-accent);
+}
+.pp__empty {
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  color: var(--pp-fg-2);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+
+/* ─── Студия ─── */
+.studio {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-top: 1px solid var(--room-border);
+  background: var(--room-bg);
+}
+.studio__main {
+  display: grid;
+  grid-template-columns: 120px 220px minmax(0, 1fr) 150px;
+  gap: 12px;
+  min-height: 230px;
+}
+.studio__tools {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.studio__tool {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: var(--room-fg-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+.studio__tool:hover {
+  background: var(--room-panel-2);
+  color: var(--room-fg);
+}
+.studio__tool.is-on {
+  background: var(--room-accent);
+  color: var(--room-accent-fg);
+}
+.studio__props {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.studio__h {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+.studio__h--small {
+  font-size: var(--fs-xs);
+  color: var(--room-fg-2);
+}
+.studio__input,
+.studio__select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--room-panel-2);
+  border: 1px solid var(--room-border);
+  color: var(--room-fg);
+  font-size: var(--fs-xs);
+  resize: none;
+}
+.studio__input:focus,
+.studio__select:focus {
+  outline: none;
+  border-color: var(--room-accent);
+}
+.studio__select--sm {
+  width: 72px;
+  flex: none;
+}
+.studio__select--q {
+  width: auto;
+}
+.studio__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.studio__row--fmt {
+  gap: 2px;
+}
+.studio__fmt {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: var(--room-fg-2);
+}
+.studio__fmt:hover {
+  background: var(--room-panel-2);
+}
+.studio__fmt.is-on {
+  background: var(--room-accent-soft);
+  color: var(--room-accent);
+}
+.studio__sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: var(--room-border-strong);
+}
+.studio__swatches {
+  display: flex;
+  gap: 8px;
+}
+.studio__swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--room-border-strong);
+}
+.studio__swatch.is-on {
+  box-shadow:
+    0 0 0 2px var(--room-bg),
+    0 0 0 4px var(--room-accent);
+}
+.studio__primary,
+.studio__secondary,
+.studio__danger {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+.studio__primary {
+  background: var(--room-accent);
+  color: var(--room-accent-fg);
+}
+.studio__secondary {
+  background: var(--room-panel-3);
+  color: var(--room-fg);
+}
+.studio__danger {
+  background: var(--room-danger);
+  color: var(--room-accent-fg);
+}
+.studio__link {
+  align-self: flex-start;
+  color: var(--room-accent);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+.studio__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--room-panel-2);
+  color: var(--room-fg);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+.studio__chip:hover {
+  background: var(--room-panel-3);
+}
+.studio__hint {
+  margin: 0;
+  color: var(--room-fg-3);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.studio__switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.studio__switch input {
+  accent-color: var(--room-accent);
+  width: 16px;
+  height: 16px;
+}
+.studio__stage {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.studio__preview {
+  position: relative;
+  width: 100%;
+  max-height: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--room-stage);
+  touch-action: none;
+}
+.studio__preview:fullscreen {
+  border-radius: 0;
+}
+.studio__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.studio__box {
+  position: absolute;
+  cursor: move;
+}
+.studio__box:hover {
+  outline: 1px dashed var(--room-border-strong);
+}
+.studio__box.is-selected {
+  outline: 2px solid var(--room-select);
+}
+.studio__grip {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--room-select);
+  box-shadow: 0 0 0 2px var(--room-stage);
+}
+.studio__grip--n,
+.studio__grip--s {
+  left: calc(50% - 5.5px);
+  cursor: ns-resize;
+}
+.studio__grip--e,
+.studio__grip--w {
+  top: calc(50% - 5.5px);
+  cursor: ew-resize;
+}
+.studio__grip--n,
+.studio__grip--ne,
+.studio__grip--nw {
+  top: -6px;
+}
+.studio__grip--s,
+.studio__grip--se,
+.studio__grip--sw {
+  bottom: -6px;
+}
+.studio__grip--e,
+.studio__grip--ne,
+.studio__grip--se {
+  right: -6px;
+}
+.studio__grip--w,
+.studio__grip--nw,
+.studio__grip--sw {
+  left: -6px;
+}
+.studio__grip--ne,
+.studio__grip--sw {
+  cursor: nesw-resize;
+}
+.studio__grip--nw,
+.studio__grip--se {
+  cursor: nwse-resize;
+}
+.studio__layerbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--room-glass);
+  backdrop-filter: blur(10px);
+}
+.studio__layerbar button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: var(--room-fg);
+}
+.studio__layerbar button:hover {
+  background: var(--room-panel-3);
+}
+.studio__empty {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  background: var(--room-glass);
+  color: var(--room-fg-2);
+  font-size: 11px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.studio__quick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-content: center;
+  gap: 8px;
+}
+.studio__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  background: var(--room-panel-2);
+  color: var(--room-fg);
+  font-size: 11px;
+  font-weight: 600;
+}
+.studio__tile:hover {
+  background: var(--room-panel-3);
+}
+.studio__bgs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.studio__bgrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.studio__arrow {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--room-fg-2);
+}
+.studio__arrow:hover {
+  background: var(--room-panel-2);
+}
+.studio__strip {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.studio__strip::-webkit-scrollbar {
+  display: none;
+}
+.studio__bg {
+  flex: none;
+  position: relative;
+  width: 132px;
+  border-radius: 9px;
+  overflow: hidden;
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+}
+.studio__bg.is-on {
+  outline-color: var(--room-select);
+}
+.studio__bg span {
+  position: absolute;
+  left: 6px;
+  bottom: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--room-fg);
+  text-shadow: var(--room-text-shadow);
+}
+.studio__thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+.studio__bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.studio__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 9px;
+  background: var(--room-live);
+  color: var(--room-stage);
+  font-weight: 750;
+  font-size: var(--fs-xs);
+}
+.studio__live.is-live {
+  background: var(--room-danger);
+  color: var(--room-accent-fg);
+}
+.studio__volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--room-fg-2);
+}
+.studio__volume input {
+  width: 130px;
+  accent-color: var(--room-live);
+}
+.studio__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--room-fg-2);
+}
+.studio__icon:hover {
+  background: var(--room-panel-2);
+  color: var(--room-fg);
+}
+
+@media (max-width: 1100px) {
+  .studio__main {
+    grid-template-columns: 110px 200px minmax(0, 1fr);
+  }
+  .studio__quick {
+    display: none;
+  }
+}
