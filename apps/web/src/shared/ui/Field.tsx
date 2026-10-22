@@ -1,5 +1,5 @@
 import { forwardRef, useId, useState, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { passwordStrength } from '@omni/shared';
 import { cn } from '../lib/format';
 
@@ -139,6 +139,7 @@ export function SettingRow({
         {description && <span className="list-item__sub">{description}</span>}
       </span>
       {control && <span className="list-item__end">{control}</span>}
+      {onClick && !control && <ChevronRight size={18} className="list-item__chevron" aria-hidden />}
     </Tag>
   );
 }

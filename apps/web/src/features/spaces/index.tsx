@@ -108,7 +108,6 @@ export function SpacesHome({ kind }: { kind: SpaceKind }) {
         <PageHeader
           title={t.title}
           icon={t.icon}
-          subtitle={kind === 'company' ? 'Рабочие пространства: роли, отделы, закрытые чаты' : 'Большие сообщества с группами по интересам'}
           actions={
             <ButtonLink to={`${spaceBase(kind)}/new`} icon={<Plus size={18} />}>
               {t.create}
@@ -184,7 +183,7 @@ export function DiscoverSpaces() {
   return (
     <div className="scroll">
       <div className="page page--wide">
-        <PageHeader title="Сообщества" icon={<Users size={22} />} subtitle="Открытые сообщества: вступайте и выбирайте группы по интересам" />
+        <PageHeader title="Сообщества" icon={<Users size={22} />} />
         <TabLinks
           className="mb"
           tabs={[

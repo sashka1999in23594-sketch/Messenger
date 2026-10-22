@@ -1,0 +1,249 @@
+/* ─── Уведомления в духе Instagram ─────────────────────────────────────── */
+.nt {
+  max-width: 640px;
+  margin: 0 auto;
+  padding-bottom: var(--space-8);
+}
+.nt-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 8px 6px 16px;
+}
+.nt-head h1 {
+  font-size: var(--fs-2xl);
+  font-weight: 780;
+  letter-spacing: -0.03em;
+}
+.nt-filters {
+  padding-top: 4px;
+  padding-bottom: 10px;
+}
+.nt-note {
+  padding: 0 16px 12px;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+.nt-group {
+  padding-bottom: 6px;
+}
+.nt-group + .nt-group {
+  border-top: 1px solid var(--border);
+}
+.nt-group__title {
+  padding: 14px 16px 6px;
+  font-size: var(--fs-md);
+  font-weight: 740;
+}
+
+/* Строка уведомления */
+.nt-row {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 8px;
+  padding: 0 16px 0 0;
+  transition: background var(--dur-fast) var(--ease);
+}
+.nt-row--unread {
+  background: color-mix(in oklab, var(--accent) 7%, transparent);
+}
+.nt-row__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 8px 0 8px 16px;
+  text-align: left;
+  color: var(--text) !important;
+  text-decoration: none !important;
+}
+.nt-row__main:active {
+  opacity: 0.7;
+}
+.nt-row__avatar {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+}
+.nt-row__system {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--surface-3);
+  color: var(--text);
+}
+.nt-kind {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  border: 2.5px solid var(--bg-elevated-solid);
+  color: var(--media-fg);
+  background: var(--notif-post);
+}
+.nt-kind--like {
+  background: var(--notif-like);
+}
+.nt-kind--comment {
+  background: var(--notif-comment);
+}
+.nt-kind--follow {
+  background: var(--notif-follow);
+}
+.nt-kind--mention {
+  background: var(--notif-mention);
+}
+.nt-kind--repost {
+  background: var(--notif-repost);
+}
+.nt-kind--security {
+  background: var(--notif-security);
+}
+.nt-kind--birthday {
+  background: var(--notif-birthday);
+}
+.nt-kind--space {
+  background: var(--notif-space);
+}
+.nt-kind--story {
+  background: var(--notif-story);
+}
+.nt-row__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.nt-row__text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.nt-row__text .verified {
+  vertical-align: -2px;
+}
+.nt-row__preview {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nt-row__time {
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.nt-row__action {
+  flex: 0 0 auto;
+  display: inline-flex;
+  gap: 6px;
+}
+.nt-row__dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+}
+.nt-row__invite {
+  flex-basis: 100%;
+  padding: 0 0 12px 76px;
+}
+
+/* Кнопки в строке */
+.nt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 112px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  position: relative;
+}
+.nt-btn::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+.nt-btn--ghost {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.nt-btn--warm {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.nt-btn .spinner {
+  width: 14px;
+  height: 14px;
+}
+@container page (max-width: 400px) {
+  .nt-btn {
+    min-width: 0;
+    padding: 0 12px;
+  }
+}
+
+/* Заявки на подписку */
+.nt-requests {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 72px;
+  padding: 8px 12px 8px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text) !important;
+  text-decoration: none !important;
+}
+.nt-requests:hover {
+  background: var(--surface-hover);
+}
+.nt-requests__avatars {
+  position: relative;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+}
+.nt-requests__avatars .avatar:nth-child(2) {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  box-shadow: 0 0 0 2px var(--bg-elevated-solid);
+  border-radius: var(--radius-full);
+}
+.nt-requests__count {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--danger);
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 750;
+}
+.nt-row__action--pair .btn {
+  min-height: 36px;
+}

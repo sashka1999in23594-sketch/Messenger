@@ -9,6 +9,7 @@ import { getIdentity, isE2ESupported, registerDevice } from '../../shared/crypto
 import { toast } from '../../shared/stores/ui';
 import { Avatar, Button, Input, Notice, PageHeader, Textarea, TabLinks } from '../../shared/ui';
 import { UserPicker } from './dialogs';
+import { DetailHead } from './DetailHead';
 
 const KINDS = {
   direct: { title: 'Новый чат', icon: <MessageCircle size={22} />, text: 'Выберите, кому написать' },
@@ -65,11 +66,7 @@ function GroupForm() {
         </div>
       )}
       <div className="field__label">Участники</div>
-      <UserPicker
-        multiple
-        picked={members.map((m) => m.id)}
-        onPick={(u) => setMembers((l) => (l.some((x) => x.id === u.id) ? l.filter((x) => x.id !== u.id) : [...l, u]))}
-      />
+      <UserPicker multiple picked={members.map((m) => m.id)} onPick={(u) => setMembers((l) => (l.some((x) => x.id === u.id) ? l.filter((x) => x.id !== u.id) : [...l, u]))} />
       <Button size="lg" disabled={!title.trim()} loading={create.isPending} onClick={() => create.mutate()}>
         Создать группу{members.length ? ` (${members.length + 1})` : ''}
       </Button>
@@ -146,8 +143,8 @@ function SecretForm() {
   return (
     <div className="col gap-4">
       <Notice icon={<Lock size={18} />}>
-        Сообщения шифруются на вашем устройстве ключом, который знают только два участника. Сервер хранит лишь шифротекст и не может его прочитать. Чат будет доступен
-        только на этом устройстве.
+        Сообщения шифруются на вашем устройстве ключом, который знают только два участника. Сервер хранит лишь шифротекст и не может его прочитать. Чат будет доступен только на
+        этом устройстве.
       </Notice>
       <label className="col" style={{ gap: 6 }}>
         <span className="field__label">Таймер самоуничтожения сообщений</span>
@@ -170,26 +167,29 @@ export function NewChatPage({ kind: fixed }: { kind?: keyof typeof KINDS }) {
   const k = fixed ?? ((kind in KINDS ? kind : 'direct') as keyof typeof KINDS);
   const meta = KINDS[k];
   return (
-    <div className="scroll">
-      <div className="page">
-        <PageHeader title={meta.title} subtitle={meta.text} icon={meta.icon} />
-        {!fixed && (
-          <>
-            <TabLinks
-              className="mb"
-              tabs={[
-                { to: '/chats/new/direct', label: 'Чат' },
-                { to: '/chats/new/group', label: 'Группа' },
-                { to: '/chats/new/secret', label: 'Секретный' },
-              ]}
-            />
-            <div style={{ height: 16 }} />
-          </>
-        )}
-        {k === 'direct' && <DirectForm />}
-        {k === 'group' && <GroupForm />}
-        {k === 'channel' && <ChannelForm />}
-        {k === 'secret' && <SecretForm />}
+    <div className="chat-page">
+      <DetailHead title={meta.title} />
+      <div className="scroll">
+        <div className="page">
+          <PageHeader title={meta.title} subtitle={meta.text} icon={meta.icon} />
+          {!fixed && (
+            <>
+              <TabLinks
+                className="mb"
+                tabs={[
+                  { to: '/chats/new/direct', label: 'Чат' },
+                  { to: '/chats/new/group', label: 'Группа' },
+                  { to: '/chats/new/secret', label: 'Секретный' },
+                ]}
+              />
+              <div style={{ height: 16 }} />
+            </>
+          )}
+          {k === 'direct' && <DirectForm />}
+          {k === 'group' && <GroupForm />}
+          {k === 'channel' && <ChannelForm />}
+          {k === 'secret' && <SecretForm />}
+        </div>
       </div>
     </div>
   );

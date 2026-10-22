@@ -23,14 +23,13 @@ export function AppearanceSettings({ section }: { section: 'theme' | 'accent' | 
   }, [section]);
 
   return (
-    <SettingsPage title="Оформление" subtitle="Тема, палитра, акцент и эффекты. Хранится на этом устройстве" icon={<Palette size={22} />}>
+    <SettingsPage title="Оформление" subtitle="Хранится на этом устройстве" icon={<Palette size={22} />}>
       <div className="appearance-hero">
         <MiniApp theme={resolved} palette={prefs.palette} accent={prefs.accent} big />
         <div className="appearance-hero__text">
           <div className="appearance-hero__name">
             {PALETTES.find((p) => p.id === prefs.palette)?.label} · {THEMES.find((t) => t.id === prefs.theme)?.label.toLowerCase()}
           </div>
-          <div className="small muted">Всё меняется мгновенно — попробуйте разные сочетания.</div>
         </div>
       </div>
 

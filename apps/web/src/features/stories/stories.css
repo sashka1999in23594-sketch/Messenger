@@ -1,37 +1,49 @@
 /* ─── Полоса историй ───────────────────────────────────────────────────────── */
 .stories-bar {
   display: flex;
-  gap: 14px;
+  gap: 4px;
   overflow-x: auto;
-  padding: 6px 12px 10px;
+  padding: 2px 10px 6px;
   scrollbar-width: none;
+  overscroll-behavior-x: contain;
 }
 .stories-bar::-webkit-scrollbar {
   display: none;
 }
 .stories-bar--compact {
-  gap: 10px;
+  gap: 2px;
   padding: 2px 4px 8px;
 }
 .story-chip {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 calc(var(--chip-size, 72px) + 12px);
+  width: calc(var(--chip-size, 72px) + 12px);
+  font-size: var(--fs-xs);
+  color: var(--text);
+}
+.story-chip__hit {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 5px;
-  width: 72px;
-  flex: 0 0 72px;
-  font-size: var(--fs-xs);
-  color: var(--text-2);
-  position: relative;
-  transition: transform var(--dur) var(--ease-spring);
+  width: 100%;
+  color: inherit;
+}
+.story-chip:active .st-ring,
+.story-chip__hit:active .st-ring {
+  transform: scale(0.94);
 }
 .stories-bar--compact .story-chip {
-  width: 58px;
-  flex-basis: 58px;
   font-size: var(--fs-2xs);
 }
-.story-chip:hover {
-  transform: translateY(-2px);
+.story-chip--seen .story-chip__name {
+  color: var(--text-2);
+}
+.story-chip > .st-ring {
+  margin-bottom: 5px;
 }
 .story-chip__name {
   max-width: 100%;
@@ -39,19 +51,66 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.story-chip--own .story-chip__name {
+  color: var(--text-2);
+}
+/* Плюс у своей истории: видимый кружок 22 px, зона касания — 36 px */
 .story-chip__add {
   position: absolute;
-  right: 2px;
-  top: calc(var(--chip-size, 64px) - 20px);
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-full);
-  background: var(--grad);
-  color: var(--accent-text);
-  border: 2.5px solid var(--panel-solid);
-  box-shadow: var(--glow);
+  top: calc(var(--chip-size, 72px) - 30px);
+  left: calc(50% + var(--chip-size, 72px) / 2 - 26px);
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
+}
+.story-chip__add::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  border: 2.5px solid var(--bg-elevated-solid);
+  box-shadow: var(--glow);
+}
+.story-chip__add svg {
+  position: relative;
+  color: var(--accent-text);
+}
+
+/* Кольцо историй: градиент с прозрачным зазором до фото */
+.st-ring {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: var(--radius-full);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.st-ring::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2.5px;
+  background: transparent;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+.st-ring--unseen::before {
+  background: var(--story-ring);
+}
+.st-ring--close::before {
+  background: var(--story-ring-close);
+}
+.st-ring--seen::before {
+  padding: 1.5px;
+  background: var(--border-strong);
 }
 
 /* ─── Просмотр ─────────────────────────────────────────────────────────────── */
@@ -194,10 +253,19 @@
 }
 .story-viewer__tap {
   position: absolute;
-  top: 70px;
-  bottom: 90px;
-  width: 35%;
+  top: calc(72px + var(--safe-top));
+  bottom: calc(84px + var(--safe-bottom));
   z-index: 2;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Как в Instagram: левая треть — назад, остальное — вперёд */
+.story-viewer__tap--prev {
+  left: 0;
+  width: 30%;
+}
+.story-viewer__tap--next {
+  right: 0;
+  width: 70%;
 }
 .story-viewer__text {
   position: absolute;
@@ -353,12 +421,38 @@
   gap: var(--space-8);
   align-items: start;
 }
-@media (max-width: 760px) {
+@container page (max-width: 760px) {
   .story-editor {
     grid-template-columns: minmax(0, 1fr);
     justify-items: center;
     gap: var(--space-5);
   }
+  .story-editor .story-canvas {
+    width: min(300px, 100%, calc(56dvh * 9 / 16));
+  }
+}
+.story-new {
+  padding-top: 0;
+}
+.story-new .pk-large-title {
+  padding-left: 0;
+  padding-right: 0;
+}
+.story-new__mode {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+}
+.story-canvas label svg {
+  align-self: center;
+}
+/* Кнопка «Опубликовать» прилипает к низу экрана */
+.story-new__publish {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: 10px 0 calc(10px + var(--safe-bottom));
+  background: linear-gradient(transparent, var(--bg) 35%);
 }
 .story-canvas {
   position: relative;

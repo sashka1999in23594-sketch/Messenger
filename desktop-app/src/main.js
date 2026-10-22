@@ -8,6 +8,7 @@ const { resolveSiteUrl } = require('./config');
 const windowState = require('./window-state');
 const { originOf, setupNavigation, setupPermissions } = require('./security');
 const { attachContextMenu, buildAppMenu } = require('./menu');
+const { watchDayNight } = require('./daynight');
 
 const SITE_URL = resolveSiteUrl();
 const APP_ORIGIN = new URL(SITE_URL).origin;
@@ -17,6 +18,7 @@ const isMac = process.platform === 'darwin';
 let mainWindow = null;
 let quitting = false;
 let lastCrashAt = 0;
+let dayNight = null;
 
 app.enableSandbox(); // песочница для всех страниц, без исключений
 if (process.platform === 'win32') app.setAppUserModelId('app.spaceup.desktop'); // нужно для уведомлений Windows
@@ -45,6 +47,8 @@ function start() {
   setupPermissions(ses, APP_ORIGIN);
 
   createWindow();
+  // Ночью значок — луна (Lynnet), днём — закат (Sunnet)
+  dayNight = watchDayNight(() => mainWindow);
   app.on('activate', showMainWindow); // клик по значку в Dock
 }
 
@@ -75,6 +79,7 @@ function createWindow() {
   });
 
   windowState.track(mainWindow);
+  dayNight?.refresh();
   if (state.isMaximized) mainWindow.maximize();
   // Показываем окно сразу (тёмный фон), не дожидаясь сайта: бесплатный сервер
   // может просыпаться до минуты, и без окна казалось бы, что приложение не запустилось.

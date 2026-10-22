@@ -15,6 +15,7 @@ import { Birthdays } from './modules/system/birthdays.js';
 import { SystemService } from './modules/system/system.service.js';
 import { EmailCodes } from './modules/auth/email-codes.js';
 import { MailService } from './modules/mail/mail.service.js';
+import { setMailOrigin } from './modules/mail/templates.js';
 import { SecurityLog } from './modules/auth/security-log.js';
 import { SessionService } from './modules/auth/sessions.js';
 import { MessagesRepo } from './modules/chats/chats.repo.js';
@@ -56,6 +57,7 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub, storage
   const users = new UsersService(db, usersRepo, policy, media, notifications, hub);
   const keys = new KeysService(db, securityLog);
   const mail = new MailService(config);
+  setMailOrigin(config.publicOrigin);
   const emailCodes = new EmailCodes(db, config.secret);
   const auth = new AuthService(db, config.secret, usersRepo, users, sessions, securityLog, notifications, hub, mail, emailCodes, config.publicOrigin);
   const polls = new PollsRepo(db, usersRepo);

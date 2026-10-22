@@ -112,7 +112,8 @@ video {
   background: var(--accent-soft-strong);
 }
 
-/* ─── Фон «северное сияние»: три мягких пятна + зерно; анимируется только transform ─── */
+/* ─── Фон Sunnet: спокойное небо — мягкий градиент и два-три размытых пятна.
+ * Анимируется только transform; на телефонах пятна скрыты — ничто не мешает читать. */
 .aurora {
   position: fixed;
   inset: 0;
@@ -120,7 +121,7 @@ video {
   overflow: hidden;
   pointer-events: none;
   background:
-    radial-gradient(1200px 800px at 85% -10%, color-mix(in oklab, var(--aurora-2) 14%, transparent), transparent 60%),
+    radial-gradient(1100px 700px at 90% -10%, color-mix(in oklab, var(--aurora-2) 10%, transparent), transparent 60%),
     linear-gradient(180deg, var(--bg-tint), var(--bg));
 }
 .aurora__blob {
@@ -130,27 +131,27 @@ video {
   border-radius: 50%;
   opacity: var(--aurora-opacity);
   will-change: transform;
-  animation: aurora-drift 38s ease-in-out infinite alternate;
+  animation: aurora-drift 48s ease-in-out infinite alternate;
 }
 .aurora__blob--1 {
-  top: -30vmax;
-  left: -20vmax;
-  background: radial-gradient(closest-side, color-mix(in oklab, var(--aurora-1) 70%, transparent), transparent);
+  top: -34vmax;
+  left: -22vmax;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--aurora-1) 55%, transparent), transparent);
 }
 .aurora__blob--2 {
-  bottom: -35vmax;
-  right: -25vmax;
-  background: radial-gradient(closest-side, color-mix(in oklab, var(--aurora-2) 55%, transparent), transparent);
-  animation-duration: 46s;
+  bottom: -38vmax;
+  right: -26vmax;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--aurora-2) 45%, transparent), transparent);
+  animation-duration: 56s;
   animation-direction: alternate-reverse;
 }
 .aurora__blob--3 {
-  top: 20vmax;
-  left: 30vmax;
-  width: 50vmax;
-  height: 50vmax;
-  background: radial-gradient(closest-side, color-mix(in oklab, var(--aurora-3) 40%, transparent), transparent);
-  animation-duration: 54s;
+  top: 24vmax;
+  left: 34vmax;
+  width: 44vmax;
+  height: 44vmax;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--aurora-3) 22%, transparent), transparent);
+  animation-duration: 64s;
 }
 .aurora__noise {
   position: absolute;
@@ -163,6 +164,16 @@ video {
 }
 [data-aurora='off'] .aurora__blob {
   display: none;
+}
+/* Телефон и планшет: ровный фон без пятен и зерна — текст читается лучше, батарея целее */
+@media (max-width: 1023px), (hover: none) {
+  .aurora {
+    background: var(--bg);
+  }
+  .aurora__blob,
+  .aurora__noise {
+    display: none;
+  }
 }
 @keyframes aurora-drift {
   0% {

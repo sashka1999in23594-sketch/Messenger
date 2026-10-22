@@ -18,9 +18,49 @@ interface ModalProps {
   className?: string;
 }
 
+/** Шторку на телефоне можно смахнуть вниз — за «ручку» или заголовок. */
+function useSheetDrag(panel: React.RefObject<HTMLDivElement | null>, onClose: () => void, enabled: boolean) {
+  const drag = useRef<{ y: number; dy: number } | null>(null);
+  if (!enabled) return {};
+  return {
+    onTouchStart: (e: React.TouchEvent) => {
+      const el = panel.current;
+      const t = e.touches[0];
+      if (!el || !t || window.innerWidth > 767) return;
+      const top = el.getBoundingClientRect().top;
+      // Тянуть можно за верхнюю полосу (ручка и заголовок)
+      if (t.clientY - top > 60) return;
+      drag.current = { y: t.clientY, dy: 0 };
+      el.classList.add('modal--dragging');
+    },
+    onTouchMove: (e: React.TouchEvent) => {
+      const d = drag.current;
+      const t = e.touches[0];
+      if (!d || !t || !panel.current) return;
+      d.dy = Math.max(0, t.clientY - d.y);
+      panel.current.style.transform = `translateY(${d.dy}px)`;
+    },
+    onTouchEnd: () => {
+      const d = drag.current;
+      const el = panel.current;
+      drag.current = null;
+      if (!d || !el) return;
+      el.classList.remove('modal--dragging');
+      if (d.dy > 110) {
+        onClose();
+        return;
+      }
+      el.classList.add('modal--releasing');
+      el.style.transform = '';
+      setTimeout(() => el.classList.remove('modal--releasing'), 250);
+    },
+  };
+}
+
 export function Modal({ open, onClose, title, children, footer, wide, sheet = true, className }: ModalProps) {
   useEscape(onClose, open);
   const panel = useRef<HTMLDivElement>(null);
+  const dragHandlers = useSheetDrag(panel, onClose, sheet);
   useEffect(() => {
     if (!open) return;
     const prev = document.activeElement as HTMLElement | null;
@@ -32,7 +72,7 @@ export function Modal({ open, onClose, title, children, footer, wide, sheet = tr
   if (!open) return null;
   return createPortal(
     <div className={cn('overlay', sheet && 'overlay--sheet')} onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={panel} className={cn('modal', wide && 'modal--wide', className)} role="dialog" aria-modal="true" tabIndex={-1}>
+      <div ref={panel} className={cn('modal', wide && 'modal--wide', className)} role="dialog" aria-modal="true" tabIndex={-1} {...dragHandlers}>
         {title !== undefined && (
           <div className="modal__header">
             <div className="modal__title">{title}</div>

@@ -104,7 +104,7 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
 
       // ── Заметки (как в X) ─────────────────────────────────────────────────────
       const notes: [string, string][] = [
-        ['sunnet_team', 'Добро пожаловать в #sunnet! Чаты, лента, видео, клипы, фото и истории — в одном приложении. Начните с раздела «Мессенджер» слева 👈'],
+        ['sunnet_team', 'Добро пожаловать в #sunnet! Начните с раздела «Чаты» 👈'],
         ['sunnet_team', 'Совет по #безопасность: включите двухфакторную защиту в Настройки → Безопасность → 2FA. Это занимает минуту.'],
         ['boris', 'Перевёл сервис на ULID вместо автоинкремента: сортировка по времени + не угадать соседние id. #код #безопасность'],
         ['elena', 'Хороший интерфейс — тот, который не нужно объяснять. Но хорошая навигация — та, в которой невозможно потеряться 🧭 #дизайн'],
@@ -285,7 +285,7 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
 
       const news = s.chats.createChannel(users.sunnet_team!.id, { title: 'Sunnet Новости', description: 'Официальный канал: обновления и советы по безопасности', handle: 'sunnet_news', isPublic: true });
       for (const u of names) if (u !== 'sunnet_team') s.chats.join(users[u]!.id, news.id);
-      say('sunnet_team', news.id, '🎉 Sunnet открыт! Чаты и звонки, каналы, лента, Reels, компании и сообщества — в одном приложении.');
+      say('sunnet_team', news.id, '🎉 Sunnet открыт: чаты и звонки, каналы, лента, Reels, компании и сообщества.');
       say('sunnet_team', news.id, '🔐 Новое: секретные чаты со сквозным шифрованием (ECDH P-256 + AES-GCM). Ключи не покидают ваше устройство.');
       say('sunnet_team', news.id, '🛡 Советуем включить 2FA и проверить список активных сеансов в настройках безопасности.');
 

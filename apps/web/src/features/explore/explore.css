@@ -1,35 +1,42 @@
-/* ─── Поиск: строка сверху, результаты снизу ─────────────────────────────── */
-.search-page {
-  max-width: var(--content-max);
+/* ─── Поиск и «Интересное» ──────────────────────────────────────────────── */
+.sx {
+  max-width: 935px;
   margin: 0 auto;
-  padding: var(--space-5) var(--space-4) var(--space-10);
+  padding-bottom: var(--space-8);
 }
-.search-bar {
+.sx-bar {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 3;
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 56px;
-  padding: 0 10px 0 18px;
-  margin-bottom: var(--space-5);
-  border-radius: var(--radius-full);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow-md);
-  backdrop-filter: blur(var(--blur-strong));
-  -webkit-backdrop-filter: blur(var(--blur-strong));
+  padding: 10px 16px;
+  background: color-mix(in oklab, var(--panel-solid) 88%, transparent);
+  backdrop-filter: blur(var(--blur)) saturate(1.5);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(1.5);
 }
-.search-bar:focus-within {
-  border-color: var(--accent);
-  box-shadow: var(--ring), var(--shadow-md);
+.sx-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 6px 0 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-3);
+  border: 1px solid transparent;
+  transition: border-color var(--dur-fast) var(--ease);
 }
-.search-bar__icon {
-  color: var(--text-3);
+.sx-field--focus {
+  border-color: var(--border-strong);
+}
+.sx-field__icon {
   flex: 0 0 auto;
+  color: var(--text-3);
 }
-.search-bar__input {
+.sx-field input {
   flex: 1;
   min-width: 0;
   height: 100%;
@@ -37,39 +44,201 @@
   background: transparent;
   color: var(--text);
   font: inherit;
-  font-size: var(--fs-lg);
+  font-size: var(--fs-md);
+  -webkit-appearance: none;
+  appearance: none;
 }
-.search-bar__input:focus {
+.sx-field input::-webkit-search-cancel-button {
+  display: none;
+}
+.sx-field input:focus {
   outline: none;
 }
-.search-bar__clear {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
+.sx-field__clear {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
   display: grid;
   place-items: center;
-  color: var(--text-2);
+  border-radius: var(--radius-full);
+  color: var(--bg-elevated-solid);
+  position: relative;
 }
-.search-bar__clear:hover {
+.sx-field__clear::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: var(--radius-full);
+  background: var(--text-3);
+}
+.sx-field__clear svg {
+  position: relative;
+}
+.sx-cancel {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 4px;
+  font-size: var(--fs-md);
+  color: var(--text);
+  animation: fade-in var(--dur) var(--ease);
+}
+
+/* Разделы */
+.sx-section {
+  padding-bottom: 6px;
+}
+.sx-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 6px;
+}
+.sx-section__head h2 {
+  font-size: var(--fs-md);
+  font-weight: 740;
+}
+.sx-section__head button {
+  min-height: 32px;
+  color: var(--accent-fg);
+  font-weight: 650;
+  font-size: var(--fs-sm);
+}
+.sx-results .sx-section + .sx-section {
+  border-top: 1px solid var(--border);
+}
+.sx-filters {
+  padding-top: 2px;
+  padding-bottom: 4px;
+}
+.sx-filters .pk-chip {
+  cursor: pointer;
+}
+
+/* Строки */
+.sx-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 6px 16px;
+  color: var(--text) !important;
+  text-decoration: none !important;
+  transition: background var(--dur-fast) var(--ease);
+}
+a.sx-row:hover {
   background: var(--surface-hover);
 }
-.search-hint {
-  text-align: center;
-  color: var(--text-3);
+.sx-row > .sx-row__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  color: inherit !important;
+  text-decoration: none !important;
+}
+.sx-row__icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-strong);
+  color: var(--text-2);
+}
+.sx-row__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
   font-size: var(--fs-sm);
-  padding: var(--space-8) var(--space-4);
 }
-.search-section__title {
-  margin: 0 0 6px 6px;
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-3);
+.sx-row__text b {
+  font-size: var(--fs-md);
+  font-weight: 650;
 }
-.search-section__body {
-  border-radius: var(--radius-xl);
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
+.sx-row__text > span {
+  color: var(--text-2);
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sx-row__x {
+  color: var(--text-3);
+  margin-right: -10px;
+}
+.sx-clear-all {
+  display: block;
+  min-height: 44px;
+  padding: 0 16px;
+  color: var(--accent-fg);
+  font-weight: 650;
+  font-size: var(--fs-sm);
+}
+
+/* Темы */
+.sx-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 2px 16px 8px;
+}
+.sx-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text) !important;
+  font-weight: 650;
+  font-size: var(--fs-sm);
+  text-decoration: none !important;
+}
+.sx-tag span {
+  color: var(--text-3);
+  font-weight: 600;
+  font-size: var(--fs-xs);
+}
+.sx-tag:hover {
+  background: var(--surface-3);
+}
+
+/* Плитка «Интересное»: 3 колонки, каждая пятая плитка — вдвое выше */
+.sx-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: auto;
+  grid-auto-flow: dense;
+  gap: 2px;
+}
+.sx-grid .pg-tile {
+  aspect-ratio: 1;
+}
+.sx-grid .sx-grid__big {
+  grid-row: span 2;
+  grid-column: 3;
+  aspect-ratio: auto;
+}
+.sx-grid .sx-grid__big--left {
+  grid-column: 1;
+}
+@container page (min-width: 641px) {
+  .sx-grid {
+    gap: 4px;
+    padding: 0 16px;
+  }
+}
+
+.search-mark {
+  background: var(--accent-soft-strong);
+  color: var(--text);
+  border-radius: 3px;
+  padding: 0 1px;
 }

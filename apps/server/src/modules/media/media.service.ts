@@ -122,7 +122,7 @@ export class MediaService {
     if (!this.remote || this.uploading.has(row.id)) return;
     const job = this.remote
       .put(`media/${row.storage_key}`, { file: this.filePath(row), sha256: row.sha256 }, row.mime)
-      .then(() => this.db.run('UPDATE media SET remote_at = :now WHERE id = :id', { id: row.id, now: Date.now() }))
+      .then(() => this.db.run('UPDATE media SET remote_at = :now, remote_enc = :enc WHERE id = :id', { id: row.id, now: Date.now(), enc: this.remote!.encrypted ? 1 : 0 }))
       .catch((err: unknown) => this.logger.warn({ media: row.id, err: String(err) }, 'Файл не отправлен в хранилище — повторим позже'))
       .finally(() => this.uploading.delete(row.id));
     this.uploading.set(row.id, job);
@@ -151,13 +151,44 @@ export class MediaService {
         } finally {
           this.uploading.delete(row.id);
         }
-        this.db.run('UPDATE media SET remote_at = :now WHERE id = :id', { id: row.id, now: Date.now() });
+        this.db.run('UPDATE media SET remote_at = :now, remote_enc = :enc WHERE id = :id', { id: row.id, now: Date.now(), enc: this.remote.encrypted ? 1 : 0 });
       } else {
         // Файла нет на диске: обычно он уже в хранилище, а отметка не попала в копию базы
         const there = await this.remote.exists(`media/${row.storage_key}`);
         this.db.run('UPDATE media SET remote_at = :at WHERE id = :id', { id: row.id, at: there ? Date.now() : 0 });
       }
       done++;
+    }
+    return done;
+  }
+
+  /**
+   * Фоновая задача: перешифровывает файлы, отправленные в хранилище до
+   * включения шифрования. Файл берётся с диска (или скачивается), уходит
+   * зашифрованным, а прежняя открытая версия удаляется из хранилища.
+   */
+  async reencryptLegacy(limit = 10): Promise<number> {
+    if (!this.remote?.encrypted) return 0;
+    const rows = this.db.all<MediaRow>(
+      'SELECT * FROM media WHERE remote_at > 0 AND remote_enc = 0 AND deleted_at IS NULL ORDER BY created_at LIMIT :limit',
+      { limit },
+    );
+    let done = 0;
+    for (const row of rows) {
+      if (this.uploading.has(row.id)) continue;
+      try {
+        if (!(await this.ensureLocal(row))) {
+          // В хранилище файла нет — перешифровывать нечего
+          this.db.run('UPDATE media SET remote_enc = 1 WHERE id = :id', { id: row.id });
+          continue;
+        }
+        await this.remote.put(`media/${row.storage_key}`, { file: this.filePath(row) }, row.mime);
+        await this.remote.deleteOldVersions(`media/${row.storage_key}`).catch(() => 0);
+        this.db.run('UPDATE media SET remote_enc = 1 WHERE id = :id', { id: row.id });
+        done++;
+      } catch (err) {
+        this.logger.warn({ media: row.id, err: String(err) }, 'Файл не перешифрован — повторим позже');
+      }
     }
     return done;
   }

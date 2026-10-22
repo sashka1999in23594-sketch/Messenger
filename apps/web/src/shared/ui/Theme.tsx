@@ -3,7 +3,7 @@ import { usePrefs, type Accent, type Palette as PaletteId } from '../stores/pref
 import { cn } from '../lib/format';
 
 export const PALETTES: { id: PaletteId; label: string; hint: string }[] = [
-  { id: 'aurora', label: 'Аврора', hint: 'Фиолетовое сияние' },
+  { id: 'aurora', label: 'Sunnet', hint: 'Лазурь и солнце' },
   { id: 'sunset', label: 'Закат', hint: 'Тёплый вечер' },
   { id: 'ocean', label: 'Океан', hint: 'Глубокая синева' },
   { id: 'forest', label: 'Лес', hint: 'Свежая зелень' },

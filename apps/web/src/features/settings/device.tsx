@@ -1,13 +1,13 @@
 /** Настройки этого устройства: звуки, «Не беспокоить», шрифт и углы, поведение, энергосбережение. */
 import { useState } from 'react';
-import { BatteryCharging, BellRing, Gauge, Hand, Home, Maximize2, Minus, Moon, MousePointer2, Orbit, Play, RotateCcw, Type, Volume2, X } from 'lucide-react';
+import { AppWindow, BatteryCharging, BellRing, Gauge, Home, Image as ImageIcon, Keyboard, Maximize2, Minus, Monitor, Moon, MousePointer2, PanelLeft, Play, RotateCcw, Type, Volume2 } from 'lucide-react';
 import { playSound } from '../../shared/lib/sounds';
 import { isQuietNow, usePrefs, type Corners, type FontFamily, type StartPage } from '../../shared/stores/prefs';
 import { cn } from '../../shared/lib/format';
 import { Button, Notice, SettingRow, Switch } from '../../shared/ui';
 import { useMediaQuery } from '../../shared/hooks';
 import { toast } from '../../shared/stores/ui';
-import { useDesktop } from '../desktop/store';
+import { useDesktop, WALLPAPERS, type ControlsStyle, type WallpaperId } from '../desktop/store';
 import { Panel, SettingsPage } from './common';
 
 export function SoundsSettings() {
@@ -110,7 +110,7 @@ const CORNERS: { id: Corners; label: string; r: number }[] = [
 export function FontSettings() {
   const prefs = usePrefs();
   return (
-    <SettingsPage title="Шрифт и углы" subtitle="Характер интерфейса. Применяется мгновенно" icon={<Type size={22} />}>
+    <SettingsPage title="Шрифт и углы" icon={<Type size={22} />}>
       <Panel title="Шрифт">
         <div className="choice-grid">
           {FONTS.map((f) => (
@@ -224,34 +224,56 @@ export function PowerSettings() {
   );
 }
 
-/** «Пространство»: окна разделов на поле с точками — как рабочий стол компьютера. */
+/** Рабочий стол на компьютере: обои, вид кнопок окон и раскладка окон. */
 export function SpaceModeSettings() {
-  const prefs = usePrefs();
-  const wide = useMediaQuery('(min-width: 900px)');
+  const wallpaper = useDesktop((s) => s.wallpaper);
+  const controls = useDesktop((s) => s.controls);
+  const computer = useMediaQuery('(min-width: 1024px) and (hover: hover) and (pointer: fine)');
   const reset = () => {
     useDesktop.getState().reset();
     toast({ text: 'Расположение окон сброшено', kind: 'success' });
   };
   return (
-    <SettingsPage title="Пространство" subtitle="Окна разделов на бесконечном поле — как рабочий стол компьютера" icon={<Orbit size={22} />}>
-      {!wide && <Notice kind="warning">Пространство работает на экранах от 900 пикселей — на планшете в альбомной ориентации и на компьютере.</Notice>}
+    <SettingsPage title="Рабочий стол" subtitle="Окна разделов на компьютере" icon={<Monitor size={22} />}>
+      {!computer && <Notice>Рабочий стол с окнами открывается на компьютере: экран от 1024 пикселей и мышь или тачпад.</Notice>}
       <Panel>
         <SettingRow
-          icon={<Orbit size={18} />}
+          icon={<ImageIcon size={18} />}
+          tile="tile-blue"
+          title="Обои рабочего стола"
+          description="Небо подстраивается под светлую и тёмную тему"
+          control={
+            <select className="select" style={{ width: 'auto' }} value={wallpaper} onChange={(e) => useDesktop.getState().setWallpaper(e.target.value as WallpaperId)} aria-label="Обои рабочего стола">
+              {WALLPAPERS.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.label}
+                </option>
+              ))}
+            </select>
+          }
+        />
+        <SettingRow
+          icon={<AppWindow size={18} />}
           tile="tile-violet"
-          title="Включить Пространство"
-          description="Слева — разделы, по центру — поле с окнами. Обычный интерфейс вернётся одной кнопкой"
-          control={<Switch checked={!!prefs.spaceMode} disabled={!wide} onChange={(v) => prefs.set({ spaceMode: v })} label="Пространство" />}
+          title="Кнопки окон"
+          description="Цветные слева, как в macOS, или справа, как в Windows"
+          control={
+            <select className="select" style={{ width: 'auto' }} value={controls} onChange={(e) => useDesktop.getState().setControls(e.target.value as ControlsStyle)} aria-label="Кнопки окон">
+              <option value="auto">Как в системе</option>
+              <option value="mac">macOS</option>
+              <option value="win">Windows</option>
+            </select>
+          }
         />
       </Panel>
       <Panel title="Как пользоваться">
-        <SettingRow icon={<MousePointer2 size={18} />} tile="tile-blue" title="Колесо мыши на пустом поле" description="Приблизить и отдалить. Ctrl и колесо — масштаб в любом месте, Ctrl 0 — вернуть 100%" />
-        <SettingRow icon={<Hand size={18} />} tile="tile-cyan" title="Перетаскивание и два пальца" description="Тяните пустое место, чтобы двигать поле. Сведите или разведите пальцы — масштаб" />
-        <SettingRow icon={<Minus size={18} />} tile="tile-green" title="Свернуть" description="Окно уходит в панель слева и остаётся открытым — нажмите на раздел, чтобы вернуть" />
-        <SettingRow icon={<Maximize2 size={18} />} tile="tile-orange" title="На весь экран" description="Кнопка в заголовке или двойной щелчок по нему. Края окна можно тянуть" />
-        <SettingRow icon={<X size={18} />} tile="tile-red" title="Закрыть" description="Shift и щелчок по разделу — открыть ещё одно окно того же раздела" />
+        <SettingRow icon={<MousePointer2 size={18} />} tile="tile-blue" title="Окна" description="Тяните окно за заголовок, размер меняйте за любой край или угол. Двойной щелчок по заголовку — на весь экран" />
+        <SettingRow icon={<Maximize2 size={18} />} tile="tile-orange" title="Половина экрана" description="Подведите окно к левому или правому краю, к верху — на весь экран, в угол — четверть. С клавиатуры — Ctrl+Alt и стрелки" />
+        <SettingRow icon={<PanelLeft size={18} />} tile="tile-cyan" title="Подразделы" description="Кнопка с панелью в заголовке окна открывает дерево раздела: папки, архив, студия, все настройки" />
+        <SettingRow icon={<Minus size={18} />} tile="tile-green" title="Док" description="Щелчок открывает раздел или сворачивает его окно. Ctrl или средняя кнопка — новое окно, правая кнопка — меню" />
+        <SettingRow icon={<Keyboard size={18} />} tile="tile-gray" title="Клавиши" description="Ctrl+K — поиск, Ctrl+W — закрыть окно, Ctrl+M — свернуть, Ctrl+` — следующее окно" />
       </Panel>
-      <Panel footer="Окна, их размеры и масштаб запоминаются на этом устройстве.">
+      <Panel footer="Окна, их места и размеры запоминаются на этом устройстве.">
         <div style={{ padding: 16 }}>
           <Button variant="secondary" icon={<RotateCcw size={16} />} onClick={reset}>
             Сбросить расположение окон

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, BellOff, CalendarClock, FileText, Image, Lock, Mic, Paperclip, Pencil, Reply, SendHorizontal, Smile, Trash2, Video, X } from 'lucide-react';
+import { BarChart3, BellOff, CalendarClock, Check, FileText, Image, Keyboard, Lock, Mic, Paperclip, Pencil, Reply, SendHorizontal, Smile, Trash2, Video, X } from 'lucide-react';
 import { LIMITS, type ChatMember, type ChatSummary, type MediaItem, type PollInput } from '@omni/shared';
 import { api, errorMessage, uploadFile } from '../../shared/api/client';
 import { qk } from '../../shared/api/query';
@@ -35,6 +35,9 @@ export interface ComposerSubmit {
 
 /** Черновики живут в памяти вкладки: переключение между чатами их не теряет. */
 const drafts = new Map<string, string>();
+
+/** Черновик чата — для строки «Черновик: …» в списке. */
+export const draftOf = (chatId: string): string => drafts.get(chatId)?.trim() ?? '';
 
 /** «@ник» перед курсором — для подсказки упоминаний. */
 function mentionAt(text: string, caret: number): { start: number; query: string } | null {
@@ -312,15 +315,19 @@ export function Composer({
       <div className="composer__inner">
         {(replyTo || editing) && (
           <div className="composer__context">
-            {editing ? <Pencil size={18} className="faint" /> : <Reply size={18} className="faint" />}
-            <div className="col grow" style={{ gap: 0 }}>
-              <span className="bold" style={{ color: 'var(--accent-fg)' }}>
-                {editing ? 'Редактирование' : `Ответ ${replyTo!.sender?.displayName ?? ''}`}
+            {editing ? <Pencil size={20} className="composer__context-icon" /> : <Reply size={20} className="composer__context-icon" />}
+            <div className="composer__context-body">
+              <span className="composer__context-title ellipsis">{editing ? 'Редактирование' : `В ответ ${replyTo!.sender?.displayName ?? ''}`}</span>
+              <span className="composer__context-text ellipsis">
+                {editing
+                  ? editing.text
+                  : replyTo!.kind === 'encrypted'
+                    ? 'Зашифрованное сообщение'
+                    : replyTo!.text || (replyTo!.kind === 'voice' ? 'Голосовое сообщение' : replyTo!.kind === 'round' ? 'Видеосообщение' : 'Вложение')}
               </span>
-              <span className="ellipsis muted">{editing ? editing.text : replyTo!.kind === 'encrypted' ? '🔒 Зашифрованное сообщение' : replyTo!.text || 'Вложение'}</span>
             </div>
             <IconButton label="Отменить" size="sm" onClick={editing ? onCancelEdit : onCancelReply}>
-              <X size={18} />
+              <X size={20} />
             </IconButton>
           </div>
         )}
@@ -328,13 +335,7 @@ export function Composer({
           <div className="composer__attachments">
             {attachments.map((a) => (
               <div key={a.id} className="attachment" title={a.file.name}>
-                {a.preview && a.file.type.startsWith('image/') ? (
-                  <img src={a.preview} alt="" />
-                ) : a.preview ? (
-                  <video src={a.preview} muted />
-                ) : (
-                  <FileText size={28} />
-                )}
+                {a.preview && a.file.type.startsWith('image/') ? <img src={a.preview} alt="" /> : a.preview ? <video src={a.preview} muted /> : <FileText size={28} />}
                 {!a.media && !a.error && (
                   <div className="progress attachment__progress">
                     <div className="progress__bar" style={{ width: `${Math.round(a.progress * 100)}%` }} />
@@ -392,10 +393,10 @@ export function Composer({
         )}
         {recording ? (
           <div className="composer__bar">
+            <IconButton label="Удалить запись" danger className="composer__side" onClick={() => voice.cancel()}>
+              <Trash2 size={21} />
+            </IconButton>
             <div className="composer__box voice-rec">
-              <IconButton label="Удалить запись" danger onClick={() => voice.cancel()}>
-                <Trash2 size={20} />
-              </IconButton>
               <span className="rec-dot" />
               <span className="voice-rec__time">{fmtSec(voice.elapsed)}</span>
               <span className="voice-rec__wave" aria-hidden>
@@ -404,16 +405,22 @@ export function Composer({
                 ))}
               </span>
             </div>
-            <button className="composer__send" onClick={() => void sendVoice()} aria-label="Отправить голосовое" disabled={voice.state !== 'recording'}>
-              <SendHorizontal size={22} />
+            <button className="composer__send composer__send--rec" onClick={() => void sendVoice()} aria-label="Отправить голосовое" disabled={voice.state !== 'recording'}>
+              <SendHorizontal size={21} />
             </button>
           </div>
         ) : (
           <div className="composer__bar">
-            <div className="composer__box">
-              <IconButton label="Эмодзи" onClick={() => setEmojiOpen((v) => !v)} active={emojiOpen}>
-                <Smile size={22} />
+            {secret ? (
+              <span className="icon-btn composer__side" title="Вложения в секретных чатах появятся вместе с шифрованием файлов" style={{ color: 'var(--success)' }}>
+                <Lock size={20} />
+              </span>
+            ) : (
+              <IconButton label="Прикрепить" className="composer__side" onClick={(e) => attachMenu.openFromEvent(e)} disabled={!!editing}>
+                <Paperclip size={23} />
               </IconButton>
+            )}
+            <div className="composer__box">
               <textarea
                 ref={input}
                 className="composer__input"
@@ -423,6 +430,7 @@ export function Composer({
                 placeholder={secret ? 'Зашифрованное сообщение' : chat.type === 'channel' ? 'Публикация в канал' : 'Сообщение'}
                 onChange={(e) => onChange(e.target.value, e.target.selectionStart)}
                 onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
+                onFocus={() => isMobile && setEmojiOpen(false)}
                 onPaste={(e) => {
                   if (!secret && e.clipboardData.files.length) {
                     e.preventDefault();
@@ -459,21 +467,23 @@ export function Composer({
                 aria-label="Текст сообщения"
                 maxLength={LIMITS.messageMax}
               />
-              {secret ? (
-                <span className="icon-btn" title="Вложения в секретных чатах появятся вместе с шифрованием файлов" style={{ color: 'var(--success)' }}>
-                  <Lock size={20} />
-                </span>
-              ) : (
-                <>
-                  <IconButton label="Прикрепить" onClick={(e) => attachMenu.openFromEvent(e)} disabled={!!editing}>
-                    <Paperclip size={22} />
-                  </IconButton>
-                  {showMic && (
-                    <IconButton label="Видеосообщение (кружок)" onClick={() => setRoundOpen(true)}>
-                      <Video size={22} />
-                    </IconButton>
-                  )}
-                </>
+              <IconButton
+                label={emojiOpen ? 'Клавиатура' : 'Эмодзи'}
+                onClick={() => {
+                  if (emojiOpen && isMobile) input.current?.focus();
+                  else {
+                    if (isMobile) input.current?.blur();
+                    setEmojiOpen((v) => !v);
+                  }
+                }}
+                active={emojiOpen}
+              >
+                {emojiOpen && isMobile ? <Keyboard size={22} /> : <Smile size={22} />}
+              </IconButton>
+              {showMic && !secret && (
+                <IconButton label="Видеосообщение (кружок)" onClick={() => setRoundOpen(true)}>
+                  <Video size={22} />
+                </IconButton>
               )}
               <input
                 ref={fileInput}
@@ -486,29 +496,28 @@ export function Composer({
                 }}
               />
             </div>
-            {showMic ? (
-              <button className="composer__send composer__send--mic" onClick={() => void voice.start()} aria-label="Записать голосовое" title="Записать голосовое" disabled={voiceBusy}>
-                {voiceBusy ? <span className="spinner" /> : <Mic size={22} />}
-              </button>
-            ) : (
-              <button
-                className="composer__send"
-                onClick={() => submit()}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  openSendMenu(e.clientX, e.clientY);
-                }}
-                onTouchStart={(e) => {
-                  const t = e.touches[0];
-                  longPress.current = setTimeout(() => t && openSendMenu(t.clientX, t.clientY - 100), 500);
-                }}
-                onTouchEnd={() => longPress.current && clearTimeout(longPress.current)}
-                disabled={!canSend}
-                aria-label={editing ? 'Сохранить' : 'Отправить (правая кнопка — больше вариантов)'}
-              >
-                {uploading ? <span className="spinner" /> : <SendHorizontal size={22} />}
-              </button>
-            )}
+            <button
+              className={cn('composer__send', showMic && 'composer__send--mic')}
+              onClick={() => (showMic ? void voice.start() : submit())}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                if (!showMic) openSendMenu(e.clientX, e.clientY);
+              }}
+              onTouchStart={(e) => {
+                if (showMic) return;
+                const t = e.touches[0];
+                longPress.current = setTimeout(() => t && openSendMenu(t.clientX, t.clientY - 100), 500);
+              }}
+              onTouchEnd={() => longPress.current && clearTimeout(longPress.current)}
+              disabled={showMic ? voiceBusy : !canSend}
+              aria-label={showMic ? 'Записать голосовое' : editing ? 'Сохранить' : 'Отправить (удерживайте — больше вариантов)'}
+              title={showMic ? 'Записать голосовое' : undefined}
+            >
+              <span className={cn('composer__send-icon', !showMic && 'composer__send-icon--off')}>{voiceBusy ? <span className="spinner" /> : <Mic size={24} />}</span>
+              <span className={cn('composer__send-icon', showMic && 'composer__send-icon--off')}>
+                {uploading ? <span className="spinner" /> : editing ? <Check size={22} strokeWidth={2.6} /> : <SendHorizontal size={21} />}
+              </span>
+            </button>
           </div>
         )}
       </div>

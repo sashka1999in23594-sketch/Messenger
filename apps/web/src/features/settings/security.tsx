@@ -227,7 +227,7 @@ export function SessionsSettings() {
         {others.map((s) => (
           <Row key={s.id} s={s} />
         ))}
-        {others.length === 0 && !q.isLoading && <p className="muted small" style={{ padding: '0 16px 12px' }}>Других активных сеансов нет</p>}
+        {others.length === 0 && !q.isLoading && <p className="muted small" style={{ padding: '14px 16px' }}>Других активных сеансов нет</p>}
         {others.length > 0 && (
           <div style={{ padding: '4px 16px 12px' }}>
             <Button variant="danger-ghost" icon={<LogOut size={16} />} onClick={() => void revokeOthers()}>

@@ -1,15 +1,18 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { AtSign, Bell, Briefcase, Cake, CheckCheck, Heart, MessageSquare, Repeat2, Shield, UserCheck, UserPlus, Users } from 'lucide-react';
+import { AtSign, Bell, Briefcase, Cake, CheckCheck, ChevronRight, Heart, MessageCircle, Repeat2, Shield, UserCheck, UserPlus, Users } from 'lucide-react';
 import type { AppNotification, ChatSummary, NotificationType, UserSummary } from '@omni/shared';
-import { api } from '../../shared/api/client';
+import { api, errorMessage } from '../../shared/api/client';
 import { flatPages, qk, queryClient, useCursorList } from '../../shared/api/query';
-import { useSession } from '../../shared/stores/session';
-import { cn, timeAgo } from '../../shared/lib/format';
-import { Avatar, Button, EmptyState, ListSkeleton, LoadMore, PageHeader, TabLinks, UserRow } from '../../shared/ui';
+import { useMe, useSession } from '../../shared/stores/session';
+import { toast } from '../../shared/stores/ui';
+import { cn } from '../../shared/lib/format';
+import { Avatar, Button, EmptyState, ListSkeleton, LoadMore, Spinner, Verified } from '../../shared/ui';
 import { InviteCard } from '../spaces';
 import { useMyInvites } from '../spaces/api';
+import { ChipLinks, shortAgo } from '../misc/kit';
+import './notifications.css';
 
 export const notificationText = (t: NotificationType) => TEXT[t];
 
@@ -30,101 +33,181 @@ const TEXT: Record<NotificationType, string> = {
   birthday: 'празднует день рождения',
 };
 
-const ICON: Record<NotificationType, React.ReactNode> = {
-  follow: <UserPlus size={16} />,
-  follow_request: <UserPlus size={16} />,
-  follow_accepted: <UserCheck size={16} />,
-  like: <Heart size={16} />,
-  comment: <MessageSquare size={16} />,
-  reply: <MessageSquare size={16} />,
-  mention: <AtSign size={16} />,
-  repost: <Repeat2 size={16} />,
-  community_join: <Users size={16} />,
-  new_post: <Bell size={16} />,
-  story_reaction: <Heart size={16} />,
-  space_invite: <Briefcase size={16} />,
-  security: <Shield size={16} />,
-  birthday: <Cake size={16} />,
+/** Значок типа: иконка и цвет кружка в углу аватара */
+const KIND: Record<NotificationType, { icon: React.ReactNode; tone: string }> = {
+  follow: { icon: <UserPlus size={11} strokeWidth={2.6} />, tone: 'follow' },
+  follow_request: { icon: <UserPlus size={11} strokeWidth={2.6} />, tone: 'follow' },
+  follow_accepted: { icon: <UserCheck size={11} strokeWidth={2.6} />, tone: 'follow' },
+  like: { icon: <Heart size={11} fill="currentColor" strokeWidth={0} />, tone: 'like' },
+  comment: { icon: <MessageCircle size={11} fill="currentColor" strokeWidth={0} />, tone: 'comment' },
+  reply: { icon: <MessageCircle size={11} fill="currentColor" strokeWidth={0} />, tone: 'comment' },
+  mention: { icon: <AtSign size={11} strokeWidth={2.8} />, tone: 'mention' },
+  repost: { icon: <Repeat2 size={11} strokeWidth={2.8} />, tone: 'repost' },
+  community_join: { icon: <Users size={11} strokeWidth={2.6} />, tone: 'space' },
+  new_post: { icon: <Bell size={11} fill="currentColor" strokeWidth={0} />, tone: 'post' },
+  story_reaction: { icon: <Heart size={11} fill="currentColor" strokeWidth={0} />, tone: 'story' },
+  space_invite: { icon: <Briefcase size={11} strokeWidth={2.6} />, tone: 'space' },
+  security: { icon: <Shield size={11} fill="currentColor" strokeWidth={0} />, tone: 'security' },
+  birthday: { icon: <Cake size={11} strokeWidth={2.6} />, tone: 'birthday' },
 };
 
-function NotificationRow({ n }: { n: AppNotification }) {
+/** Группы по времени, как в Instagram */
+function bucket(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const t = d.getTime();
+  if (t >= startOfDay) return 'Сегодня';
+  if (t >= startOfDay - 86400_000) return 'Вчера';
+  if (t >= startOfDay - 6 * 86400_000) return 'На этой неделе';
+  if (t >= startOfDay - 29 * 86400_000) return 'В этом месяце';
+  return 'Ранее';
+}
+
+/** Мои подписки — чтобы на «подписался на вас» показать «Подписаться в ответ» или «Вы подписаны». */
+function useFollowingIds() {
+  const me = useMe();
+  return useQuery({
+    queryKey: ['following-ids', me.id],
+    queryFn: async () => new Set((await api.get<{ items: UserSummary[] }>(`/users/${me.id}/following?limit=100`)).items.map((u) => u.id)),
+    staleTime: 60_000,
+  });
+}
+
+function FollowBack({ user, following }: { user: UserSummary; following: boolean }) {
+  const m = useMutation({
+    mutationFn: () => api.post<{ status: 'accepted' | 'pending' }>(`/users/${user.id}/follow`),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['following-ids'] });
+      void queryClient.invalidateQueries({ queryKey: qk.user(user.username) });
+    },
+    onError: (e) => toast({ text: errorMessage(e), kind: 'error' }),
+  });
+  if (following || m.data?.status === 'accepted') return <span className="nt-btn nt-btn--ghost">Вы подписаны</span>;
+  if (m.data?.status === 'pending') return <span className="nt-btn nt-btn--ghost">Заявка</span>;
+  return (
+    <button type="button" className="nt-btn" disabled={m.isPending} onClick={(e) => (e.stopPropagation(), m.mutate())}>
+      {m.isPending ? <Spinner /> : 'Подписаться'}
+    </button>
+  );
+}
+
+function NotificationRow({ n, followingIds }: { n: AppNotification; followingIds?: Set<string> }) {
   const navigate = useNavigate();
   // Приглашение в компанию или сообщество — с кнопками «Принять» и «Отклонить», пока не ответили
   const invite = useMyInvites().data?.items.find((i) => n.type === 'space_invite' && i.id === n.entityId);
-  const row = (
-    <button
-      className="list-item"
-      style={{ alignItems: 'flex-start', background: n.readAt ? undefined : 'var(--accent-soft)' }}
-      onClick={() => n.link && navigate(n.link)}
-    >
-      <span style={{ position: 'relative' }}>
-        {n.actor ? (
-          <Avatar src={n.actor.avatarUrl} name={n.actor.displayName} id={n.actor.id} size={44} />
-        ) : (
-          <span className="list-item__icon" style={{ width: 44, height: 44, borderRadius: 22, background: 'var(--danger-soft)', color: 'var(--danger)' }}>
-            <Shield size={20} />
-          </span>
-        )}
-        <span
-          className="badge"
-          style={{ position: 'absolute', right: -4, bottom: -4, width: 22, height: 22, padding: 0, background: n.type === 'like' ? '#f91880' : n.type === 'security' ? 'var(--danger)' : n.type === 'birthday' ? 'var(--warning)' : 'var(--accent)' }}
-        >
-          {ICON[n.type]}
-        </span>
-      </span>
-      <span className="list-item__body">
-        <span>
-          {n.actor && <b>{n.actor.displayName} </b>}
-          {n.type === 'security' ? <b>Безопасность</b> : TEXT[n.type]}
-        </span>
-        {n.preview && <span className="list-item__sub clamp-2" style={{ display: 'block' }}>{n.preview}</span>}
-        <span className="xs faint">{timeAgo(n.createdAt)}</span>
-
-      </span>
-      {!n.readAt && <span className="badge badge--dot" style={{ marginTop: 8 }} />}
-    </button>
-  );
-  // День рождения: кнопка «Поздравить» открывает личный чат
-  if (n.type === 'birthday' && n.actor) {
-    const actor = n.actor;
-    return (
-      <div className="notif-invite">
-        {row}
-        <div style={{ padding: '0 14px 14px 72px' }}>
-          <Button
-            variant="soft"
-            size="sm"
-            icon={<Cake size={15} />}
-            onClick={async () => {
-              const chat = await api.post<ChatSummary>('/chats/direct', { userId: actor.id });
-              navigate(`/chats/${chat.id}`);
-            }}
-          >
-            Поздравить
-          </Button>
-        </div>
-      </div>
-    );
-  }
-  if (!invite) return row;
+  const kind = KIND[n.type];
+  const actor = n.actor;
+  const greet = async () => {
+    if (!actor) return;
+    try {
+      const chat = await api.post<ChatSummary>('/chats/direct', { userId: actor.id });
+      navigate(`/chats/${chat.id}`);
+    } catch (e) {
+      toast({ text: errorMessage(e), kind: 'error' });
+    }
+  };
+  const action =
+    n.type === 'birthday' && actor ? (
+      <button type="button" className="nt-btn nt-btn--warm" onClick={(e) => (e.stopPropagation(), void greet())}>
+        <Cake size={15} /> Поздравить
+      </button>
+    ) : (n.type === 'follow' || n.type === 'follow_accepted') && actor && followingIds ? (
+      <FollowBack user={actor} following={followingIds.has(actor.id)} />
+    ) : null;
   return (
-    <div className="notif-invite">
-      {row}
-      <div style={{ padding: '0 14px 14px 72px' }}>
-        <InviteCard inv={invite} compact />
-      </div>
+    <div className={cn('nt-row', !n.readAt && 'nt-row--unread')}>
+      <button type="button" className="nt-row__main" onClick={() => n.link && navigate(n.link)}>
+        <span className="nt-row__avatar">
+          {actor ? (
+            <Avatar src={actor.avatarUrl} name={actor.displayName} id={actor.id} size={48} />
+          ) : (
+            <span className="nt-row__system">
+              <Shield size={22} />
+            </span>
+          )}
+          <span className={`nt-kind nt-kind--${kind.tone}`}>{kind.icon}</span>
+        </span>
+        <span className="nt-row__body">
+          <span className="nt-row__text">
+            {actor && (
+              <b>
+                {actor.displayName}
+                {actor.verified && (
+                  <>
+                    {' '}
+                    <Verified size={13} />
+                  </>
+                )}{' '}
+              </b>
+            )}
+            {n.type === 'security' ? <b>Безопасность. </b> : TEXT[n.type]}
+            {n.type !== 'security' && n.preview && TEXT[n.type] ? ': ' : ''}
+            {n.preview && <span className="nt-row__preview">{n.preview}</span>}
+            <span className="nt-row__time"> {shortAgo(n.createdAt)}</span>
+          </span>
+        </span>
+      </button>
+      {action && <span className="nt-row__action">{action}</span>}
+      {!n.readAt && !action && <span className="nt-row__dot" aria-label="Не прочитано" />}
+      {invite && (
+        <div className="nt-row__invite">
+          <InviteCard inv={invite} compact />
+        </div>
+      )}
     </div>
   );
 }
+
+/** Заявки на подписку — строка над лентой уведомлений (закрытый профиль). */
+function RequestsEntry({ count }: { count: number }) {
+  const q = useQuery({ queryKey: ['follow-requests'], queryFn: () => api.get<{ items: UserSummary[] }>('/me/follow-requests'), enabled: count > 0 });
+  if (!count) return null;
+  const sample = q.data?.items.slice(0, 2) ?? [];
+  return (
+    <Link to="/notifications/requests" className="nt-requests">
+      <span className="nt-requests__avatars">
+        {sample.length ? (
+          sample.map((u) => <Avatar key={u.id} src={u.avatarUrl} name={u.displayName} id={u.id} size={sample.length > 1 ? 36 : 48} />)
+        ) : (
+          <span className="nt-row__system">
+            <UserPlus size={22} />
+          </span>
+        )}
+      </span>
+      <span className="nt-row__body">
+        <b>Заявки на подписку</b>
+        <span className="nt-row__preview">{sample.length ? `${sample.map((u) => u.username).join(', ')}${count > sample.length ? ` и ещё ${count - sample.length}` : ''}` : 'Одобрите или отклоните'}</span>
+      </span>
+      <span className="nt-requests__count">{count}</span>
+      <ChevronRight size={18} className="faint" />
+    </Link>
+  );
+}
+
+const FILTERS = [
+  { to: '/notifications', label: 'Все' },
+  { to: '/notifications/mentions', label: 'Упоминания' },
+  { to: '/notifications/replies', label: 'Ответы' },
+  { to: '/notifications/likes', label: 'Отметки' },
+  { to: '/notifications/follows', label: 'Подписчики' },
+  { to: '/notifications/posts', label: 'Новое у авторов' },
+  { to: '/notifications/security', label: 'Безопасность' },
+];
 
 export function NotificationsPage() {
   const { filter = 'all' } = useParams();
   const list = useCursorList<AppNotification>(qk.notifications(filter), `/notifications?filter=${filter}`);
   const items = flatPages(list.data);
   const counters = useSession((s) => s.me?.counters);
+  const following = useFollowingIds();
+  const [readLocal, setReadLocal] = useState(false);
   const readAll = useMutation({
     mutationFn: () => api.post('/notifications/read', {}),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      setReadLocal(true);
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
   });
   // Открыли — значит прочитали (с небольшой задержкой, чтобы успеть увидеть подсветку)
   useEffect(() => {
@@ -132,34 +215,45 @@ export function NotificationsPage() {
     const t = setTimeout(() => void api.post('/notifications/read', { ids: items.filter((n) => !n.readAt).map((n) => n.id) }), 2500);
     return () => clearTimeout(t);
   }, [items]);
+  const groups = useMemo(() => {
+    const out: { title: string; items: AppNotification[] }[] = [];
+    for (const n of items) {
+      const title = bucket(n.createdAt);
+      const last = out.at(-1);
+      if (last?.title === title) last.items.push(n);
+      else out.push({ title, items: [n] });
+    }
+    return out;
+  }, [items]);
+  const unread = !readLocal && items.some((n) => !n.readAt);
   return (
-    <div className="scroll">
-      <div className="page">
-        <PageHeader
-          title="Уведомления"
-          icon={<Bell size={22} />}
-          actions={
-            <Button variant="ghost" size="sm" icon={<CheckCheck size={16} />} onClick={() => readAll.mutate()}>
-              Прочитать все
-            </Button>
-          }
-        />
-        <TabLinks
-          tabs={[
-            { to: '/notifications', label: 'Все' },
-            { to: '/notifications/mentions', label: 'Упоминания' },
-            { to: '/notifications/replies', label: 'Ответы' },
-            { to: '/notifications/likes', label: 'Отметки' },
-            { to: '/notifications/posts', label: 'Новое у авторов' },
-            { to: '/notifications/follows', label: 'Подписчики' },
-            { to: '/notifications/requests', label: 'Заявки', count: counters?.followRequests },
-            { to: '/notifications/security', label: 'Безопасность' },
-          ]}
-        />
-        <div className="card" style={{ marginTop: 16, overflow: 'hidden' }}>
-          {list.isLoading ? <ListSkeleton /> : items.length === 0 ? <EmptyState icon={<Bell size={28} />} title="Уведомлений нет" text="Здесь появятся лайки, ответы, упоминания и подписчики" /> : items.map((n) => <NotificationRow key={n.id} n={n} />)}
+    <div className="pk-root">
+      <div className="scroll">
+        <div className="nt">
+          <header className="nt-head">
+            <h1>Уведомления</h1>
+            <button type="button" className="pk-icon" onClick={() => readAll.mutate()} disabled={!unread || readAll.isPending} aria-label="Прочитать все" title="Прочитать все">
+              <CheckCheck size={22} />
+            </button>
+          </header>
+          <ChipLinks tabs={[...FILTERS, { to: '/notifications/requests', label: 'Заявки', count: counters?.followRequests }]} className="nt-filters" />
+          {filter === 'all' && <RequestsEntry count={counters?.followRequests ?? 0} />}
+          {list.isLoading ? (
+            <ListSkeleton rows={8} avatar={48} />
+          ) : items.length === 0 ? (
+            <EmptyState icon={<Bell size={28} />} title="Уведомлений нет" text="Здесь появятся лайки, ответы, упоминания и новые подписчики" />
+          ) : (
+            groups.map((g) => (
+              <section key={g.title} className="nt-group">
+                <h2 className="nt-group__title">{g.title}</h2>
+                {g.items.map((n) => (
+                  <NotificationRow key={n.id} n={n} followingIds={following.data} />
+                ))}
+              </section>
+            ))
+          )}
+          <LoadMore hasMore={!!list.hasNextPage} loading={list.isFetchingNextPage} onLoad={() => void list.fetchNextPage()} />
         </div>
-        <LoadMore hasMore={!!list.hasNextPage} loading={list.isFetchingNextPage} onLoad={() => void list.fetchNextPage()} />
       </div>
     </div>
   );
@@ -167,42 +261,54 @@ export function NotificationsPage() {
 
 export function FollowRequestsPage() {
   const q = useQuery({ queryKey: ['follow-requests'], queryFn: () => api.get<{ items: UserSummary[] }>('/me/follow-requests') });
+  const [done, setDone] = useState<Record<string, 'accepted' | 'declined'>>({});
   const answer = async (u: UserSummary, accept: boolean) => {
-    await api.post(`/me/follow-requests/${u.id}/${accept ? 'accept' : 'decline'}`);
-    void q.refetch();
+    try {
+      await api.post(`/me/follow-requests/${u.id}/${accept ? 'accept' : 'decline'}`);
+      setDone((d) => ({ ...d, [u.id]: accept ? 'accepted' : 'declined' }));
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    } catch (e) {
+      toast({ text: errorMessage(e), kind: 'error' });
+    }
   };
   return (
-    <div className="scroll">
-      <div className="page">
-        <PageHeader title="Заявки на подписку" subtitle="У вас закрытый профиль — подтвердите, кто может видеть ваши публикации" icon={<UserCheck size={22} />} />
-        <TabLinks tabs={[{ to: '/notifications', label: '← Все уведомления' }, { to: '/notifications/requests', label: 'Заявки' }]} />
-        <div className="card" style={{ marginTop: 16 }}>
-          {q.data?.items.length === 0 && (
-            <EmptyState
-              icon={<UserCheck size={28} />}
-              title="Новых заявок нет"
-              text={
-                <>
-                  Заявки появляются, если включён <Link to="/settings/privacy/profile">закрытый профиль</Link>
-                </>
-              }
-            />
-          )}
+    <div className="pk-root">
+      <div className="scroll">
+        <div className="nt">
+          <header className="nt-head">
+            <h1>Заявки на подписку</h1>
+          </header>
+          <p className="nt-note">
+            У вас <Link to="/settings/privacy/profile">закрытый профиль</Link> — публикации видят только одобренные подписчики.
+          </p>
+          {q.isLoading && <ListSkeleton rows={4} avatar={48} />}
+          {q.data?.items.length === 0 && <EmptyState icon={<UserCheck size={28} />} title="Новых заявок нет" />}
           {q.data?.items.map((u) => (
-            <UserRow
-              key={u.id}
-              user={u}
-              action={
-                <div className={cn('row')}>
-                  <Button size="sm" onClick={() => void answer(u, true)}>
-                    Принять
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => void answer(u, false)}>
-                    Отклонить
-                  </Button>
-                </div>
-              }
-            />
+            <div key={u.id} className="nt-row">
+              <Link to={`/u/${u.username}`} className="nt-row__main">
+                <span className="nt-row__avatar">
+                  <Avatar src={u.avatarUrl} name={u.displayName} id={u.id} size={48} />
+                </span>
+                <span className="nt-row__body">
+                  <b className="ellipsis">{u.displayName}</b>
+                  <span className="nt-row__preview">@{u.username}</span>
+                </span>
+              </Link>
+              <span className="nt-row__action nt-row__action--pair">
+                {done[u.id] ? (
+                  <span className="nt-btn nt-btn--ghost">{done[u.id] === 'accepted' ? 'Одобрено' : 'Отклонено'}</span>
+                ) : (
+                  <>
+                    <Button size="sm" onClick={() => void answer(u, true)}>
+                      Принять
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => void answer(u, false)}>
+                      Удалить
+                    </Button>
+                  </>
+                )}
+              </span>
+            </div>
           ))}
         </div>
       </div>

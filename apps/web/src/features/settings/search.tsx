@@ -17,7 +17,7 @@ interface Entry {
 /** Отдельные настройки внутри страниц */
 const ITEMS: [title: string, path: string, where: string, keywords?: string][] = [
   ['Тёмная и светлая тема', '/settings/appearance/theme', 'Оформление', 'ночь день система'],
-  ['Режим «Пространство»', '/settings/space', 'Пространство', 'окна рабочий стол масштаб колесо'],
+  ['Рабочий стол и окна', '/settings/space', 'Рабочий стол', 'окна обои док кнопки окон пространство'],
   ['Проверка звонков', '/settings/calls', 'Звонки', 'микрофон камера связь не соединяется turn'],
   ['Палитра «северного сияния»', '/settings/appearance/theme', 'Оформление', 'закат океан лес сакура'],
   ['Цвет акцента', '/settings/appearance/accent', 'Оформление', 'цвет кнопок'],
@@ -113,7 +113,7 @@ export function SettingsSearch({ onActive }: { onActive: (active: boolean) => vo
         <input
           className="input"
           type="search"
-          placeholder="Поиск настроек: «звук», «пароль», «обои»…"
+          placeholder="Поиск"
           value={q}
           onChange={(e) => {
             setQ(e.target.value);
@@ -124,12 +124,12 @@ export function SettingsSearch({ onActive }: { onActive: (active: boolean) => vo
         />
       </div>
       {q.trim() && (
-        <div className="panel" style={{ padding: 6, marginBottom: 20 }}>
-          {results.length ? (
-            <div className="settings-results">
-              {results.map(({ e }) => (
+        <div className="settings-results-wrap">
+          <div className="st-card">
+            {results.length ? (
+              results.map(({ e }) => (
                 <Link key={e.title + e.path} to={e.path} className="settings-result">
-                  <span className="list-item__icon">
+                  <span className="settings-result__icon tile-gray">
                     <SlidersHorizontal size={16} />
                   </span>
                   <span className="grow" style={{ minWidth: 0 }}>
@@ -140,13 +140,13 @@ export function SettingsSearch({ onActive }: { onActive: (active: boolean) => vo
                   </span>
                   <CornerDownLeft size={14} className="faint" />
                 </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="row gap-2 muted" style={{ padding: 14 }}>
-              <Settings size={16} /> Ничего не нашлось — попробуйте другое слово
-            </div>
-          )}
+              ))
+            ) : (
+              <div className="settings-empty">
+                <Settings size={16} /> Ничего не нашлось — попробуйте другое слово
+              </div>
+            )}
+          </div>
         </div>
       )}
     </>

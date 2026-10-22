@@ -934,4 +934,11 @@ UPDATE users SET
 WHERE id = '00000000000000000000000SYS';
 `,
   },
+  {
+    version: '012_storage_encryption',
+    sql: `
+-- Файл в хранилище уже зашифрован (AES-256-GCM); старые копии перешифровывает фоновая задача
+ALTER TABLE media ADD COLUMN remote_enc INTEGER NOT NULL DEFAULT 0;
+`,
+  },
 ];

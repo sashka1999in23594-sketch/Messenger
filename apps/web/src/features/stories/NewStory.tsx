@@ -12,7 +12,8 @@ import { uploadAny } from '../../shared/lib/media';
 import { useMe } from '../../shared/stores/session';
 import { toast } from '../../shared/stores/ui';
 import { cn } from '../../shared/lib/format';
-import { Button, Input, PageHeader, Segmented, SettingRow, Switch, Textarea } from '../../shared/ui';
+import { Button, Input, Segmented, SettingRow, Switch, Textarea } from '../../shared/ui';
+import { LargeTitle } from '../misc/kit';
 import { refreshStories } from './api';
 import './stories.css';
 
@@ -112,10 +113,11 @@ export function NewStoryPage() {
   const ready = mode === 'text' ? !!text.trim() : !!file;
 
   return (
+    <div className="pk-root">
     <div className="scroll">
-      <div className="page">
-        <PageHeader title="Новая история" subtitle="Исчезнет через 24 часа и останется в вашем архиве" icon={<Star size={22} />} />
-        <div style={{ marginBottom: 16 }}>
+      <div className="page story-new">
+        <LargeTitle title="Новая история" sub="Исчезнет через 24 часа и останется в вашем архиве" />
+        <div className="story-new__mode">
           <Segmented
             value={mode}
             onChange={setMode}
@@ -262,12 +264,15 @@ export function NewStoryPage() {
                 <div className="progress__bar" style={{ width: `${progress * 100}%` }} />
               </div>
             )}
-            <Button size="lg" disabled={!ready} loading={publish.isPending} onClick={() => publish.mutate()}>
-              Опубликовать
-            </Button>
+            <div className="story-new__publish">
+              <Button size="lg" block disabled={!ready} loading={publish.isPending} onClick={() => publish.mutate()}>
+                Опубликовать
+              </Button>
+            </div>
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

@@ -1,7 +1,31 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useInfiniteQuery, useMutation, useQuery, type InfiniteData } from '@tanstack/react-query';
-import { ArrowDown, ArrowLeft, Ban, Bell, BellOff, CalendarClock, Eraser, Flag, Info, Lock, LogOut, Megaphone, Phone, Pin, Search, ShieldAlert, Trash2, Video, X } from 'lucide-react';
+import {
+  Ban,
+  Bell,
+  BellOff,
+  CalendarClock,
+  ChevronDown,
+  ChevronLeft,
+  Copy,
+  EllipsisVertical,
+  Eraser,
+  Flag,
+  Forward,
+  Info,
+  Lock,
+  LogOut,
+  Megaphone,
+  Phone,
+  Pin,
+  PinOff,
+  Search,
+  ShieldAlert,
+  Trash2,
+  Video,
+  X,
+} from 'lucide-react';
 import type { ChatSummary, EncryptedPayload, Message, PollInput, ScheduledMessage } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { qk, queryClient } from '../../shared/api/query';
@@ -10,16 +34,17 @@ import { encryptMessage } from '../../shared/crypto/e2e';
 import { playSound } from '../../shared/lib/sounds';
 import { realtime } from '../../shared/realtime/socket';
 import { useRealtime } from '../../shared/stores/realtime';
-import { useMe } from '../../shared/stores/session';
+import { useMe, useSession } from '../../shared/stores/session';
 import { toast, useCrumb } from '../../shared/stores/ui';
-import { activityLabel, cn, fullDate, lastSeen, members, randomId } from '../../shared/lib/format';
+import { activityLabel, cn, fullDate, lastSeen, members, plural, randomId } from '../../shared/lib/format';
 import { Avatar, Button, confirm, ErrorState, IconButton, Loading, Menu, Modal, ReportDialog, useMenu, Verified } from '../../shared/ui';
 import { useImmersive } from '../../app/layout/Shell';
 import { activeChat, forgetChat, onIncomingMessage, patchChat, patchMessage, removeMessage, upsertMessage, type LocalMessage, type MessagesPage } from './cache';
 import { Composer, type ComposerSubmit } from './Composer';
 import { ForwardDialog, InChatSearch } from './dialogs';
 import { ReadersDialog, ScheduledListDialog, scheduledKey } from './extras';
-import { MessageList, type MessageActions } from './Messages';
+import { MessageList, scrollToEl, type MessageActions } from './Messages';
+import { ChatAvatar, TypingDots } from './ChatList';
 import { CommentsDialog, useViewTracker } from './channel';
 import { rememberPlaintext, useSecretChat } from './secret';
 import { useChatUi } from './store';
@@ -54,8 +79,17 @@ export function ChatView() {
   const [editing, setEditing] = useState<{ msg: LocalMessage; text: string } | null>(null);
   const [forwarding, setForwarding] = useState<LocalMessage | null>(null);
   const [reporting, setReporting] = useState<{ type: 'message' | 'chat' | 'user'; id: string } | null>(null);
-  const [deleting, setDeleting] = useState<LocalMessage | null>(null);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [deleting, setDeleting] = useState<LocalMessage[] | null>(null);
+  // Режим выделения: несколько сообщений — переслать, скопировать, удалить
+  const [selected, setSelected] = useState<Map<string, LocalMessage>>(new Map());
+  const selecting = selected.size > 0;
+  const [forwardMany, setForwardMany] = useState<LocalMessage[] | null>(null);
+  const otherUnread = useSession((s) => s.me?.counters.unreadChats ?? 0);
+  // Новые сообщения, пришедшие, пока лента прокручена вверх
+  const seenSeq = useRef(0);
+  // Поиск по переписке открывается и из шапки, и из информации о чате
+  const searchOpen = useChatUi((s) => s.searchOpen);
+  const setSearchOpen = useChatUi((s) => s.setSearch);
   const [readersOf, setReadersOf] = useState<LocalMessage | null>(null);
   const [scheduledOpen, setScheduledOpen] = useState(false);
   const [params, setParams] = useSearchParams();
@@ -116,10 +150,13 @@ export function ChatView() {
   const presence = useRealtime((s) => (chat?.peer ? s.presence[chat.peer.id] : undefined));
 
   // Активный чат: тосты о новых сообщениях не показываем, непрочитанное не растёт
+  useEffect(() => () => setSearchOpen(false), [chatId, setSearchOpen]);
   useEffect(() => {
     activeChat.id = chatId;
     setReplyTo(null);
     setEditing(null);
+    setSelected(new Map());
+    seenSeq.current = 0;
     return () => {
       activeChat.id = null;
     };
@@ -139,6 +176,25 @@ export function ChatView() {
   }, [chatId, chat, lastSeq]);
 
   const scrollToBottom = useCallback(() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' }), []);
+  if (atBottom) seenSeq.current = Math.max(seenSeq.current, lastSeq);
+  const newBelow = atBottom ? 0 : messages.filter((m) => m.seq > seenSeq.current && !m.local && m.sender?.id !== me.id && m.kind !== 'system').length;
+
+  /** К сообщению по id: подсветить, если оно уже загружено. */
+  const jumpTo = useCallback((messageId: string) => {
+    const el = scrollRef.current?.querySelector<HTMLElement>(`[data-mid="${messageId}"]`);
+    if (!el) return toast('Сообщение выше в истории — прокрутите вверх');
+    scrollToEl(scrollRef.current, el, 'center');
+    el.classList.add('bubble--highlight');
+    setTimeout(() => el.classList.remove('bubble--highlight'), 1800);
+  }, []);
+  const toggleSelect = useCallback((m: LocalMessage) => {
+    setSelected((prev) => {
+      const next = new Map(prev);
+      if (next.has(m.id)) next.delete(m.id);
+      else next.set(m.id, m);
+      return next;
+    });
+  }, []);
   const onScroll = useCallback(() => {
     const el = scrollRef.current;
     if (el) setAtBottom(Math.abs(el.scrollTop) < 120);
@@ -153,7 +209,11 @@ export function ChatView() {
         onIncomingMessage(msg, me.id);
         playSound('sent');
       } catch (e) {
-        patchMessage(chatId, (m) => m.clientId === body.clientId, (m) => ({ ...m, local: { status: 'failed', error: errorMessage(e) } }));
+        patchMessage(
+          chatId,
+          (m) => m.clientId === body.clientId,
+          (m) => ({ ...m, local: { status: 'failed', error: errorMessage(e) } }),
+        );
         toast({ text: errorMessage(e), kind: 'error' });
       }
     },
@@ -242,7 +302,7 @@ export function ChatView() {
     () => ({
       reply: (m) => setReplyTo(m),
       edit: (m, text) => setEditing({ msg: m, text }),
-      remove: (m) => (m.local ? removeMessage(chatId, m.id) : setDeleting(m)),
+      remove: (m) => (m.local ? removeMessage(chatId, m.id) : setDeleting([m])),
       forward: (m) => setForwarding(m),
       react: (m, emoji) =>
         void api
@@ -258,7 +318,11 @@ export function ChatView() {
       retry: (m) => {
         const body = m.clientId ? pending.get(m.clientId) : undefined;
         if (!body) return removeMessage(chatId, m.id);
-        patchMessage(chatId, (x) => x.clientId === m.clientId, (x) => ({ ...x, local: { status: 'sending' } }));
+        patchMessage(
+          chatId,
+          (x) => x.clientId === m.clientId,
+          (x) => ({ ...x, local: { status: 'sending' } }),
+        );
         void deliver(body);
       },
       copy: (text) => {
@@ -267,8 +331,10 @@ export function ChatView() {
       readers: (m) => setReadersOf(m),
       callBack: chat?.peer ? (video) => void startCall(chatId, video) : undefined,
       comments: (m) => openComments(m.id),
+      select: toggleSelect,
+      jumpTo,
     }),
-    [chatId, chat?.pinnedMessage?.id, chat?.peer, deliver, openComments],
+    [chatId, chat?.pinnedMessage?.id, chat?.peer, deliver, openComments, toggleSelect, jumpTo],
   );
 
   const prefs = useMutation({
@@ -295,19 +361,37 @@ export function ChatView() {
     : chat.system
       ? 'Служебный чат: коды входа и новости'
       : chat.type === 'direct' || chat.type === 'secret'
-      ? chat.peer
-        ? presence
-          ? lastSeen(presence)
-          : 'был(а) недавно'
-        : ''
-      : chat.type === 'saved'
-        ? 'Заметки, файлы и ссылки для себя'
-        : members(chat.memberCount, chat.type === 'channel' ? 'channel' : 'group');
+        ? chat.peer
+          ? presence
+            ? lastSeen(presence)
+            : 'был(а) недавно'
+          : ''
+        : chat.type === 'saved'
+          ? 'Заметки, файлы и ссылки для себя'
+          : members(chat.memberCount, chat.type === 'channel' ? 'channel' : 'group');
   const muted = !!chat.mutedUntil;
   const isMember = !!chat.role;
   const isAdmin = chat.role === 'owner' || chat.role === 'admin';
   const canCall = (chat.type === 'direct' || chat.type === 'secret') && !!chat.peer && isMember && !chat.system;
   const canWrite = isMember && !chat.system && (chat.type !== 'channel' || isAdmin) && (chat.type !== 'secret' || secret.status === 'ready');
+
+  const selectedList = [...selected.values()].sort((a, b) => a.seq - b.seq);
+  const copySelected = () => {
+    const text = selectedList
+      .filter((m) => m.text)
+      .map((m) => (selectedList.length > 1 ? `${m.sender?.displayName ?? ''}: ${m.text}` : m.text))
+      .join('\n\n');
+    void navigator.clipboard.writeText(text).then(() => toast('Текст скопирован'));
+    setSelected(new Map());
+  };
+  const removeMany = (list: LocalMessage[], forEveryone: boolean) => {
+    setDeleting(null);
+    setSelected(new Map());
+    for (const m of list) {
+      removeMessage(chatId, m.id);
+      void api.del(`/chats/${chatId}/messages/${m.id}?forEveryone=${forEveryone}`).catch((e) => toast({ text: errorMessage(e), kind: 'error' }));
+    }
+  };
 
   const removeChat = async () => {
     const leaving = (chat.type === 'group' || chat.type === 'channel') && chat.role !== 'owner';
@@ -320,78 +404,117 @@ export function ChatView() {
 
   return (
     <>
-      <header className="chat-header">
-        <IconButton label={base === '/channels' ? 'К списку каналов' : 'К списку чатов'} className="mobile-only" onClick={() => navigate(base)}>
-          <ArrowLeft size={22} />
-        </IconButton>
-        <button className="chat-header__info" onClick={toggleInfo}>
-          <Avatar src={chat.avatarUrl} name={chat.title} id={chat.peer?.id ?? chat.id} size={42} online={presence?.online} />
-          <span className="col" style={{ gap: 0, minWidth: 0 }}>
-            <span className="chat-header__title">
-              {chat.type === 'secret' && <Lock size={15} style={{ color: 'var(--success)' }} />}
-              {chat.type === 'channel' && <Megaphone size={15} className="faint" />}
-              <span className="ellipsis">{chat.title}</span>
-              {chat.peer?.verified && <Verified size={15} />}
-              {muted && <BellOff size={14} className="faint" />}
-            </span>
-            <span className={cn('chat-header__sub ellipsis', typingOthers.length > 0 || presence?.online ? 'chat-header__sub--accent' : '')}>{subtitle}</span>
+      {selecting ? (
+        <header className="chat-header chat-header--select">
+          <IconButton label="Отменить выбор" onClick={() => setSelected(new Map())}>
+            <X size={22} />
+          </IconButton>
+          <span className="chat-header__count">
+            {selected.size} {plural(selected.size, 'сообщение', 'сообщения', 'сообщений')}
           </span>
-        </button>
-        {scheduledCount > 0 && (
-          <IconButton label="Отложенные сообщения" onClick={() => setScheduledOpen(true)}>
-            <CalendarClock size={20} />
-            <span className="badge header-badge">{scheduledCount}</span>
-          </IconButton>
-        )}
-        {canCall && (
-          <>
-            <IconButton label="Аудиозвонок" onClick={() => void startCall(chat.id, false)}>
-              <Phone size={20} />
+          <span className="chat-header__actions">
+            {selectedList.some((m) => m.text) && (
+              <IconButton label="Копировать" onClick={copySelected}>
+                <Copy size={21} />
+              </IconButton>
+            )}
+            {chat.type !== 'secret' && (
+              <IconButton label="Переслать" onClick={() => setForwardMany(selectedList)}>
+                <Forward size={21} />
+              </IconButton>
+            )}
+            {!chat.system && (chat.type !== 'channel' || isAdmin) && (
+              <IconButton label="Удалить" danger onClick={() => setDeleting(selectedList)}>
+                <Trash2 size={21} />
+              </IconButton>
+            )}
+          </span>
+        </header>
+      ) : (
+        <header className="chat-header">
+          <button type="button" className="chat-back" aria-label={base === '/channels' ? 'К списку каналов' : 'К списку чатов'} onClick={() => navigate(base)}>
+            <ChevronLeft size={28} strokeWidth={2.2} />
+            {otherUnread - (chat.unreadCount > 0 ? 1 : 0) > 0 && <span className="chat-back__count">{otherUnread - (chat.unreadCount > 0 ? 1 : 0)}</span>}
+          </button>
+          <button className="chat-header__info" onClick={toggleInfo} aria-label="Информация о чате">
+            <ChatAvatar chat={chat} size={40} online={presence?.online} />
+            <span className="chat-header__text">
+              <span className="chat-header__title">
+                {chat.type === 'secret' && <Lock size={14} style={{ color: 'var(--success)' }} />}
+                {chat.type === 'channel' && <Megaphone size={14} className="faint" />}
+                <span className="ellipsis">{chat.title}</span>
+                {(chat.peer?.verified || chat.system) && <Verified size={15} />}
+                {muted && <BellOff size={13} className="faint" />}
+              </span>
+              <span className={cn('chat-header__sub ellipsis', typingOthers.length > 0 || presence?.online ? 'chat-header__sub--accent' : '')}>
+                {typingOthers.length > 0 && <TypingDots />}
+                {subtitle}
+              </span>
+            </span>
+          </button>
+          <span className="chat-header__actions">
+            {scheduledCount > 0 && (
+              <IconButton label="Отложенные сообщения" onClick={() => setScheduledOpen(true)}>
+                <CalendarClock size={20} />
+                <span className="badge header-badge">{scheduledCount}</span>
+              </IconButton>
+            )}
+            {canCall && (
+              <>
+                <IconButton label="Видеозвонок" onClick={() => void startCall(chat.id, true)}>
+                  <Video size={22} />
+                </IconButton>
+                <IconButton label="Аудиозвонок" onClick={() => void startCall(chat.id, false)}>
+                  <Phone size={20} />
+                </IconButton>
+              </>
+            )}
+            {chat.type !== 'secret' && (
+              <IconButton label="Поиск в чате" className="chat-header__wide" onClick={() => setSearchOpen(true)}>
+                <Search size={20} />
+              </IconButton>
+            )}
+            {headerExtra}
+            <IconButton label="Информация" onClick={toggleInfo} className="chat-header__wide">
+              <Info size={20} />
             </IconButton>
-            <IconButton label="Видеозвонок" onClick={() => void startCall(chat.id, true)} className="desktop-only">
-              <Video size={21} />
+            <IconButton label="Ещё" onClick={(e) => headerMenu.openFromEvent(e)}>
+              <EllipsisVertical size={21} />
             </IconButton>
-          </>
-        )}
-        {chat.type !== 'secret' && (
-          <IconButton label="Поиск в чате" onClick={() => setSearchOpen(true)}>
-            <Search size={20} />
-          </IconButton>
-        )}
-        {headerExtra}
-        <IconButton label="Информация" onClick={toggleInfo} className="desktop-only">
-          <Info size={20} />
-        </IconButton>
-        <IconButton label="Ещё" onClick={(e) => headerMenu.openFromEvent(e)}>
-          <span style={{ fontWeight: 900, fontSize: 18, lineHeight: 1 }}>⋮</span>
-        </IconButton>
-      </header>
+          </span>
+        </header>
+      )}
 
-      {chat.pinnedMessage && (
-        <button className="pinned-bar" onClick={() => toast(chat.pinnedMessage?.text ?? 'Закреплённое сообщение')}>
+      {chat.pinnedMessage && !selecting && (
+        <div
+          className="pinned-bar"
+          role="button"
+          tabIndex={0}
+          onClick={() => jumpTo(chat.pinnedMessage!.id)}
+          onKeyDown={(e) => e.key === 'Enter' && jumpTo(chat.pinnedMessage!.id)}
+        >
           <span className="pinned-bar__line" />
-          <Pin size={16} className="faint" />
           <span className="col grow" style={{ gap: 0, minWidth: 0 }}>
-            <span className="bold" style={{ color: 'var(--accent-fg)' }}>
-              Закреплённое сообщение
-            </span>
-            <span className="ellipsis muted">{chat.pinnedMessage.kind === 'encrypted' ? '🔒 Зашифрованное сообщение' : chat.pinnedMessage.text || 'Вложение'}</span>
+            <span className="pinned-bar__title">Закреплённое сообщение</span>
+            <span className="ellipsis">{chat.pinnedMessage.kind === 'encrypted' ? 'Зашифрованное сообщение' : chat.pinnedMessage.text || 'Вложение'}</span>
           </span>
-          {(isAdmin || chat.type === 'direct' || chat.type === 'saved' || chat.type === 'secret') && (
-            <span
-              role="button"
-              tabIndex={0}
+          {isAdmin || chat.type === 'direct' || chat.type === 'saved' || chat.type === 'secret' ? (
+            <button
+              type="button"
               className="icon-btn icon-btn--sm"
               aria-label="Открепить"
+              title="Открепить"
               onClick={(e) => {
                 e.stopPropagation();
                 void api.post<ChatSummary>(`/chats/${chatId}/pin`, { messageId: null }).then((c) => queryClient.setQueryData(qk.chat(chatId), c));
               }}
             >
-              <X size={16} />
-            </span>
+              <PinOff size={17} />
+            </button>
+          ) : (
+            <Pin size={16} className="pinned-bar__pin" />
           )}
-        </button>
+        </div>
       )}
 
       {chat.type === 'secret' && secret.status === 'wrong-device' && (
@@ -401,29 +524,32 @@ export function ChatView() {
         </div>
       )}
 
-      {msgsQ.isLoading ? (
-        <Loading />
-      ) : (
-        <MessageList
-          messages={messages}
-          chat={chat}
-          myId={me.id}
-          secret={secret}
-          actions={actions}
-          hasOlder={!!msgsQ.hasNextPage}
-          loadingOlder={msgsQ.isFetchingNextPage}
-          onLoadOlder={() => void msgsQ.fetchNextPage()}
-          scrollRef={scrollRef}
-          onScroll={onScroll}
-        />
-      )}
+      <div className="chat-body">
+        {msgsQ.isLoading ? (
+          <Loading />
+        ) : (
+          <MessageList
+            selection={selecting ? new Set(selected.keys()) : undefined}
+            messages={messages}
+            chat={chat}
+            myId={me.id}
+            secret={secret}
+            actions={actions}
+            hasOlder={!!msgsQ.hasNextPage}
+            loadingOlder={msgsQ.isFetchingNextPage}
+            onLoadOlder={() => void msgsQ.fetchNextPage()}
+            scrollRef={scrollRef}
+            onScroll={onScroll}
+          />
+        )}
 
-      {!atBottom && (
-        <button className="scroll-down" onClick={scrollToBottom} aria-label="Вниз">
-          <ArrowDown size={22} />
-          {chat.unreadCount > 0 && <span className="badge" style={{ position: 'absolute', top: -6, right: -2 }}>{chat.unreadCount}</span>}
-        </button>
-      )}
+        {!atBottom && (
+          <button className="scroll-down" onClick={scrollToBottom} aria-label={newBelow ? `Вниз: новых сообщений — ${newBelow}` : 'Вниз'}>
+            <ChevronDown size={26} />
+            {newBelow > 0 && <span className="badge">{newBelow > 99 ? '99+' : newBelow}</span>}
+          </button>
+        )}
+      </div>
 
       {canWrite ? (
         <Composer
@@ -445,7 +571,13 @@ export function ChatView() {
             scrollToBottom();
           }}
           onSchedule={async (d, at) => {
-            await api.post(`/chats/${chatId}/scheduled`, { text: d.text || undefined, mediaIds: d.mediaIds, replyToId: d.replyTo?.id, silent: !!d.silent, sendAt: at.toISOString() });
+            await api.post(`/chats/${chatId}/scheduled`, {
+              text: d.text || undefined,
+              mediaIds: d.mediaIds,
+              replyToId: d.replyTo?.id,
+              silent: !!d.silent,
+              sendAt: at.toISOString(),
+            });
             void queryClient.invalidateQueries({ queryKey: scheduledKey(chatId) });
             toast({ text: `Сообщение будет отправлено ${fullDate(at.toISOString())}`, kind: 'success' });
             setReplyTo(null);
@@ -459,7 +591,12 @@ export function ChatView() {
                 {chat.type === 'channel' ? 'Подписаться' : 'Вступить в группу'}
               </Button>
             ) : chat.type === 'channel' ? (
-              <Button variant="secondary" pill icon={muted ? <Bell size={18} /> : <BellOff size={18} />} onClick={() => prefs.mutate({ mutedUntil: muted ? null : new Date(Date.now() + 365 * 86400_000).toISOString() })}>
+              <Button
+                variant="secondary"
+                pill
+                icon={muted ? <Bell size={18} /> : <BellOff size={18} />}
+                onClick={() => prefs.mutate({ mutedUntil: muted ? null : new Date(Date.now() + 365 * 86400_000).toISOString() })}
+              >
                 {muted ? 'Включить уведомления' : 'Выключить уведомления'}
               </Button>
             ) : chat.system ? (
@@ -485,6 +622,9 @@ export function ChatView() {
           },
           { label: chat.pinned ? 'Открепить чат' : 'Закрепить чат', icon: <Pin size={18} />, onClick: () => prefs.mutate({ pinned: !chat.pinned }), hidden: !isMember },
           { label: 'Информация', icon: <Info size={18} />, onClick: toggleInfo },
+          { label: 'Поиск в чате', icon: <Search size={18} />, onClick: () => setSearchOpen(true), hidden: chat.type === 'secret' },
+          { label: 'Отложенные сообщения', icon: <CalendarClock size={18} />, onClick: () => setScheduledOpen(true), hidden: !isMember || chat.type === 'secret' || !canWrite },
+          { label: 'Аудиозвонок', icon: <Phone size={18} />, onClick: () => void startCall(chat.id, false), hidden: !canCall },
           { label: 'Видеозвонок', icon: <Video size={18} />, onClick: () => void startCall(chat.id, true), hidden: !canCall },
           {
             label: 'Очистить историю',
@@ -502,12 +642,25 @@ export function ChatView() {
             hidden: chat.type !== 'direct' || !chat.peer || chat.system,
             danger: true,
             onClick: async () => {
-              if (!(await confirm({ title: `Заблокировать ${chat.peer!.displayName}?`, text: 'Пользователь не сможет писать вам и видеть ваши публикации.', danger: true, confirmLabel: 'Заблокировать' }))) return;
+              if (
+                !(await confirm({
+                  title: `Заблокировать ${chat.peer!.displayName}?`,
+                  text: 'Пользователь не сможет писать вам и видеть ваши публикации.',
+                  danger: true,
+                  confirmLabel: 'Заблокировать',
+                }))
+              )
+                return;
               await api.post(`/users/${chat.peer!.id}/block`);
               toast({ text: 'Пользователь заблокирован', kind: 'success' });
             },
           },
-          { label: 'Пожаловаться', icon: <Flag size={18} />, hidden: chat.type === 'saved' || chat.system, onClick: () => setReporting(chat.peer ? { type: 'user', id: chat.peer.id } : { type: 'chat', id: chat.id }) },
+          {
+            label: 'Пожаловаться',
+            icon: <Flag size={18} />,
+            hidden: chat.type === 'saved' || chat.system,
+            onClick: () => setReporting(chat.peer ? { type: 'user', id: chat.peer.id } : { type: 'chat', id: chat.id }),
+          },
           'separator',
           {
             label: (chat.type === 'group' || chat.type === 'channel') && chat.role !== 'owner' ? 'Покинуть' : 'Удалить чат',
@@ -519,8 +672,28 @@ export function ChatView() {
         ]}
       />
       {forwarding && <ForwardDialog chatId={chatId} message={forwarding} onClose={() => setForwarding(null)} />}
+      {forwardMany && (
+        <ForwardDialog
+          chatId={chatId}
+          messages={forwardMany}
+          onClose={() => {
+            setForwardMany(null);
+            setSelected(new Map());
+          }}
+        />
+      )}
       {reporting && <ReportDialog open entityType={reporting.type} entityId={reporting.id} onClose={() => setReporting(null)} />}
-      {searchOpen && <InChatSearch chatId={chatId} onClose={() => setSearchOpen(false)} />}
+      {searchOpen && (
+        <InChatSearch
+          chatId={chatId}
+          onClose={() => setSearchOpen(false)}
+          onJump={(m) => {
+            const next = new URLSearchParams(params);
+            next.set('m', String(m.seq));
+            setParams(next, { replace: true });
+          }}
+        />
+      )}
       {readersOf && <ReadersDialog chatId={chatId} messageId={readersOf.id} onClose={() => setReadersOf(null)} />}
       {scheduledOpen && <ScheduledListDialog chatId={chatId} onClose={() => setScheduledOpen(false)} />}
       {commentsOf && chat.type === 'channel' && <CommentsDialog chat={chat} rootId={commentsOf} onClose={() => openComments(null)} />}
@@ -528,42 +701,26 @@ export function ChatView() {
         <Modal
           open
           onClose={() => setDeleting(null)}
-          title="Удалить сообщение?"
+          title={deleting.length > 1 ? `Удалить ${deleting.length} ${plural(deleting.length, 'сообщение', 'сообщения', 'сообщений')}?` : 'Удалить сообщение?'}
           footer={
             <>
               <Button variant="ghost" onClick={() => setDeleting(null)}>
                 Отмена
               </Button>
               {chat.type !== 'channel' && chat.type !== 'secret' && chat.type !== 'saved' && (
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    const m = deleting;
-                    setDeleting(null);
-                    removeMessage(chatId, m.id);
-                    void api.del(`/chats/${chatId}/messages/${m.id}?forEveryone=false`);
-                  }}
-                >
+                <Button variant="secondary" onClick={() => removeMany(deleting, false)}>
                   Только у меня
                 </Button>
               )}
-              {(deleting.sender?.id === me.id || isAdmin || chat.type === 'saved') && (
-                <Button
-                  variant="danger"
-                  onClick={() => {
-                    const m = deleting;
-                    setDeleting(null);
-                    removeMessage(chatId, m.id);
-                    void api.del(`/chats/${chatId}/messages/${m.id}?forEveryone=true`).catch((e) => toast({ text: errorMessage(e), kind: 'error' }));
-                  }}
-                >
+              {(deleting.every((m) => m.sender?.id === me.id) || isAdmin || chat.type === 'saved') && (
+                <Button variant="danger" onClick={() => removeMany(deleting, true)}>
                   {chat.type === 'saved' ? 'Удалить' : 'У всех'}
                 </Button>
               )}
             </>
           }
         >
-          <p className="muted">{chat.type === 'secret' ? 'Сообщение будет удалено у обоих участников.' : 'Это действие нельзя отменить.'}</p>
+          <p className="muted">{chat.type === 'secret' ? 'Сообщения будут удалены у обоих участников.' : 'Это действие нельзя отменить.'}</p>
         </Modal>
       )}
     </>

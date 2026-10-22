@@ -2,7 +2,7 @@
   "name": "omni",
   "private": true,
   "version": "0.1.0",
-  "description": "Omni — мессенджер и социальная платформа «всё в одном»: чаты, лента, видео, клипы, фото, истории, сообщества.",
+  "description": "Sunnet — мессенджер и социальная платформа: чаты, лента, видео, Reels, истории, сообщества.",
   "license": "UNLICENSED",
   "type": "module",
   "workspaces": [

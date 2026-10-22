@@ -1,6 +1,6 @@
 /** История звонков: по дням, все и пропущенные, перезвонить в один тап. */
 import { Link, useNavigate } from 'react-router';
-import { MessageCircle, Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, Video } from 'lucide-react';
+import { Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, Video } from 'lucide-react';
 import type { CallInfo } from '@omni/shared';
 import { flatPages, useCursorList } from '../../shared/api/query';
 import { fmtDuration, startCall } from '../../shared/calls/engine';
@@ -35,23 +35,23 @@ function CallRow({ c, myId }: { c: CallInfo; myId: string }) {
   const missed = !outgoing && (c.status === 'missed' || c.status === 'cancelled');
   const Icon = missed ? PhoneMissed : outgoing ? PhoneOutgoing : PhoneIncoming;
   return (
-    <div className={cn('list-item', missed && 'call-row--missed')}>
-      <Avatar src={peer.avatarUrl} name={peer.displayName} id={peer.id} size={46} />
-      <span className="list-item__body">
-        <span className="list-item__title ellipsis">{peer.displayName}</span>
-        <span className="list-item__sub row" style={{ gap: 6 }}>
-          <span className="call-row__icon">
-            <Icon size={14} />
+    <div className={cn('list-item call-row', missed && 'call-row--missed')}>
+      <button type="button" className="call-row__main" onClick={() => navigate(`/chats/${c.chatId}`)} title="Открыть чат">
+        <Avatar src={peer.avatarUrl} name={peer.displayName} id={peer.id} size={46} />
+        <span className="list-item__body">
+          <span className="list-item__title ellipsis" style={{ display: 'block' }}>
+            {peer.displayName}
           </span>
-          <span title={fullDate(c.createdAt)}>
-            {clockTime(c.createdAt)} · {c.video ? 'видео' : 'аудио'} · {statusText(c, outgoing)}
+          <span className="list-item__sub call-row__sub" title={fullDate(c.createdAt)}>
+            <Icon size={14} className="call-row__icon" />
+            <span className="ellipsis">
+              {c.video ? 'Видео' : 'Аудио'} · {statusText(c, outgoing)}
+            </span>
           </span>
         </span>
-      </span>
+        <span className="call-row__time">{clockTime(c.createdAt)}</span>
+      </button>
       <span className="call-row__actions">
-        <button type="button" className="icon-btn" onClick={() => navigate(`/chats/${c.chatId}`)} aria-label="Открыть чат" title="Открыть чат">
-          <MessageCircle size={20} />
-        </button>
         <button type="button" className="icon-btn" onClick={() => void startCall(c.chatId, false)} aria-label="Аудиозвонок" title="Аудиозвонок">
           <Phone size={20} />
         </button>

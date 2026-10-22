@@ -1,13 +1,13 @@
 import { Fragment } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { ArrowLeft, Bell, ChevronRight, Menu as MenuIcon, PanelLeftOpen, Search, WifiOff } from 'lucide-react';
-import { findByPath, type NavSection } from '../navigation';
+import { Bell, ChevronLeft, ChevronRight, PanelLeftOpen, Search, WifiOff } from 'lucide-react';
+import { exactNode, findByPath, sections, type NavSection } from '../navigation';
 import { usePrefs } from '../../shared/stores/prefs';
 import { useRealtime } from '../../shared/stores/realtime';
 import { useSession } from '../../shared/stores/session';
 import { useUi } from '../../shared/stores/ui';
 import { useIsDesktop } from '../../shared/hooks';
-import { IconButton } from '../../shared/ui';
+import { Avatar, IconButton } from '../../shared/ui';
 import { useBadge } from './Rail';
 
 /** Хлебные крошки: где я в «лабиринте» разделов и как вернуться на уровень выше. */
@@ -56,6 +56,30 @@ function pageTitleFromPath(pathname: string): string | null {
   return null;
 }
 
+/**
+ * Куда ведёт «Назад», если в истории окна некуда возвращаться (открыли по ссылке):
+ * ближайший раздел выше по дереву навигации, иначе — корень раздела.
+ */
+export function parentPath(pathname: string, section: NavSection): string {
+  const found = findByPath(pathname);
+  if (found) {
+    const exact = found.node.path === pathname;
+    const chain = exact ? found.trail : [...found.trail, found.node];
+    for (let i = chain.length - 1; i >= 0; i--) {
+      const p = chain[i]!.path;
+      if (p && p !== pathname) return p;
+    }
+  }
+  return pathname === section.path ? '/' : section.path;
+}
+
+/** «Назад»: по истории, а если её нет — на уровень выше. */
+export function useBack(section: NavSection) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  return () => (location.key !== 'default' ? navigate(-1) : navigate(parentPath(location.pathname, section), { replace: true }));
+}
+
 export function TopBar({ section }: { section: NavSection }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -69,20 +93,28 @@ export function TopBar({ section }: { section: NavSection }) {
   const status = useRealtime((s) => s.status);
   const me = useSession((s) => s.me);
   const notifications = useBadge('notifications');
-  const isRoot = pathname === section.path;
+  // Корень раздела — вкладки внизу и аватар слева; глубже — кнопка «Назад»
+  const exact = exactNode(pathname);
+  const isRoot =
+    pathname === section.path ||
+    sections.some((s) => s.path === pathname) ||
+    (!!exact && exact.trail.length === 1 && pathname.startsWith(`${section.path}/`));
   const bare = useUi((s) => s.bare);
+  const back = useBack(section);
 
   return (
     <header className="topbar">
-      <span className="mobile-only">
+      <span className="mobile-only topbar__lead">
         {isRoot ? (
-          <IconButton label="Меню" onClick={() => setDrawer(true)}>
-            <MenuIcon size={22} />
-          </IconButton>
+          me && (
+            <button type="button" className="topbar__me" onClick={() => setDrawer(true)} aria-label="Мой аккаунт и все разделы">
+              <Avatar src={me.avatarUrl} name={me.displayName} id={me.id} size={32} />
+            </button>
+          )
         ) : (
-          <IconButton label="Назад" onClick={() => (history.length > 1 ? navigate(-1) : navigate(section.path))}>
-            <ArrowLeft size={22} />
-          </IconButton>
+          <button type="button" className="topbar__back" onClick={back} aria-label="Назад">
+            <ChevronLeft size={28} strokeWidth={2.2} />
+          </button>
         )}
       </span>
       {(!isDesktop || navCollapsed || bare) && (
@@ -108,13 +140,13 @@ export function TopBar({ section }: { section: NavSection }) {
       </button>
       <span className="mobile-only">
         <IconButton label="Поиск" onClick={() => setPalette(true)}>
-          <Search size={21} />
+          <Search size={22} />
         </IconButton>
       </span>
       {me && (
         <IconButton label="Уведомления" className="topbar__bell" onClick={() => navigate('/notifications')}>
-          <Bell size={21} />
-          {notifications > 0 && <span className="badge">{notifications > 99 ? '99+' : notifications}</span>}
+          <Bell size={22} />
+          {notifications > 0 && <span className="badge badge--red">{notifications > 99 ? '99+' : notifications}</span>}
         </IconButton>
       )}
     </header>

@@ -6,7 +6,8 @@ import type { ChatSummary, Message, UserSummary } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { flatPages, qk, useCursorList } from '../../shared/api/query';
 import { useDebounced } from '../../shared/hooks';
-import { clockTime, dayLabel } from '../../shared/lib/format';
+import { clockTime, dayLabel, plural } from '../../shared/lib/format';
+import { ChatAvatar } from './ChatList';
 import { toast } from '../../shared/stores/ui';
 import { Avatar, Button, EmptyState, Modal, RichText, Spinner, UserName } from '../../shared/ui';
 import type { LocalMessage } from './cache';
@@ -14,7 +15,9 @@ import type { LocalMessage } from './cache';
 /** Выбор пользователя теперь общий — в shared/ui */
 export { UserPicker } from '../../shared/ui';
 
-export function ForwardDialog({ chatId, message, onClose }: { chatId: string; message: LocalMessage; onClose: () => void }) {
+/** Переслать одно или несколько сообщений в один или несколько чатов. */
+export function ForwardDialog({ chatId, message, messages, onClose }: { chatId: string; message?: LocalMessage; messages?: LocalMessage[]; onClose: () => void }) {
+  const list_ = messages ?? (message ? [message] : []);
   const [q, setQ] = useState('');
   const [picked, setPicked] = useState<string[]>([]);
   const navigate = useNavigate();
@@ -23,9 +26,13 @@ export function ForwardDialog({ chatId, message, onClose }: { chatId: string; me
     (c) => c.type !== 'secret' && (c.type !== 'channel' || c.role === 'owner' || c.role === 'admin') && c.title.toLowerCase().includes(q.trim().toLowerCase()),
   );
   const send = useMutation({
-    mutationFn: () => api.post<{ items: Message[] }>(`/chats/${chatId}/messages/${message.id}/forward`, { toChatIds: picked }),
+    mutationFn: async () => {
+      // По порядку, чтобы в чате-получателе сообщения шли как в оригинале
+      for (const m of [...list_].sort((a, b) => a.seq - b.seq)) await api.post<{ items: Message[] }>(`/chats/${chatId}/messages/${m.id}/forward`, { toChatIds: picked });
+    },
     onSuccess: () => {
-      toast({ text: picked.length > 1 ? `Переслано в ${picked.length} чата` : 'Сообщение переслано', kind: 'success' });
+      const what = list_.length > 1 ? `${list_.length} ${plural(list_.length, 'сообщение', 'сообщения', 'сообщений')}` : 'Сообщение';
+      toast({ text: picked.length > 1 ? `${what}: переслано в ${picked.length} ${plural(picked.length, 'чат', 'чата', 'чатов')}` : `${what} — переслано`, kind: 'success' });
       onClose();
       if (picked.length === 1) navigate(`/chats/${picked[0]}`);
     },
@@ -35,7 +42,7 @@ export function ForwardDialog({ chatId, message, onClose }: { chatId: string; me
     <Modal
       open
       onClose={onClose}
-      title="Переслать"
+      title={list_.length > 1 ? `Переслать ${list_.length} ${plural(list_.length, 'сообщение', 'сообщения', 'сообщений')}` : 'Переслать'}
       footer={
         <Button disabled={!picked.length} loading={send.isPending} onClick={() => send.mutate()}>
           Переслать{picked.length > 1 ? ` (${picked.length})` : ''}
@@ -49,12 +56,15 @@ export function ForwardDialog({ chatId, message, onClose }: { chatId: string; me
       {chats.map((c) => {
         const on = picked.includes(c.id);
         return (
-          <button key={c.id} className="list-item" style={{ borderRadius: 12 }} onClick={() => setPicked((p) => (on ? p.filter((x) => x !== c.id) : [...p, c.id]))}>
-            <Avatar src={c.avatarUrl} name={c.title} id={c.peer?.id ?? c.id} size={40} />
+          <button
+            key={c.id}
+            className={on ? 'pick-row pick-row--on' : 'pick-row'}
+            style={{ width: '100%' }}
+            onClick={() => setPicked((p) => (on ? p.filter((x) => x !== c.id) : [...p, c.id]))}
+          >
+            <ChatAvatar chat={c} size={42} />
             <span className="list-item__body ellipsis">{c.title}</span>
-            <span className={on ? 'badge' : 'badge badge--muted'} style={{ opacity: on ? 1 : 0.25 }}>
-              <Check size={12} />
-            </span>
+            <span className="pick-row__check">{on && <Check size={14} strokeWidth={3} />}</span>
           </button>
         );
       })}
@@ -62,7 +72,7 @@ export function ForwardDialog({ chatId, message, onClose }: { chatId: string; me
   );
 }
 
-export function InChatSearch({ chatId, onClose }: { chatId: string; onClose: () => void }) {
+export function InChatSearch({ chatId, onClose, onJump }: { chatId: string; onClose: () => void; onJump?: (m: Message) => void }) {
   const [q, setQ] = useState('');
   const debounced = useDebounced(q.trim(), 300);
   const res = useQuery({
@@ -79,7 +89,16 @@ export function InChatSearch({ chatId, onClose }: { chatId: string; onClose: () 
       {res.isFetching && <Spinner />}
       {res.data?.items.length === 0 && <EmptyState title="Ничего не найдено" />}
       {res.data?.items.map((m) => (
-        <div key={m.id} className="list-item" style={{ alignItems: 'flex-start' }}>
+        <button
+          type="button"
+          key={m.id}
+          className="list-item"
+          style={{ alignItems: 'flex-start', borderRadius: 12 }}
+          onClick={() => {
+            onJump?.(m);
+            onClose();
+          }}
+        >
           {m.sender && <Avatar src={m.sender.avatarUrl} name={m.sender.displayName} id={m.sender.id} size={36} />}
           <div className="list-item__body">
             <div className="row between">
@@ -90,7 +109,7 @@ export function InChatSearch({ chatId, onClose }: { chatId: string; onClose: () 
             </div>
             <RichText text={m.text ?? ''} className="small" />
           </div>
-        </div>
+        </button>
       ))}
     </Modal>
   );

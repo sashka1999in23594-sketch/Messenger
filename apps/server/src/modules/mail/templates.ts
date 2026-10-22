@@ -6,6 +6,12 @@
 import { APP_NAME } from '@omni/shared';
 import type { Mail } from './mail.service.js';
 
+/** Адрес сайта для картинки знака в шапке письма (задаётся при запуске). */
+let brandOrigin = '';
+export function setMailOrigin(origin: string): void {
+  brandOrigin = origin.replace(/\/$/, '');
+}
+
 const esc = (v: string) => v.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
 interface LayoutInput {
@@ -27,10 +33,10 @@ interface LayoutInput {
 function render(i: LayoutInput): Mail {
   const paragraphs = i.lines.map((l) => `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#3b3f55">${esc(l)}</p>`).join('');
   const code = i.code
-    ? `<div style="margin:22px 0;padding:18px 0;border-radius:16px;background:#f3f1ff;text-align:center;font-family:'SF Mono',Menlo,Consolas,monospace;font-size:34px;font-weight:700;letter-spacing:10px;color:#2a1f7a">${esc(i.code)}</div>`
+    ? `<div style="margin:22px 0;padding:18px 0;border-radius:16px;background:#eef5ff;text-align:center;font-family:'SF Mono',Menlo,Consolas,monospace;font-size:34px;font-weight:700;letter-spacing:10px;color:#123c8c">${esc(i.code)}</div>`
     : '';
   const button = i.button
-    ? `<div style="margin:24px 0"><a href="${esc(i.button.url)}" style="display:inline-block;padding:13px 26px;border-radius:14px;background:#7c5cff;background-image:linear-gradient(135deg,#7c5cff,#00b8ff);color:#ffffff;font-weight:700;font-size:15px;text-decoration:none">${esc(i.button.label)}</a></div>`
+    ? `<div style="margin:24px 0"><a href="${esc(i.button.url)}" style="display:inline-block;padding:13px 26px;border-radius:14px;background:#1f6feb;background-image:linear-gradient(135deg,#1c63d6,#3e8ef0);color:#ffffff;font-weight:700;font-size:15px;text-decoration:none">${esc(i.button.label)}</a></div>`
     : '';
   const details = i.details?.length
     ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:8px 0 18px;border-collapse:collapse">${i.details
@@ -49,9 +55,9 @@ function render(i: LayoutInput): Mail {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef0f8;padding:32px 12px">
 <tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 20px 50px -30px rgba(40,40,120,.45);font-family:-apple-system,'Segoe UI',Roboto,Inter,Arial,sans-serif">
-<tr><td style="padding:26px 32px;background:#6d4aff;background-image:linear-gradient(135deg,#6d4aff 0%,#7c5cff 45%,#00b8ff 100%)">
+<tr><td style="padding:26px 32px;background:#2a7de8;background-image:linear-gradient(135deg,#1c63d6 0%,#3e8ef0 55%,#7cbcf7 100%)">
 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-<td style="width:40px;height:40px;border-radius:13px;background:rgba(255,255,255,.22);text-align:center;vertical-align:middle;font-size:22px;font-weight:800;color:#fff">◎</td>
+<td style="width:40px;height:40px">${brandOrigin ? `<img src="${esc(brandOrigin)}/icons/icon-192.png" width="40" height="40" alt="" style="display:block;width:40px;height:40px;border-radius:10px">` : ''}</td>
 <td style="padding-left:12px;font-size:22px;font-weight:800;letter-spacing:-.5px;color:#ffffff">${APP_NAME}</td>
 </tr></table>
 </td></tr>
@@ -140,7 +146,7 @@ export const templates = {
       to,
       tag: 'welcome',
       subject: `Почта подтверждена — добро пожаловать в ${APP_NAME}!`,
-      preheader: 'Чаты, лента, видео, клипы и истории — в одном приложении.',
+      preheader: 'Почта подтверждена. Коды входа будут приходить сюда.',
       title: `${name}, всё готово! 🎉`,
       lines: [
         'Почта подтверждена. Теперь на неё можно восстановить доступ к аккаунту, получать коды входа и уведомления о безопасности.',

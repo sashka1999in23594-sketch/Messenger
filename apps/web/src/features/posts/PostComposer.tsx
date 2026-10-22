@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import { CalendarClock, FileText, Globe, ImagePlus, Lock, Users, X } from 'lucide-react';
+import { CalendarClock, ChevronDown, FileText, Globe, ImagePlus, Lock, Users, X } from 'lucide-react';
 import { LIMITS, type MediaItem, type Post, type PostDraft, type Visibility } from '@omni/shared';
 import { api, ApiError, errorMessage } from '../../shared/api/client';
 import { queryClient } from '../../shared/api/query';
@@ -9,7 +9,8 @@ import { uploadAny } from '../../shared/lib/media';
 import { useMe } from '../../shared/stores/session';
 import { toast } from '../../shared/stores/ui';
 import { cn } from '../../shared/lib/format';
-import { Avatar, Button, IconButton, Modal, ScheduleDialog } from '../../shared/ui';
+import { Avatar, Button, confirm, ScheduleDialog } from '../../shared/ui';
+import { Sheet, useOptions } from '../misc/kit';
 import { PostEmbed } from './PostCard';
 
 interface Pending {
@@ -34,14 +35,25 @@ const fromMedia = (m: MediaItem): Pending => ({
 export const draftsKey = ['drafts'] as const;
 
 const VIS: Record<Visibility, { label: string; icon: React.ReactNode }> = {
-  public: { label: 'Все', icon: <Globe size={16} /> },
-  followers: { label: 'Подписчики', icon: <Users size={16} /> },
-  private: { label: 'Только я', icon: <Lock size={16} /> },
+  public: { label: 'Видят все', icon: <Globe size={15} /> },
+  followers: { label: 'Подписчики', icon: <Users size={15} /> },
+  private: { label: 'Только я', icon: <Lock size={15} /> },
 };
 
+/** Поле, растущее по мере ввода. */
+function useAutosize(ref: React.RefObject<HTMLTextAreaElement | null>, value: string) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [ref, value]);
+}
+
 /**
- * Редактор заметки (как в X): текст до 2000 символов, до 4 фото/видео, видимость,
- * черновик и отложенная публикация. С draft — редактирование черновика.
+ * Редактор заметки (как в Threads): текст до 2000 символов, до 4 фото/видео,
+ * видимость, черновик и отложенная публикация. С draft — редактирование черновика.
+ * variant="sheet" — со своей шапкой «Отмена · Новая публикация · Опубликовать».
  */
 export function PostComposer({
   communityId,
@@ -51,6 +63,8 @@ export function PostComposer({
   placeholder = 'Что нового?',
   draft,
   onDraftSaved,
+  variant = 'card',
+  onCancel,
 }: {
   communityId?: string;
   quoteOf?: Post;
@@ -59,6 +73,8 @@ export function PostComposer({
   placeholder?: string;
   draft?: PostDraft;
   onDraftSaved?: (d: PostDraft) => void;
+  variant?: 'card' | 'sheet';
+  onCancel?: () => void;
 }) {
   const me = useMe();
   const navigate = useNavigate();
@@ -68,6 +84,8 @@ export function PostComposer({
   const [scheduling, setScheduling] = useState(false);
   const canDraft = !communityId && !quoteOf;
   const fileInput = useRef<HTMLInputElement>(null);
+  const area = useRef<HTMLTextAreaElement>(null);
+  useAutosize(area, text);
   const left = LIMITS.postMax - text.length;
 
   const add = (list: FileList) => {
@@ -129,77 +147,118 @@ export function PostComposer({
         action: draft ? undefined : { label: 'Открыть', onClick: () => navigate(d.publishAt ? '/feed/scheduled' : '/feed/drafts') },
       });
       onDraftSaved?.(d);
+      if (variant === 'sheet' && !draft) onCancel?.();
     },
     onError: (e) => toast({ text: e instanceof ApiError && e.fields ? Object.values(e.fields)[0]! : errorMessage(e), kind: 'error' }),
   });
 
+  const visMenu = useOptions(
+    (Object.keys(VIS) as Visibility[]).map((k) => ({ label: VIS[k].label + (k === visibility ? ' ✓' : ''), icon: VIS[k].icon, onClick: () => setVisibility(k) })),
+    <span className="small muted">Кто увидит публикацию</span>,
+  );
+
   const uploading = files.some((f) => !f.media);
   const canPost = !uploading && left >= 0 && (text.trim().length > 0 || files.length > 0 || !!quoteOf);
+  const dirty = text.trim().length > 0 || files.length > 0;
+  const cancel = async () => {
+    if (dirty && !(await confirm({ title: 'Закрыть без публикации?', text: 'Текст и вложения пропадут. Чтобы вернуться к ним позже, сохраните черновик.', confirmLabel: 'Закрыть', danger: true }))) return;
+    onCancel?.();
+  };
+  const publishButton = (
+    <Button pill size="sm" className="cmp__publish" disabled={!canPost} loading={publish.isPending} onClick={() => publish.mutate()}>
+      {quoteOf ? 'Цитировать' : 'Опубликовать'}
+    </Button>
+  );
 
   return (
-    <div className="composer-card">
-      <Avatar src={me.avatarUrl} name={me.displayName} id={me.id} size={44} />
-      <div className="col grow" style={{ gap: 8 }}>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={placeholder}
-          autoFocus={autoFocus}
-          rows={2}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && canPost) publish.mutate();
-          }}
-          aria-label="Текст публикации"
-        />
-        {quoteOf && <PostEmbed post={quoteOf} />}
-        {files.length > 0 && (
-          <div className="composer__attachments">
-            {files.map((f) => (
-              <div key={f.id} className="attachment" style={{ width: 110, height: 110 }}>
-                {f.isVideo ? <video src={f.preview} muted /> : <img src={f.preview} alt="" />}
-                {!f.media && (
-                  <div className="progress attachment__progress">
-                    <div className="progress__bar" style={{ width: `${f.progress * 100}%` }} />
-                  </div>
-                )}
-                <button className="attachment__remove" aria-label="Убрать" onClick={() => setFiles((l) => l.filter((x) => x.id !== f.id))}>
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
+    <div className={cn('cmp', `cmp--${variant}`)}>
+      {variant === 'sheet' && (
+        <div className="cmp__bar">
+          <button type="button" className="cmp__cancel" onClick={() => void cancel()}>
+            Отмена
+          </button>
+          <b className="cmp__heading">{quoteOf ? 'Цитата' : draft ? 'Черновик' : 'Новая публикация'}</b>
+          {publishButton}
+        </div>
+      )}
+      <div className="cmp__main">
+        <div className="cmp__row">
+          <div className="cmp__aside">
+            <Avatar src={me.avatarUrl} name={me.displayName} id={me.id} size={40} />
           </div>
-        )}
-        <div className="composer-card__tools">
-          <IconButton label="Фото или видео" onClick={() => fileInput.current?.click()} disabled={files.length >= 4 || !!quoteOf}>
-            <ImagePlus size={20} />
-          </IconButton>
-          <input ref={fileInput} type="file" hidden multiple accept="image/*,video/*" onChange={(e) => e.target.files && add(e.target.files)} />
-          {!communityId && (
-            <select className="select" style={{ width: 'auto', minHeight: 36, paddingTop: 4, paddingBottom: 4, paddingLeft: 14, borderRadius: 999 }} value={visibility} onChange={(e) => setVisibility(e.target.value as Visibility)} aria-label="Кто видит">
-              {Object.entries(VIS).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v.label}
-                </option>
-              ))}
-            </select>
-          )}
-          {canDraft && (
-            <>
-              <IconButton label="Сохранить черновик" onClick={() => saveDraft.mutate(null)} disabled={uploading || (!text.trim() && !files.length) || saveDraft.isPending}>
-                <FileText size={19} />
-              </IconButton>
-              <IconButton label="Запланировать публикацию" onClick={() => setScheduling(true)} disabled={!canPost}>
-                <CalendarClock size={19} />
-              </IconButton>
-            </>
-          )}
-          <span className="grow" />
-          {text.length > 0 && <span className={cn('counter', left < 100 && 'counter--warn', left < 0 && 'counter--over')}>{left}</span>}
-          <Button pill size="sm" disabled={!canPost} loading={publish.isPending} onClick={() => publish.mutate()}>
-            {quoteOf ? 'Цитировать' : 'Опубликовать'}
-          </Button>
+          <div className="cmp__content">
+            <b className="cmp__name">{me.displayName}</b>
+            <textarea
+              ref={area}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={placeholder}
+              autoFocus={autoFocus}
+              rows={variant === 'sheet' ? 3 : 2}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && canPost) publish.mutate();
+              }}
+              aria-label="Текст публикации"
+            />
+            {files.length > 0 && (
+              <div className="cmp__files">
+                {files.map((f) => (
+                  <div key={f.id} className="cmp__file">
+                    {f.isVideo ? <video src={f.preview} muted playsInline /> : <img src={f.preview} alt="" />}
+                    {!f.media && (
+                      <div className="cmp__progress">
+                        <i style={{ width: `${f.progress * 100}%` }} />
+                      </div>
+                    )}
+                    <button type="button" className="cmp__remove" aria-label="Убрать вложение" onClick={() => setFiles((l) => l.filter((x) => x.id !== f.id))}>
+                      <X size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {quoteOf && <PostEmbed post={quoteOf} />}
+            <div className="cmp__tools">
+              <button type="button" className="pk-icon cmp__tool" aria-label="Фото или видео" title="Фото или видео" onClick={() => fileInput.current?.click()} disabled={files.length >= 4 || !!quoteOf}>
+                <ImagePlus size={21} />
+              </button>
+              <input ref={fileInput} type="file" hidden multiple accept="image/*,video/*" onChange={(e) => (e.target.files && add(e.target.files), (e.target.value = ''))} />
+              {canDraft && (
+                <>
+                  <button
+                    type="button"
+                    className="pk-icon cmp__tool"
+                    aria-label="Сохранить черновик"
+                    title="Сохранить черновик"
+                    onClick={() => saveDraft.mutate(null)}
+                    disabled={uploading || (!text.trim() && !files.length) || saveDraft.isPending}
+                  >
+                    <FileText size={20} />
+                  </button>
+                  <button type="button" className="pk-icon cmp__tool" aria-label="Запланировать публикацию" title="Запланировать публикацию" onClick={() => setScheduling(true)} disabled={!canPost}>
+                    <CalendarClock size={20} />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </div>
+      <div className="cmp__foot">
+        {!communityId ? (
+          <button type="button" className="cmp__vis" onClick={(e) => visMenu.open(e)} aria-label="Кто видит">
+            {VIS[visibility].icon}
+            {VIS[visibility].label}
+            <ChevronDown size={14} />
+          </button>
+        ) : (
+          <span />
+        )}
+        <span className="grow" />
+        {left < 200 && <span className={cn('cmp__counter', left < 100 && 'cmp__counter--warn', left < 0 && 'cmp__counter--over')}>{left}</span>}
+        {variant === 'card' && publishButton}
+      </div>
+      {visMenu.element}
       {scheduling && (
         <ScheduleDialog
           title="Запланировать публикацию"
@@ -215,10 +274,15 @@ export function PostComposer({
   );
 }
 
-export function QuoteDialog({ post, onClose }: { post: Post; onClose: () => void }) {
+/** Редактор в шторке: на телефоне — почти на весь экран, мышью — окно по центру. */
+export function ComposeSheet({ onClose, quoteOf, communityId, placeholder }: { onClose: () => void; quoteOf?: Post; communityId?: string; placeholder?: string }) {
   return (
-    <Modal open onClose={onClose} title="Цитата" wide>
-      <PostComposer quoteOf={post} autoFocus placeholder="Добавьте комментарий" onDone={onClose} />
-    </Modal>
+    <Sheet open full locked onClose={onClose} className="cmp-sheet">
+      <PostComposer variant="sheet" autoFocus quoteOf={quoteOf} communityId={communityId} placeholder={placeholder} onCancel={onClose} onDone={onClose} />
+    </Sheet>
   );
+}
+
+export function QuoteDialog({ post, onClose }: { post: Post; onClose: () => void }) {
+  return <ComposeSheet quoteOf={post} placeholder="Добавьте комментарий" onClose={onClose} />;
 }

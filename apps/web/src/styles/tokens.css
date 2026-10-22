@@ -49,7 +49,8 @@
   --rail-w: 76px;
   --nav-w: 280px;
   --topbar-h: 60px;
-  --tabs-h: 64px;
+  /* Высота нижних вкладок на телефоне (без системной полосы снизу) */
+  --tabs-h: 56px;
   --content-max: 700px;
   --wide-max: 1320px;
 
@@ -60,14 +61,12 @@
   --dur-slow: 360ms;
 
   /* Знак Sunnet: голубое небо и золотое солнце (одинаково в любой теме) */
-  --brand-sky-1: #5cb2ff;
-  --brand-sky-2: #1450d1;
-  --brand-sun-core: #ffffff;
-  --brand-sun-mid: #fffbea;
-  --brand-sun-rim: #ffcc3d;
-  --brand-ray-1: #ffdf6e;
-  --brand-ray-2: #ffd257;
-  --brand-glow: #ffe6a0;
+  --brand-edge: rgba(255, 255, 255, 0.14);
+  --brand-shadow: rgba(120, 40, 10, 0.4);
+  --brand-glow-hover: rgba(255, 150, 60, 0.6);
+  --brand-sun: rgba(255, 246, 214, 0.95);
+  --brand-sun-halo: rgba(255, 190, 90, 0.55);
+  --brand-beam: rgba(255, 228, 170, 0.45);
   /* Небо на входе и регистрации (одинаковое в любой теме): солнце, блики, радуга */
   --sky-top: #1c63d6;
   --sky-mid: #3e8ef0;
@@ -87,6 +86,9 @@
   --flare-1: #ffb366;
   --flare-2: #fff3a6;
   --sky-card: rgba(255, 255, 255, 0.8);
+  --cloud: rgba(255, 255, 255, 0.96);
+  --cloud-shade: rgba(190, 214, 240, 0.85);
+  --bird: rgba(24, 40, 70, 0.72);
   --sky-card-shadow: 0 40px 90px -30px rgba(10, 50, 120, 0.45), 0 10px 30px -10px rgba(10, 50, 120, 0.25);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -151,44 +153,45 @@
   /* Фирменные цвета Sunnet (знак, превью, иконки) */
 }
 
-/* ─── Тёмная основа (по умолчанию) ─── */
+/* ─── Тёмная основа (по умолчанию): ночное небо — глубокий сине-графитовый ─── */
 :root,
 [data-theme='dark'] {
   color-scheme: dark;
-  --bg: #07080f;
-  --bg-tint: #0b0d1a;
-  --panel: rgba(16, 18, 32, 0.62);
-  --panel-solid: #11131f;
-  --panel-border: rgba(255, 255, 255, 0.075);
-  --panel-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --bg-elevated: rgba(22, 25, 42, 0.9);
-  --bg-elevated-solid: #161929;
-  --surface: rgba(255, 255, 255, 0.035);
-  --surface-2: rgba(255, 255, 255, 0.06);
-  --surface-3: rgba(255, 255, 255, 0.1);
-  --surface-hover: rgba(255, 255, 255, 0.055);
-  --surface-active: rgba(255, 255, 255, 0.09);
-  --border: rgba(255, 255, 255, 0.075);
-  --border-strong: rgba(255, 255, 255, 0.14);
-  --text: #f1f2f9;
-  --text-2: rgba(226, 229, 246, 0.66);
-  --text-3: rgba(226, 229, 246, 0.4);
-  --text-inverse: #0b0d14;
-  --overlay: rgba(3, 4, 10, 0.62);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 10px 30px -8px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.25);
-  --shadow-lg: 0 30px 80px -20px rgba(0, 0, 0, 0.75), 0 8px 24px rgba(0, 0, 0, 0.35);
-  --shadow-panel: 0 20px 60px -30px rgba(0, 0, 0, 0.8);
-  --bubble-in: rgba(36, 40, 62, 0.82);
+  --bg: #0c131d;
+  --bg-tint: #0f1824;
+  --panel: rgba(18, 26, 38, 0.8);
+  --panel-solid: #121b27;
+  --panel-border: rgba(255, 255, 255, 0.06);
+  --panel-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  --bg-elevated: rgba(25, 34, 48, 0.94);
+  --bg-elevated-solid: #18222f;
+  --surface: rgba(255, 255, 255, 0.03);
+  --surface-2: rgba(255, 255, 255, 0.055);
+  --surface-3: rgba(255, 255, 255, 0.09);
+  --surface-hover: rgba(255, 255, 255, 0.05);
+  --surface-active: rgba(255, 255, 255, 0.085);
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.13);
+  --text: #eef3f9;
+  --text-2: rgba(214, 226, 242, 0.68);
+  --text-3: rgba(214, 226, 242, 0.44);
+  --text-inverse: #0b111a;
+  --overlay: rgba(2, 6, 12, 0.6);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px -10px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 24px 60px -18px rgba(0, 0, 0, 0.7), 0 6px 18px rgba(0, 0, 0, 0.3);
+  --shadow-panel: 0 16px 48px -30px rgba(0, 0, 0, 0.8);
+  --bubble-in: #1b2633;
   --bubble-in-text: var(--text);
   --bubble-out-text: #fff;
+  --bubble-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
   --chat-bg: transparent;
-  --success: #3ee08f;
+  --success: #3ccf7f;
   --warning: #ffc34d;
-  --danger: #ff5c6c;
+  --danger: #ff5a5f;
   --info: #5cc8ff;
-  --danger-soft: rgba(255, 92, 108, 0.14);
-  --success-soft: rgba(62, 224, 143, 0.13);
+  --danger-soft: rgba(255, 90, 95, 0.14);
+  --success-soft: rgba(60, 207, 127, 0.13);
   --warning-soft: rgba(255, 195, 77, 0.14);
   --info-soft: rgba(92, 200, 255, 0.14);
   --skeleton: rgba(255, 255, 255, 0.05);
@@ -196,84 +199,105 @@
   --chart-1: #8b6dff;
   --chart-2: #d9772f;
   --chart-grid: rgba(255, 255, 255, 0.07);
-  --chart-surface: #161929;
-  --desk-dot: rgba(196, 181, 255, 0.22);
-  --skeleton-shine: rgba(255, 255, 255, 0.1);
-  --aurora-opacity: 0.55;
-  --noise-opacity: 0.05;
+  --chart-surface: #18222f;
+  --desk-dot: rgba(150, 190, 255, 0.2);
+  --skeleton-shine: rgba(255, 255, 255, 0.09);
+  --aurora-opacity: 0.3;
+  --noise-opacity: 0.03;
   /* Ссылки и экран входа */
-  --link: #6ea8ff;
-  --link-hover: #9cc4ff;
+  --link: #6ab3ff;
+  --link-hover: #9ccbff;
   --auth-veil: rgba(255, 255, 255, 0.9);
   --qr-bg: #ffffff;
   --qr-fg: #0b1020;
+  /* Мобильные панели (шапки, вкладки, поле ввода): почти сплошные, с лёгким размытием */
+  --bar-bg: rgba(18, 27, 39, 0.9);
+  --bar-border: rgba(255, 255, 255, 0.07);
+  /* Служебные плашки поверх обоев: даты, «вступил в группу» */
+  --service-bg: rgba(52, 70, 92, 0.6);
+  --service-text: #ffffff;
+  /* Плашка «Непрочитанные сообщения» */
+  --unread-sep-bg: rgba(255, 255, 255, 0.06);
+  /* Кольцо вокруг точки «в сети» и бейджей — цвет фона под аватаром */
+  --ring-bg: var(--bg);
+  --badge-red: #ff453a;
 }
 
-/* ─── Светлая основа ─── */
+/* ─── Светлая основа: утреннее небо — чистый белый на холодном сером ─── */
 [data-theme='light'] {
   color-scheme: light;
-  --bg: #eef0f8;
-  --bg-tint: #f6f7fc;
-  --panel: rgba(255, 255, 255, 0.66);
+  --bg: #f0f3f7;
+  --bg-tint: #f7f9fc;
+  --panel: rgba(255, 255, 255, 0.86);
   --panel-solid: #ffffff;
-  --panel-border: rgba(255, 255, 255, 0.85);
+  --panel-border: rgba(16, 36, 64, 0.07);
   --panel-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  --bg-elevated: rgba(255, 255, 255, 0.92);
+  --bg-elevated: rgba(255, 255, 255, 0.96);
   --bg-elevated-solid: #ffffff;
-  --surface: rgba(255, 255, 255, 0.6);
-  --surface-2: rgba(20, 24, 60, 0.045);
-  --surface-3: rgba(20, 24, 60, 0.085);
-  --surface-hover: rgba(20, 24, 60, 0.05);
-  --surface-active: rgba(20, 24, 60, 0.09);
-  --border: rgba(20, 24, 60, 0.08);
-  --border-strong: rgba(20, 24, 60, 0.15);
-  --text: #0d1026;
-  --text-2: rgba(13, 16, 38, 0.64);
-  --text-3: rgba(13, 16, 38, 0.42);
+  --surface: rgba(255, 255, 255, 0.7);
+  --surface-2: rgba(16, 36, 64, 0.045);
+  --surface-3: rgba(16, 36, 64, 0.08);
+  --surface-hover: rgba(16, 36, 64, 0.045);
+  --surface-active: rgba(16, 36, 64, 0.085);
+  --border: rgba(16, 36, 64, 0.09);
+  --border-strong: rgba(16, 36, 64, 0.16);
+  --text: #0e1724;
+  --text-2: rgba(14, 23, 36, 0.62);
+  --text-3: rgba(14, 23, 36, 0.42);
   --text-inverse: #ffffff;
-  --overlay: rgba(14, 16, 40, 0.38);
-  --shadow-sm: 0 1px 2px rgba(20, 24, 70, 0.07);
-  --shadow-md: 0 10px 30px -10px rgba(30, 30, 90, 0.22), 0 2px 6px rgba(20, 24, 70, 0.06);
-  --shadow-lg: 0 30px 80px -24px rgba(30, 30, 100, 0.35), 0 8px 24px rgba(20, 24, 70, 0.08);
-  --shadow-panel: 0 20px 50px -30px rgba(40, 40, 120, 0.35);
-  --bubble-in: rgba(255, 255, 255, 0.9);
+  --overlay: rgba(10, 22, 40, 0.36);
+  --shadow-sm: 0 1px 2px rgba(16, 36, 64, 0.08);
+  --shadow-md: 0 8px 24px -10px rgba(16, 36, 64, 0.2), 0 2px 6px rgba(16, 36, 64, 0.06);
+  --shadow-lg: 0 24px 60px -20px rgba(16, 36, 64, 0.3), 0 6px 18px rgba(16, 36, 64, 0.08);
+  --shadow-panel: 0 16px 40px -30px rgba(16, 36, 64, 0.35);
+  --bubble-in: #ffffff;
   --bubble-in-text: var(--text);
   --bubble-out-text: #fff;
+  --bubble-shadow: 0 1px 1.5px rgba(16, 36, 64, 0.13);
   --chat-bg: transparent;
-  --success: #0f9d58;
+  --success: #12a150;
   --warning: #c77c02;
   --danger: #e5394a;
   --info: #0b84d8;
   --danger-soft: rgba(229, 57, 74, 0.1);
-  --success-soft: rgba(15, 157, 88, 0.1);
+  --success-soft: rgba(18, 161, 80, 0.1);
   --warning-soft: rgba(199, 124, 2, 0.12);
   --info-soft: rgba(11, 132, 216, 0.1);
-  --skeleton: rgba(20, 24, 60, 0.06);
+  --skeleton: rgba(16, 36, 64, 0.06);
   /* Графики: та же проверка для светлого фона */
   --chart-1: #6a4cf0;
   --chart-2: #d0651a;
-  --chart-grid: rgba(20, 24, 60, 0.08);
+  --chart-grid: rgba(16, 36, 64, 0.08);
   --chart-surface: #ffffff;
-  --desk-dot: rgba(40, 30, 120, 0.2);
+  --desk-dot: rgba(30, 80, 160, 0.2);
   --skeleton-shine: rgba(255, 255, 255, 0.7);
-  --aurora-opacity: 0.5;
-  --noise-opacity: 0.035;
+  --aurora-opacity: 0.32;
+  --noise-opacity: 0.02;
   /* Ссылки и экран входа (космос слева тёмный в любой теме) */
-  --link: #1f6feb;
+  --link: #1a73e0;
   --link-hover: #1557c0;
   --auth-veil: rgba(255, 255, 255, 0.92);
   --qr-bg: #ffffff;
   --qr-fg: #0b1020;
+  --bar-bg: rgba(255, 255, 255, 0.92);
+  --bar-border: rgba(16, 36, 64, 0.1);
+  --service-bg: rgba(40, 70, 110, 0.32);
+  --service-text: #ffffff;
+  --unread-sep-bg: rgba(255, 255, 255, 0.72);
+  --ring-bg: var(--bg);
+  --badge-red: #ff3b30;
 }
 
-/* ─── Палитры фона: три цвета сияния + акцент по умолчанию ─── */
+/* ─── Палитры фона: три цвета сияния + акцент по умолчанию ───
+ * «aurora» — палитра по умолчанию, теперь это «Sunnet»: лазурное небо и
+ * немного солнечного золота (id оставлен прежним, чтобы не ломать настройки). */
 :root,
 [data-palette='aurora'] {
-  --aurora-1: #6d4aff;
-  --aurora-2: #00c2ff;
-  --aurora-3: #ff4fd8;
-  --pal-accent: #7c5cff;
-  --pal-accent-2: #00b8ff;
+  --aurora-1: #2f8cff;
+  --aurora-2: #64c6ff;
+  --aurora-3: #ffc94a;
+  --pal-accent: #2b8cee;
+  --pal-accent-2: #34a8f5;
 }
 [data-palette='sunset'] {
   --aurora-1: #ff6a3d;
@@ -386,23 +410,36 @@
 [data-palette],
 [data-theme] {
   --accent-text: #ffffff;
-  --accent-hover: color-mix(in oklab, var(--accent) 86%, black);
+  --accent-hover: color-mix(in oklab, var(--accent) 88%, black);
   --accent-soft: color-mix(in oklab, var(--accent) 15%, transparent);
   --accent-soft-strong: color-mix(in oklab, var(--accent) 26%, transparent);
   --accent-deep: color-mix(in oklab, var(--accent) 55%, black);
-  --accent-fg: color-mix(in oklab, var(--accent) 72%, white);
-  --grad: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
-  --grad-soft: linear-gradient(135deg, color-mix(in oklab, var(--accent) 22%, transparent), color-mix(in oklab, var(--accent-2) 16%, transparent));
-  --glow: 0 10px 30px -10px color-mix(in oklab, var(--accent) 75%, transparent);
-  --glow-strong: 0 14px 40px -8px color-mix(in oklab, var(--accent) 85%, transparent);
-  --ring: 0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent);
-  --bubble-out: var(--grad);
+  --accent-fg: color-mix(in oklab, var(--accent) 70%, white);
+  /* Градиент акцента — едва заметный: чистый цвет, а не неон */
+  --grad: linear-gradient(135deg, var(--accent) 0%, color-mix(in oklab, var(--accent) 70%, var(--accent-2)) 100%);
+  --grad-soft: linear-gradient(135deg, color-mix(in oklab, var(--accent) 18%, transparent), color-mix(in oklab, var(--accent-2) 12%, transparent));
+  --glow: 0 6px 18px -10px color-mix(in oklab, var(--accent) 70%, transparent);
+  --glow-strong: 0 10px 26px -10px color-mix(in oklab, var(--accent) 80%, transparent);
+  --ring: 0 0 0 3px color-mix(in oklab, var(--accent) 28%, transparent);
+  /* Исходящие сообщения: сплошной цвет акцента (чуть глубже — для читаемости белого текста) */
+  --bubble-out: color-mix(in oklab, var(--accent) 86%, #0a2a5c);
+  --bubble-out-solid: color-mix(in oklab, var(--accent) 86%, #0a2a5c);
+  --bubble-out-meta: rgba(255, 255, 255, 0.74);
+  /* Солнечное золото — редкие акценты: закреплённое, «Избранное», звёзды */
+  --sun: #ffb21e;
+  --sun-fg: #ffc94a;
+  --sun-soft: rgba(255, 178, 30, 0.16);
+  --list-bg: var(--bg);
 }
 [data-theme='light'],
 [data-theme='light'] [data-accent],
 [data-theme='light'] [data-palette] {
-  --accent-fg: color-mix(in oklab, var(--accent) 85%, black);
-  --accent-soft: color-mix(in oklab, var(--accent) 12%, transparent);
+  --accent-fg: color-mix(in oklab, var(--accent) 82%, black);
+  --accent-soft: color-mix(in oklab, var(--accent) 11%, transparent);
+  --bubble-out: color-mix(in oklab, var(--accent) 94%, #0a2a5c);
+  --bubble-out-solid: color-mix(in oklab, var(--accent) 94%, #0a2a5c);
+  --sun-fg: #d98a00;
+  --list-bg: #ffffff;
 }
 
 /* Без прозрачности: панели сплошные, размытие выключено (быстрее на слабых устройствах) */
@@ -494,4 +531,303 @@
   --help-fs-h2: calc(25px * var(--font-scale, 1));
   --help-fs-h3: calc(17.5px * var(--font-scale, 1));
   --help-lh: 1.65;
+}
+
+/* ─── Лента и профиль ─── */
+:root {
+  /* Отметки и действия под публикацией (одинаковы в любой теме) */
+  --like: #ff3040;
+  --like-soft: rgba(255, 48, 64, 0.12);
+  --like-glow: rgba(255, 48, 64, 0.55);
+  --repost: #1fbf7a;
+  --repost-soft: rgba(31, 191, 122, 0.12);
+  /* Кольцо непросмотренных историй — фирменная тёплая радуга */
+  --story-ring: conic-gradient(from 210deg, #ffd600, #ff7a00, #ff0169, #d300c5, #7638fa, #ffd600);
+  --story-ring-close: conic-gradient(from 210deg, #3ee08f, #12b886, #94d82d, #3ee08f);
+  /* Поверх фото и видео: подписи, счётчики, точки карусели */
+  --media-fg: #ffffff;
+  --media-fg-2: rgba(255, 255, 255, 0.55);
+  --media-scrim: rgba(0, 0, 0, 0.52);
+  --media-scrim-soft: rgba(0, 0, 0, 0.28);
+  --media-heart-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  /* Значки типов уведомлений */
+  --notif-like: #ff3040;
+  --notif-comment: #2f7bff;
+  --notif-follow: #7c5cff;
+  --notif-mention: #00a8d6;
+  --notif-repost: #1fbf7a;
+  --notif-post: #f0a500;
+  --notif-security: #f03e5a;
+  --notif-birthday: #ff8a00;
+  --notif-space: #4f5bd5;
+  --notif-story: #e8559a;
+  /* Тексты публикаций без медиа в сетке профиля */
+  --text-tile-a: #6a4cf0;
+  --text-tile-b: #e1306c;
+  --text-tile-fg: #ffffff;
+  /* Размеры страниц ленты */
+  --feed-max: 620px;
+  --space-rail-w: 68px;
+  --pk-bar-h: 48px;
+}
+
+/* ─── Видео ─── */
+:root {
+  /* Плеер всегда тёмный, как у видеохостингов: цвета поверх кадра не зависят от темы */
+  --vid-red: #ff0033;
+  --vid-red-2: #ff2e83;
+  --vid-live: #e8173a;
+  --vid-player-bg: #000000;
+  --vid-on-media: #ffffff;
+  --vid-on-media-2: rgba(255, 255, 255, 0.78);
+  --vid-on-media-3: rgba(255, 255, 255, 0.45);
+  --vid-track: rgba(255, 255, 255, 0.22);
+  --vid-buffer: rgba(255, 255, 255, 0.4);
+  --vid-hover-fill: rgba(255, 255, 255, 0.5);
+  --vid-badge-bg: rgba(0, 0, 0, 0.76);
+  --vid-scrim: rgba(0, 0, 0, 0.62);
+  --vid-scrim-soft: rgba(0, 0, 0, 0.36);
+  --vid-scrim-strong: rgba(0, 0, 0, 0.82);
+  --vid-shade-bottom: linear-gradient(to top, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.42) 45%, rgba(0, 0, 0, 0) 100%);
+  --vid-shade-top: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 100%);
+  --vid-popover: rgba(24, 24, 28, 0.92);
+  --vid-popover-hover: rgba(255, 255, 255, 0.1);
+  --vid-glass: rgba(255, 255, 255, 0.16);
+  --vid-glass-strong: rgba(255, 255, 255, 0.26);
+  --vid-ripple: rgba(255, 255, 255, 0.16);
+  /* Чат эфира: автор канала и модераторы выделяются плашкой */
+  --vid-owner: #ffd257;
+  --vid-owner-text: #241800;
+  --vid-mention: rgba(255, 210, 87, 0.12);
+  /* Атмосферная подсветка за плеером */
+  --vid-ambient-opacity: 0.55;
+}
+[data-theme='light'] {
+  --vid-ambient-opacity: 0.35;
+}
+
+/* ─── Рабочий стол ─── */
+/* Компьютер (features/desktop): обои-небо, строка меню, док и окна разделов */
+:root {
+  /* Плитки приложений в доке и в заголовках окон */
+  --desk-app-home: #f5a524;
+  --desk-app-messenger: #2f7bff;
+  --desk-app-channels: #06aed5;
+  --desk-app-reels: #ec4899;
+  --desk-app-video: #ef4444;
+  --desk-app-companies: #6366f1;
+  --desk-app-communities: #22b35e;
+  --desk-app-search: #4d6a92;
+  --desk-app-notifications: #f97316;
+  --desk-app-stats: #a855f7;
+  --desk-app-profile: #14b8a6;
+  --desk-app-settings: #8a90a2;
+  --desk-app-help: #3b82f6;
+  --desk-app-download: #10b981;
+  --desk-tile-glyph: #ffffff;
+  --desk-tile-sheen: rgba(255, 255, 255, 0.38);
+  --desk-tile-shade: rgba(0, 0, 0, 0.22);
+  /* Кнопки окна в стиле macOS и Windows */
+  --desk-light-close: #ff5f57;
+  --desk-light-min: #febc2e;
+  --desk-light-max: #28c840;
+  --desk-light-glyph: rgba(60, 20, 0, 0.6);
+  --desk-light-ring: rgba(0, 0, 0, 0.14);
+  --desk-cap-close: #e81123;
+  --desk-cap-close-fg: #ffffff;
+}
+[data-theme='dark'] {
+  /* Вечернее небо: солнце садится за облака справа внизу */
+  --desk-sky-1: #08122c;
+  --desk-sky-2: #13285a;
+  --desk-sky-3: #2b4a8c;
+  --desk-sky-4: #b97b5f;
+  --desk-sun-x: 76%;
+  --desk-sun-y: 74%;
+  --desk-sun-size: 30vmax;
+  --desk-sun-core: #fff6dc;
+  --desk-sun-glow: #ffc65a;
+  --desk-sun-halo: rgba(255, 168, 72, 0.3);
+  --desk-ray: #ffd27a;
+  --desk-ray-opacity: 0.12;
+  --desk-haze: rgba(255, 168, 110, 0.2);
+  --desk-cloud: rgba(26, 34, 74, 0.94);
+  --desk-cloud-2: rgba(64, 60, 108, 0.72);
+  --desk-cloud-rim: rgba(255, 186, 120, 0.22);
+  --desk-star: rgba(255, 255, 255, 0.8);
+  /* Строка меню и док */
+  --desk-menubar-bg: rgba(10, 14, 32, 0.52);
+  --desk-menubar-edge: rgba(255, 255, 255, 0.07);
+  --desk-menubar-fg: rgba(242, 244, 255, 0.96);
+  --desk-menubar-fg-2: rgba(242, 244, 255, 0.62);
+  --desk-menubar-hover: rgba(255, 255, 255, 0.13);
+  --desk-menubar-field: rgba(255, 255, 255, 0.09);
+  --desk-dock-bg: rgba(20, 24, 48, 0.46);
+  --desk-dock-border: rgba(255, 255, 255, 0.14);
+  --desk-dock-dot: rgba(255, 255, 255, 0.86);
+  --desk-tip-bg: rgba(24, 28, 50, 0.94);
+  --desk-tip-fg: #f1f2f9;
+  /* Окна */
+  --desk-win-bg: #0f121e;
+  --desk-win-bar: #181c2c;
+  --desk-win-bar-idle: #121522;
+  --desk-win-edge: rgba(255, 255, 255, 0.11);
+  --desk-win-shadow: 0 16px 44px -14px rgba(0, 0, 0, 0.6), 0 3px 12px rgba(0, 0, 0, 0.32);
+  --desk-win-shadow-active: 0 34px 90px -18px rgba(0, 0, 0, 0.78), 0 10px 30px rgba(0, 0, 0, 0.45);
+  --desk-light-idle: rgba(255, 255, 255, 0.17);
+  --desk-cap-hover: rgba(255, 255, 255, 0.08);
+  --desk-snap-fill: rgba(120, 168, 255, 0.16);
+  --desk-snap-edge: rgba(170, 205, 255, 0.5);
+  --desk-side-bg: #131726;
+  --desk-scrim: rgba(4, 6, 16, 0.42);
+}
+[data-theme='light'] {
+  /* Ясное небо: солнце вверху справа, облака у горизонта */
+  --desk-sky-1: #2a78e4;
+  --desk-sky-2: #58a2f1;
+  --desk-sky-3: #a8d1f9;
+  --desk-sky-4: #fbefd9;
+  --desk-sun-x: 80%;
+  --desk-sun-y: 18%;
+  --desk-sun-size: 34vmax;
+  --desk-sun-core: #ffffff;
+  --desk-sun-glow: #fff1b8;
+  --desk-sun-halo: rgba(255, 238, 170, 0.55);
+  --desk-ray: #ffffff;
+  --desk-ray-opacity: 0.2;
+  --desk-haze: rgba(255, 247, 228, 0.55);
+  --desk-cloud: rgba(255, 255, 255, 0.96);
+  --desk-cloud-2: rgba(236, 245, 255, 0.78);
+  --desk-cloud-rim: rgba(255, 255, 255, 0.45);
+  --desk-star: transparent;
+  --desk-menubar-bg: rgba(255, 255, 255, 0.48);
+  --desk-menubar-edge: rgba(255, 255, 255, 0.5);
+  --desk-menubar-fg: #0d1026;
+  --desk-menubar-fg-2: rgba(13, 16, 38, 0.58);
+  --desk-menubar-hover: rgba(13, 16, 38, 0.08);
+  --desk-menubar-field: rgba(255, 255, 255, 0.55);
+  --desk-dock-bg: rgba(255, 255, 255, 0.4);
+  --desk-dock-border: rgba(255, 255, 255, 0.7);
+  --desk-dock-dot: rgba(13, 16, 38, 0.72);
+  --desk-tip-bg: rgba(255, 255, 255, 0.96);
+  --desk-tip-fg: #0d1026;
+  --desk-win-bg: #f7f8fc;
+  --desk-win-bar: #eef0f6;
+  --desk-win-bar-idle: #f5f6fa;
+  --desk-win-edge: rgba(13, 16, 38, 0.13);
+  --desk-win-shadow: 0 14px 40px -14px rgba(20, 40, 90, 0.32), 0 3px 10px rgba(20, 40, 90, 0.1);
+  --desk-win-shadow-active: 0 30px 80px -18px rgba(20, 40, 100, 0.48), 0 8px 24px rgba(20, 40, 90, 0.16);
+  --desk-light-idle: rgba(13, 16, 38, 0.15);
+  --desk-cap-hover: rgba(13, 16, 38, 0.07);
+  --desk-snap-fill: rgba(255, 255, 255, 0.3);
+  --desk-snap-edge: rgba(255, 255, 255, 0.9);
+  --desk-side-bg: #f0f2f8;
+  --desk-scrim: rgba(13, 16, 38, 0.18);
+}
+/* Обои «Рассвет»: тёплое небо, солнце встаёт слева */
+.desk--wp-dawn {
+  --desk-sky-1: #5a7dd4;
+  --desk-sky-2: #a89be0;
+  --desk-sky-3: #f2b3a0;
+  --desk-sky-4: #ffe3b6;
+  --desk-sun-x: 24%;
+  --desk-sun-y: 76%;
+  --desk-sun-glow: #ffd58a;
+  --desk-sun-halo: rgba(255, 186, 118, 0.5);
+  --desk-ray: #fff1d2;
+  --desk-haze: rgba(255, 214, 178, 0.45);
+  --desk-cloud: rgba(255, 238, 236, 0.92);
+  --desk-cloud-2: rgba(255, 212, 220, 0.7);
+}
+[data-theme='dark'] .desk--wp-dawn {
+  --desk-sky-1: #121838;
+  --desk-sky-2: #382d62;
+  --desk-sky-3: #87506f;
+  --desk-sky-4: #e39a63;
+  --desk-sun-glow: #ffb867;
+  --desk-sun-halo: rgba(255, 150, 90, 0.34);
+  --desk-ray: #ffc88a;
+  --desk-haze: rgba(255, 150, 100, 0.22);
+  --desk-cloud: rgba(38, 30, 68, 0.92);
+  --desk-cloud-2: rgba(108, 58, 92, 0.6);
+}
+/* Обои «Ночное небо»: одинаковые в обеих темах */
+.desk--wp-night,
+[data-theme] .desk--wp-night {
+  --desk-sky-1: #030716;
+  --desk-sky-2: #08122e;
+  --desk-sky-3: #12234d;
+  --desk-sky-4: #233a6c;
+  --desk-sun-x: 82%;
+  --desk-sun-y: 16%;
+  --desk-sun-size: 16vmax;
+  --desk-sun-core: #fffdf2;
+  --desk-sun-glow: #efe4c6;
+  --desk-sun-halo: rgba(236, 224, 186, 0.16);
+  --desk-haze: rgba(90, 124, 210, 0.14);
+  --desk-cloud: rgba(14, 22, 50, 0.94);
+  --desk-cloud-2: rgba(28, 42, 82, 0.66);
+  --desk-star: rgba(255, 255, 255, 0.9);
+  --desk-menubar-bg: rgba(8, 12, 30, 0.5);
+  --desk-menubar-edge: rgba(255, 255, 255, 0.07);
+  --desk-menubar-fg: rgba(242, 244, 255, 0.96);
+  --desk-menubar-fg-2: rgba(242, 244, 255, 0.62);
+  --desk-menubar-hover: rgba(255, 255, 255, 0.13);
+  --desk-menubar-field: rgba(255, 255, 255, 0.09);
+}
+/* Однотонные обои — цвет фона темы */
+.desk--wp-plain {
+  --desk-sky-1: var(--bg-tint);
+  --desk-sky-2: var(--bg);
+  --desk-sky-3: var(--bg);
+  --desk-sky-4: var(--bg-tint);
+}
+
+/* ─── Reels ─── */
+:root {
+  /* Просмотрщик всегда тёмный: цвета поверх кадра не зависят от темы */
+  --reels-bg: #000000;
+  --reels-stage: #0b0b0f;
+  --reels-fg: #ffffff;
+  --reels-fg-2: rgba(255, 255, 255, 0.82);
+  --reels-fg-3: rgba(255, 255, 255, 0.58);
+  --reels-glass: rgba(255, 255, 255, 0.16);
+  --reels-glass-strong: rgba(255, 255, 255, 0.28);
+  --reels-glass-dark: rgba(0, 0, 0, 0.38);
+  --reels-icon-shadow: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35)) drop-shadow(0 2px 10px rgba(0, 0, 0, 0.22));
+  --reels-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 14px rgba(0, 0, 0, 0.25);
+  --reels-shade-top: linear-gradient(to bottom, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.18) 55%, rgba(0, 0, 0, 0) 100%);
+  --reels-shade-bottom: linear-gradient(to top, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.34) 42%, rgba(0, 0, 0, 0) 100%);
+  --reels-shade-deep: rgba(0, 0, 0, 0.62);
+  --reels-scrim: rgba(0, 0, 0, 0.42);
+  /* «Нравится»: градиент сердца и частицы */
+  --reels-like: #ff2d55;
+  --reels-like-2: #ff5f8f;
+  --reels-like-3: #ff8a3d;
+  --reels-like-glow: rgba(255, 45, 85, 0.45);
+  /* Закладки и подписка — золото солнца Sunnet */
+  --reels-save: #ffc928;
+  --reels-save-2: #ffe27a;
+  --reels-follow: #ffbe1a;
+  --reels-follow-2: #ffd95e;
+  --reels-follow-ink: #2a1a00;
+  --reels-follow-done: #ffffff;
+  --reels-sun-glow: rgba(255, 190, 26, 0.45);
+  /* Прогресс и пластинка */
+  --reels-track: rgba(255, 255, 255, 0.26);
+  --reels-progress: #ffffff;
+  --reels-disc-1: #3a3b46;
+  --reels-disc-2: #121218;
+  --reels-disc-groove: rgba(255, 255, 255, 0.07);
+  /* Скелет загрузки */
+  --reels-skeleton: #17181f;
+  --reels-skeleton-2: #22242d;
+  --reels-skeleton-shine: rgba(255, 255, 255, 0.06);
+  /* Страница загрузки: тёплое свечение солнца */
+  --reels-up-glow-1: rgba(255, 201, 40, 0.22);
+  --reels-up-glow-2: rgba(92, 178, 255, 0.2);
+}
+[data-theme='light'] {
+  --reels-up-glow-1: rgba(255, 190, 26, 0.24);
+  --reels-up-glow-2: rgba(20, 80, 209, 0.12);
 }

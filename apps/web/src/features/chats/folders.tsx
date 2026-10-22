@@ -9,6 +9,7 @@ import { flatPages, qk, queryClient, useCursorList } from '../../shared/api/quer
 import { toast } from '../../shared/stores/ui';
 import { cn } from '../../shared/lib/format';
 import { Avatar, Button, confirm, EmptyState, IconButton, Input, ListSkeleton, Modal, PageHeader, SettingRow, Switch } from '../../shared/ui';
+import { DetailHead } from './DetailHead';
 
 type FolderType = ChatFolderInfo['includeTypes'][number];
 type FolderDraft = Omit<ChatFolderInfo, 'id' | 'unreadCount'>;
@@ -103,7 +104,13 @@ export function FolderEditor({ folder, initial, onClose }: { folder?: ChatFolder
             <span className="field__label">Значок</span>
             <div className="folder-emoji">
               {EMOJI.map((e) => (
-                <button key={e} type="button" className={cn('folder-emoji__cell', draft.emoji === e && 'folder-emoji__cell--active')} onClick={() => set('emoji', e)} aria-label={`Значок ${e}`}>
+                <button
+                  key={e}
+                  type="button"
+                  className={cn('folder-emoji__cell', draft.emoji === e && 'folder-emoji__cell--active')}
+                  onClick={() => set('emoji', e)}
+                  aria-label={`Значок ${e}`}
+                >
                   {e}
                 </button>
               ))}
@@ -113,22 +120,34 @@ export function FolderEditor({ folder, initial, onClose }: { folder?: ChatFolder
             <span className="field__label">Типы чатов</span>
             <div className="row wrap gap-2">
               {TYPES.map((t) => (
-                <button key={t.id} type="button" className={cn('chip', draft.includeTypes.includes(t.id) && 'chip--active')} onClick={() => toggleType(t.id)} aria-pressed={draft.includeTypes.includes(t.id)}>
+                <button
+                  key={t.id}
+                  type="button"
+                  className={cn('chip', draft.includeTypes.includes(t.id) && 'chip--active')}
+                  onClick={() => toggleType(t.id)}
+                  aria-pressed={draft.includeTypes.includes(t.id)}
+                >
                   {draft.includeTypes.includes(t.id) && <Check size={14} />} {t.label}
                 </button>
               ))}
             </div>
           </div>
           <div className="card">
-            <SettingRow title="Скрывать без звука" description="Чаты с выключенными уведомлениями" control={<Switch checked={draft.excludeMuted} onChange={(v) => set('excludeMuted', v)} label="Скрывать без звука" />} />
-            <SettingRow title="Только непрочитанные" description="Прочитанные чаты исчезают из папки" control={<Switch checked={draft.excludeRead} onChange={(v) => set('excludeRead', v)} label="Только непрочитанные" />} />
+            <SettingRow
+              title="Скрывать без звука"
+              description="Чаты с выключенными уведомлениями"
+              control={<Switch checked={draft.excludeMuted} onChange={(v) => set('excludeMuted', v)} label="Скрывать без звука" />}
+            />
+            <SettingRow
+              title="Только непрочитанные"
+              description="Прочитанные чаты исчезают из папки"
+              control={<Switch checked={draft.excludeRead} onChange={(v) => set('excludeRead', v)} label="Только непрочитанные" />}
+            />
             <SettingRow title="Скрывать архив" control={<Switch checked={draft.excludeArchived} onChange={(v) => set('excludeArchived', v)} label="Скрывать архив" />} />
           </div>
         </div>
         <div className="col gap-2" style={{ minWidth: 0 }}>
-          <span className="field__label">
-            Отдельные чаты {draft.includeChatIds.length > 0 && <span className="badge">{draft.includeChatIds.length}</span>}
-          </span>
+          <span className="field__label">Отдельные чаты {draft.includeChatIds.length > 0 && <span className="badge">{draft.includeChatIds.length}</span>}</span>
           <div className="input-group">
             <Search size={16} className="input-group__icon" />
             <input className="input" placeholder="Найти чат" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -144,7 +163,11 @@ export function FolderEditor({ folder, initial, onClose }: { folder?: ChatFolder
                 </button>
               );
             })}
-            {shown.length === 0 && <p className="small muted" style={{ padding: 12 }}>Ничего не найдено</p>}
+            {shown.length === 0 && (
+              <p className="small muted" style={{ padding: 12 }}>
+                Ничего не найдено
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -180,67 +203,78 @@ export function FoldersPage() {
   };
 
   return (
-    <div className="scroll">
-      <div className="page">
-        <PageHeader
-          title="Папки с чатами"
-          subtitle="Соберите переписки по темам — папки появятся вкладками над списком чатов"
-          icon={<Inbox size={22} />}
-          actions={
-            <Button icon={<FolderPlus size={18} />} onClick={() => setEditing({})} disabled={items.length >= LIMITS.foldersMax}>
-              Создать
-            </Button>
-          }
-        />
-        {q.isLoading ? (
-          <ListSkeleton rows={3} />
-        ) : items.length === 0 ? (
-          <div className="card">
-            <EmptyState icon={<Inbox size={28} />} title="Своих папок пока нет" text="Например, «Работа» — только рабочие группы, или «Новое» — непрочитанные личные." />
+    <div className="chat-page">
+      <DetailHead title={'Папки'} />
+      <div className="scroll">
+        <div className="page">
+          <PageHeader
+            title="Папки с чатами"
+            subtitle="Соберите переписки по темам — папки появятся вкладками над списком чатов"
+            icon={<Inbox size={22} />}
+            actions={
+              <Button icon={<FolderPlus size={18} />} onClick={() => setEditing({})} disabled={items.length >= LIMITS.foldersMax}>
+                Создать
+              </Button>
+            }
+          />
+          {q.isLoading ? (
+            <ListSkeleton rows={3} />
+          ) : items.length === 0 ? (
+            <div className="card">
+              <EmptyState icon={<Inbox size={28} />} title="Своих папок пока нет" text="Например, «Работа» — только рабочие группы, или «Новое» — непрочитанные личные." />
+            </div>
+          ) : (
+            <div className="card" style={{ overflow: 'hidden' }}>
+              {items.map((f, i) => (
+                <div key={f.id} className="list-item">
+                  <span className="folder-row__emoji">{f.emoji}</span>
+                  <button
+                    type="button"
+                    className="list-item__body"
+                    style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', minWidth: 0 }}
+                    onClick={() => navigate(`/chats/folder/${f.id}`)}
+                  >
+                    <span className="list-item__title ellipsis">{f.name}</span>
+                    <span className="list-item__sub clamp-2">
+                      {[...f.includeTypes.map((t) => TYPES.find((x) => x.id === t)?.label), f.includeChatIds.length ? `чатов: ${f.includeChatIds.length}` : null]
+                        .filter(Boolean)
+                        .join(', ') || 'Пусто'}
+                      {f.unreadCount > 0 && ` · непрочитанных: ${f.unreadCount}`}
+                    </span>
+                  </button>
+                  <IconButton label="Выше" size="sm" onClick={() => move(i, -1)} disabled={i === 0}>
+                    <ArrowUp size={16} />
+                  </IconButton>
+                  <IconButton label="Ниже" size="sm" onClick={() => move(i, 1)} disabled={i === items.length - 1}>
+                    <ArrowDown size={16} />
+                  </IconButton>
+                  <IconButton label="Изменить" size="sm" onClick={() => setEditing({ folder: f })}>
+                    <Pencil size={16} />
+                  </IconButton>
+                  <IconButton label="Удалить" size="sm" onClick={() => void remove(f)}>
+                    <Trash2 size={16} />
+                  </IconButton>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="panel__title" style={{ padding: '24px 0 10px' }}>
+            Рекомендуемые
           </div>
-        ) : (
-          <div className="card" style={{ overflow: 'hidden' }}>
-            {items.map((f, i) => (
-              <div key={f.id} className="list-item">
-                <span className="folder-row__emoji">{f.emoji}</span>
-                <button type="button" className="list-item__body" style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', minWidth: 0 }} onClick={() => navigate(`/chats/folder/${f.id}`)}>
-                  <span className="list-item__title ellipsis">{f.name}</span>
-                  <span className="list-item__sub clamp-2">
-                    {[...f.includeTypes.map((t) => TYPES.find((x) => x.id === t)?.label), f.includeChatIds.length ? `чатов: ${f.includeChatIds.length}` : null].filter(Boolean).join(', ') || 'Пусто'}
-                    {f.unreadCount > 0 && ` · непрочитанных: ${f.unreadCount}`}
-                  </span>
-                </button>
-                <IconButton label="Выше" size="sm" onClick={() => move(i, -1)} disabled={i === 0}>
-                  <ArrowUp size={16} />
-                </IconButton>
-                <IconButton label="Ниже" size="sm" onClick={() => move(i, 1)} disabled={i === items.length - 1}>
-                  <ArrowDown size={16} />
-                </IconButton>
-                <IconButton label="Изменить" size="sm" onClick={() => setEditing({ folder: f })}>
-                  <Pencil size={16} />
-                </IconButton>
-                <IconButton label="Удалить" size="sm" onClick={() => void remove(f)}>
-                  <Trash2 size={16} />
-                </IconButton>
-              </div>
+          <div className="row wrap gap-2">
+            {PRESETS.map((p) => (
+              <button key={p.label} type="button" className="chip" onClick={() => setEditing({ initial: p.draft })}>
+                <Plus size={14} /> {p.label}
+              </button>
             ))}
           </div>
-        )}
-        <div className="panel__title" style={{ padding: '24px 0 10px' }}>
-          Рекомендуемые
+          <p className="small muted" style={{ marginTop: 16 }}>
+            Встроенные вкладки «Все», «Непрочитанные», «Личные», «Группы», «Каналы», «Секретные» и «Архив» есть всегда. Папки хранятся на сервере и одинаковы на всех ваших
+            устройствах.
+          </p>
         </div>
-        <div className="row wrap gap-2">
-          {PRESETS.map((p) => (
-            <button key={p.label} type="button" className="chip" onClick={() => setEditing({ initial: p.draft })}>
-              <Plus size={14} /> {p.label}
-            </button>
-          ))}
-        </div>
-        <p className="small muted" style={{ marginTop: 16 }}>
-          Встроенные вкладки «Все», «Непрочитанные», «Личные», «Группы», «Каналы», «Секретные» и «Архив» есть всегда. Папки хранятся на сервере и одинаковы на всех ваших устройствах.
-        </p>
+        {editing && <FolderEditor folder={editing.folder} initial={editing.initial} onClose={() => setEditing(null)} />}
       </div>
-      {editing && <FolderEditor folder={editing.folder} initial={editing.initial} onClose={() => setEditing(null)} />}
     </div>
   );
 }

@@ -1,15 +1,21 @@
 /**
- * Состояние «Пространства»: окна (адрес, место, размер, свёрнуто/развёрнуто)
- * и вид поля (сдвиг и масштаб). Хранится на устройстве — после перезагрузки
- * всё открывается там же, где было.
+ * Состояние рабочего стола: окна (адрес, место, размер, свёрнуто, развёрнуто,
+ * прилипло к краю), обои и вид кнопок окон. Хранится на устройстве — после
+ * перезагрузки всё открывается там же, где было. Ключ прежний, чтобы
+ * сохранились раскладки из «Пространства».
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { sectionFor } from '../../app/navigation';
+import { appFor, pathnameOf } from './apps';
+import { cascadePlace, clampRect, firstRunLayout, MENUBAR_H, sizeFor, tileRects, useArea, type Rect, type Snap } from './geometry';
+
+/** Когда Sunnet показывает рабочий стол (то же условие, что в App.tsx) */
+export const DESKTOP_QUERY = '(min-width: 1024px) and (hover: hover) and (pointer: fine)';
 
 export interface Win {
   id: string;
   path: string;
+  /** Обычное положение и размер (к ним окно возвращается из «развёрнуто» и «у края») */
   x: number;
   y: number;
   w: number;
@@ -17,126 +23,194 @@ export interface Win {
   z: number;
   min: boolean;
   max: boolean;
+  /** Окно прилипло к половине или четверти экрана */
+  snap?: Exclude<Snap, 'max'> | null;
+  /** Боковая панель с деревом раздела (не задано — по умолчанию для раздела) */
+  side?: boolean;
   /** Запрос перейти по адресу внутри уже открытого окна */
   go?: { path: string; n: number };
 }
 
-export interface View {
-  x: number;
-  y: number;
-  zoom: number;
-}
+export type WallpaperId = 'sky' | 'dawn' | 'night' | 'aurora' | 'plain';
+export const WALLPAPERS: { id: WallpaperId; label: string }[] = [
+  { id: 'sky', label: 'Солнечное небо' },
+  { id: 'dawn', label: 'Рассвет' },
+  { id: 'night', label: 'Ночное небо' },
+  { id: 'aurora', label: 'Сияние' },
+  { id: 'plain', label: 'Однотонные' },
+];
 
-export const ZOOM_MIN = 0.25;
-export const ZOOM_MAX = 2;
-export const DOCK_W = 76;
+/** Кнопки окна: как в macOS (цветные слева) или как в Windows (справа) */
+export type ControlsStyle = 'auto' | 'mac' | 'win';
 
-/** Размер окна по умолчанию — под характер раздела. */
-function sizeFor(path: string): { w: number; h: number } {
-  const s = sectionFor(path).id;
-  if (s === 'reels') return { w: 440, h: 760 };
-  if (['messenger', 'channels', 'companies', 'communities'].includes(s)) return { w: 1040, h: 680 };
-  if (s === 'notifications' || s === 'search') return { w: 560, h: 680 };
-  return { w: 860, h: 660 };
+interface OpenOptions {
+  /** Всегда новое окно, даже если раздел уже открыт */
+  newWindow?: boolean;
+  /** Откуда «вылетает» окно (значок в доке) — для анимации */
+  origin?: DOMRect | null;
+  rect?: Rect;
 }
 
 interface DesktopState {
   wins: Win[];
-  view: View;
   top: number;
-  open: (path: string, opts?: { newWindow?: boolean; at?: { x: number; y: number } }) => string;
+  wallpaper: WallpaperId;
+  controls: ControlsStyle;
+  /** Окна, свёрнутые кнопкой «Свернуть все» — вернутся повторным нажатием */
+  stash: string[] | null;
+  open: (path: string, opts?: OpenOptions) => string;
   focus: (id: string) => void;
   close: (id: string) => void;
+  closeMany: (ids: string[]) => void;
   minimize: (id: string) => void;
   toggleMax: (id: string) => void;
-  place: (id: string, rect: Partial<Pick<Win, 'x' | 'y' | 'w' | 'h'>>) => void;
+  snapTo: (id: string, snap: Snap | null, normal?: Rect) => void;
+  place: (id: string, rect: Rect) => void;
   setPath: (id: string, path: string) => void;
-  setView: (v: Partial<View>) => void;
-  arrange: (field: { w: number; h: number }) => void;
+  /** Перейти по адресу внутри окна */
+  go: (id: string, path: string) => void;
+  setSide: (id: string, side: boolean) => void;
+  arrange: () => void;
+  showDesktop: () => void;
+  cycle: (dir: 1 | -1) => void;
+  setWallpaper: (w: WallpaperId) => void;
+  setControls: (c: ControlsStyle) => void;
   reset: () => void;
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+/** Окна, открытые в этой сессии: при появлении играют анимацию (из дока или из центра). */
+export const fresh = new Map<string, DOMRect | null>();
+
+/** Верхнее видимое окно — то, с которым работает пользователь. */
+export function activeWin(wins: Win[]): Win | undefined {
+  let best: Win | undefined;
+  for (const w of wins) if (!w.min && (!best || w.z > best.z)) best = w;
+  return best;
+}
+
 export const useDesktop = create<DesktopState>()(
   persist(
-    (set, get) => ({
-      wins: [],
-      view: { x: 40, y: 32, zoom: 1 },
-      top: 1,
-      open: (path, opts = {}) => {
-        const { wins, view, top } = get();
-        const section = sectionFor(path).id;
-        const same = opts.newWindow ? undefined : wins.find((w) => sectionFor(w.path).id === section);
-        if (same) {
-          set({
-            top: top + 1,
-            wins: wins.map((w) =>
-              w.id === same.id ? { ...w, z: top + 1, min: false, go: w.path === path ? w.go : { path, n: (w.go?.n ?? 0) + 1 } } : w,
-            ),
-          });
-          return same.id;
-        }
-        const size = sizeFor(path);
-        const visible = wins.filter((w) => !w.min).length;
-        // Новое окно — в видимой части поля, лесенкой от уже открытых
-        const fieldW = (typeof window !== 'undefined' ? window.innerWidth : 1440) - DOCK_W;
-        const fieldH = typeof window !== 'undefined' ? window.innerHeight : 900;
-        const cx = (opts.at?.x ?? fieldW / 2 - view.x) / view.zoom;
-        const cy = (opts.at?.y ?? fieldH / 2 - view.y) / view.zoom;
-        const win: Win = {
-          id: uid(),
-          path,
-          x: Math.round(cx - size.w / 2 + (visible % 6) * 32),
-          y: Math.round(Math.max(cy - size.h / 2 + (visible % 6) * 32, 0)),
-          ...size,
-          z: top + 1,
-          min: false,
-          max: false,
-        };
-        set({ wins: [...wins, win], top: top + 1 });
-        return win.id;
-      },
-      focus: (id) => {
-        const { wins, top } = get();
-        const w = wins.find((x) => x.id === id);
-        // Верхнее окно не трогаем — но свёрнутое всё равно возвращаем на поле
-        if (!w || (w.z === top && !w.min)) return;
-        set({ top: top + 1, wins: wins.map((w) => (w.id === id ? { ...w, z: top + 1, min: false } : w)) });
-      },
-      close: (id) => set({ wins: get().wins.filter((w) => w.id !== id) }),
-      minimize: (id) => set({ wins: get().wins.map((w) => (w.id === id ? { ...w, min: true } : w)) }),
-      toggleMax: (id) => {
-        const { wins, top } = get();
-        set({ top: top + 1, wins: wins.map((w) => (w.id === id ? { ...w, max: !w.max, min: false, z: top + 1 } : w)) });
-      },
-      place: (id, rect) => set({ wins: get().wins.map((w) => (w.id === id ? { ...w, ...rect } : w)) }),
-      setPath: (id, path) => set({ wins: get().wins.map((w) => (w.id === id && w.path !== path ? { ...w, path } : w)) }),
-      setView: (v) => set({ view: { ...get().view, ...v } }),
-      /** Разложить открытые окна сеткой и показать их все. */
-      arrange: (field) => {
-        const open = get().wins.filter((w) => !w.min);
-        if (!open.length) return;
-        const cols = Math.ceil(Math.sqrt(open.length));
-        const gap = 32;
-        const cellW = Math.max(...open.map((w) => w.w));
-        const cellH = Math.max(...open.map((w) => w.h));
-        const placed = new Map(open.map((w, i) => [w.id, { x: (i % cols) * (cellW + gap), y: Math.floor(i / cols) * (cellH + gap) }]));
-        const rows = Math.ceil(open.length / cols);
-        const totalW = cols * cellW + (cols - 1) * gap;
-        const totalH = rows * cellH + (rows - 1) * gap;
-        const zoom = Math.min(1, Math.max(ZOOM_MIN, Math.min((field.w - 64) / totalW, (field.h - 64) / totalH)));
-        set({
-          wins: get().wins.map((w) => (placed.has(w.id) ? { ...w, ...placed.get(w.id)!, max: false } : w)),
-          view: { zoom, x: (field.w - totalW * zoom) / 2, y: (field.h - totalH * zoom) / 2 },
-        });
-      },
-      reset: () => set({ wins: [], view: { x: 40, y: 32, zoom: 1 }, top: 1 }),
-    }),
+    (set, get) => {
+      const patch = (id: string, f: (w: Win) => Partial<Win>) => set({ wins: get().wins.map((w) => (w.id === id ? { ...w, ...f(w) } : w)) });
+      const raise = (id: string, extra: Partial<Win> = {}) => {
+        const top = get().top + 1;
+        set({ top, wins: get().wins.map((w) => (w.id === id ? { ...w, ...extra, z: top } : w)) });
+      };
+      return {
+        wins: [],
+        top: 1,
+        wallpaper: 'sky',
+        controls: 'auto',
+        stash: null,
+        open: (path, opts = {}) => {
+          const { wins, top } = get();
+          const app = appFor(path);
+          if (!opts.newWindow) {
+            const same = wins.filter((w) => appFor(w.path).id === app.id).sort((a, b) => b.z - a.z)[0];
+            if (same) {
+              // Корень раздела только показывает окно — открытый в нём чат не теряется
+              const nav = path !== same.path && pathnameOf(path) !== app.path;
+              raise(same.id, { min: false, go: nav ? { path, n: (same.go?.n ?? 0) + 1 } : same.go });
+              return same.id;
+            }
+          }
+          const area = useArea.getState().area;
+          const rect = opts.rect ?? cascadePlace(sizeFor(path, area), wins, area);
+          const win: Win = { id: uid(), path, ...rect, z: top + 1, min: false, max: false, snap: null };
+          fresh.set(win.id, opts.origin ?? null);
+          set({ wins: [...wins, win], top: top + 1, stash: null });
+          return win.id;
+        },
+        focus: (id) => {
+          const { wins, top } = get();
+          const w = wins.find((x) => x.id === id);
+          // Верхнее окно не трогаем — но свёрнутое всё равно возвращаем на стол
+          if (!w || (w.z === top && !w.min)) return;
+          raise(id, { min: false });
+        },
+        close: (id) => set({ wins: get().wins.filter((w) => w.id !== id), stash: get().stash?.filter((s) => s !== id) ?? null }),
+        closeMany: (ids) => set({ wins: get().wins.filter((w) => !ids.includes(w.id)), stash: null }),
+        minimize: (id) => patch(id, () => ({ min: true })),
+        toggleMax: (id) => {
+          const w = get().wins.find((x) => x.id === id);
+          if (w) raise(id, { min: false, max: !(w.max || w.snap), snap: null });
+        },
+        snapTo: (id, snap, normal) =>
+          raise(id, {
+            ...(normal ?? {}),
+            min: false,
+            max: snap === 'max',
+            snap: snap && snap !== 'max' ? snap : null,
+          }),
+        place: (id, rect) => patch(id, () => ({ ...rect, max: false, snap: null })),
+        setPath: (id, path) => {
+          const w = get().wins.find((x) => x.id === id);
+          if (w && w.path !== path) patch(id, () => ({ path }));
+        },
+        go: (id, path) => raise(id, { min: false, go: { path, n: (get().wins.find((w) => w.id === id)?.go?.n ?? 0) + 1 } }),
+        setSide: (id, side) => patch(id, () => ({ side })),
+        arrange: () => {
+          const visible = get()
+            .wins.filter((w) => !w.min)
+            .sort((a, b) => b.z - a.z);
+          if (!visible.length) return;
+          const rects = tileRects(visible.length, useArea.getState().area);
+          const at = new Map(visible.map((w, i) => [w.id, rects[i]!]));
+          set({ wins: get().wins.map((w) => (at.has(w.id) ? { ...w, ...at.get(w.id)!, max: false, snap: null } : w)) });
+        },
+        showDesktop: () => {
+          const { wins, stash } = get();
+          const visible = wins.filter((w) => !w.min).map((w) => w.id);
+          if (visible.length) set({ stash: visible, wins: wins.map((w) => ({ ...w, min: true })) });
+          else if (stash?.length) set({ stash: null, wins: wins.map((w) => (stash.includes(w.id) ? { ...w, min: false } : w)) });
+        },
+        cycle: (dir) => {
+          const visible = get()
+            .wins.filter((w) => !w.min)
+            .sort((a, b) => a.z - b.z);
+          if (visible.length < 2) return;
+          if (dir === 1) raise(visible[0]!.id);
+          else {
+            // Верхнее окно уходит под все остальные
+            const low = visible[0]!.z - 1;
+            patch(visible[visible.length - 1]!.id, () => ({ z: low }));
+          }
+        },
+        setWallpaper: (wallpaper) => set({ wallpaper }),
+        setControls: (controls) => set({ controls }),
+        reset: () => {
+          set({ wins: [], top: 1, stash: null });
+          // На компьютере сразу раскладываем окна, как при первом запуске
+          if (typeof window !== 'undefined' && matchMedia(DESKTOP_QUERY).matches) {
+            for (const { path, rect } of firstRunLayout(useArea.getState().area)) get().open(path, { newWindow: true, rect });
+          }
+        },
+      };
+    },
     {
       name: 'spaceup.desktop',
-      version: 1,
-      partialize: (s) => ({ wins: s.wins.map(({ go: _go, ...w }) => w), view: s.view, top: s.top }),
+      version: 2,
+      partialize: (s) => ({ wins: s.wins.map(({ go: _go, ...w }) => w), top: s.top, wallpaper: s.wallpaper, controls: s.controls }),
+      // v1 («Пространство»): окна на поле с масштабом и доком слева шириной 76 px.
+      // Переводим в экранные координаты и возвращаем окна в видимую область.
+      migrate: (persisted, version) => {
+        const p = (persisted ?? {}) as { wins?: Win[]; view?: { x: number; y: number; zoom: number }; top?: number };
+        if (version < 2) {
+          const v = p.view ?? { x: 0, y: 0, zoom: 1 };
+          const area = useArea.getState().area;
+          const order = [...(p.wins ?? [])].sort((a, b) => a.z - b.z).map((w) => w.id);
+          const wins = (p.wins ?? []).map((w) => ({
+            ...w,
+            ...clampRect({ x: 76 + v.x + w.x * v.zoom, y: MENUBAR_H + v.y + w.y * v.zoom, w: w.w, h: w.h }, area),
+            z: order.indexOf(w.id) + 1,
+            snap: null,
+          }));
+          return { wins, top: wins.length + 1, wallpaper: 'sky', controls: 'auto' } as unknown as DesktopState;
+        }
+        return p as unknown as DesktopState;
+      },
     },
   ),
 );

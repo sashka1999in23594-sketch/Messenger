@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { checkWrite, DbBackup, DB_KEY, restoreDb } from '../src/db/backup.js';
 import { Db } from '../src/db/index.js';
 import { regionFromEndpoint, S3Storage, signV4 } from '../src/lib/s3.js';
+import { storageKey } from '../src/lib/sealed.js';
 import { createTestApp, PNG_1x1, registerUser } from './helpers.js';
 
 /** Поддельное S3-хранилище в памяти: проверяет подпись по форме и хэш содержимого. */
@@ -99,6 +100,72 @@ describe('подпись S3', () => {
     expect(regionFromEndpoint('https://abc.r2.cloudflarestorage.com')).toBe('auto');
     expect(regionFromEndpoint('https://storage.yandexcloud.net')).toBe('ru-central1');
     expect(regionFromEndpoint('https://s3.eu-west-1.amazonaws.com')).toBe('eu-west-1');
+  });
+});
+
+describe('шифрование хранилища', () => {
+  const key = storageKey('test-secret-test-secret-test-secret-42');
+  const sealedStorage = () => new S3Storage({ ...storageOpts(), prefix: 'sealed', encryptionKey: key });
+
+  it('в хранилище только шифротекст, а скачивается исходный файл', async () => {
+    const storage = sealedStorage();
+    const secretText = 'Привет! Это личное сообщение, которое хранилище не должно видеть.';
+    await storage.put('notes/a.txt', Buffer.from(secretText), 'text/plain');
+    const dir = tempDir();
+    const big = path.join(dir, 'video.bin');
+    writeFileSync(big, Buffer.alloc(3 * 1024 * 1024 + 17, 7));
+    await storage.put('media/video.bin', { file: big }, 'video/mp4');
+
+    const stored = s3.objects.get('bucket/sealed/notes/a.txt')!;
+    expect(stored.subarray(0, 4).toString()).toBe('SNE1');
+    expect(stored.includes(Buffer.from('личное'))).toBe(false);
+    expect(s3.objects.get('bucket/sealed/media/video.bin')!.length).toBe(3 * 1024 * 1024 + 17 + 4 + 12 + 16);
+
+    const out = path.join(dir, 'a.txt');
+    expect(await storage.download('notes/a.txt', out)).toBe(true);
+    expect(readFileSync(out, 'utf8')).toBe(secretText);
+    const outBig = path.join(dir, 'video.out');
+    await storage.download('media/video.bin', outBig);
+    expect(readFileSync(outBig).equals(readFileSync(big))).toBe(true);
+  });
+
+  it('старые незашифрованные объекты читаются, чужой ключ и подмена объекта — ошибка', async () => {
+    const storage = sealedStorage();
+    const dir = tempDir();
+    // Объект, сохранённый до включения шифрования
+    s3.objects.set('bucket/sealed/legacy.txt', Buffer.from('старая копия'));
+    expect(await storage.download('legacy.txt', path.join(dir, 'legacy.txt'))).toBe(true);
+    expect(readFileSync(path.join(dir, 'legacy.txt'), 'utf8')).toBe('старая копия');
+
+    await storage.put('one.txt', Buffer.from('первый'));
+    // Другой ключ (сменили APP_SECRET) — не расшифровать, файл не появляется
+    const other = new S3Storage({ ...storageOpts(), prefix: 'sealed', encryptionKey: storageKey('another-secret-another-secret-12345') });
+    await expect(other.download('one.txt', path.join(dir, 'x.txt'))).rejects.toThrow(/расшифровать/);
+    expect(existsSync(path.join(dir, 'x.txt'))).toBe(false);
+    // Подмена: шифротекст одного объекта под именем другого не проходит проверку
+    s3.objects.set('bucket/sealed/two.txt', s3.objects.get('bucket/sealed/one.txt')!);
+    await expect(storage.download('two.txt', path.join(dir, 'two.txt'))).rejects.toThrow(/расшифровать/);
+    // Шифрование выключили, а объект зашифрован — понятная ошибка, а не мусор вместо файла
+    const plain = new S3Storage({ ...storageOpts(), prefix: 'sealed' });
+    await expect(plain.download('one.txt', path.join(dir, 'y.txt'))).rejects.toThrow(/S3_ENCRYPTION/);
+  });
+
+  it('копия базы шифруется и восстанавливается', async () => {
+    const storage = sealedStorage();
+    const dir = tempDir();
+    const db = new Db(path.join(dir, 'a.db'));
+    db.exec('CREATE TABLE notes (id INTEGER PRIMARY KEY, text TEXT)');
+    db.run('INSERT INTO notes (text) VALUES (:t)', { t: 'секретная переписка' });
+    await new DbBackup(db, storage, path.join(dir, 'backup'), silent, false).run();
+    db.close();
+    const stored = s3.objects.get(`bucket/sealed/${DB_KEY}`)!;
+    expect(stored.subarray(0, 4).toString()).toBe('SNE1');
+    const fresh = path.join(tempDir(), 'b.db');
+    expect((await restoreDb(storage, fresh)).from).toBe('backup');
+    const copy = new Db(fresh);
+    expect(copy.all('SELECT text FROM notes')).toEqual([{ text: 'секретная переписка' }]);
+    copy.close();
+    s3.deletedVersions.length = 0;
   });
 });
 
