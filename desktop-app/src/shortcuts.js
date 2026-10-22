@@ -13,6 +13,30 @@ const { app, shell } = require('electron');
 const APP_ID = 'app.spaceup.desktop';
 const NAMES = ['Sunnet', 'Lynnet', 'SpaceUp'];
 
+/**
+ * Первый запуск этой версии (после установки или обновления): ярлыки на рабочем
+ * столе и в «Пуске» создаём, даже если их нет — установщик при обновлении мог
+ * их не вернуть. Дальше, если человек удалит ярлык сам, не навязываем его.
+ */
+let ensureNow;
+function firstRunOfVersion() {
+  if (ensureNow !== undefined) return ensureNow;
+  const file = path.join(app.getPath('userData'), 'shortcuts-version');
+  let seen = '';
+  try {
+    seen = fs.readFileSync(file, 'utf8').trim();
+  } catch {
+    // файла нет — первый запуск
+  }
+  ensureNow = seen !== app.getVersion();
+  try {
+    fs.writeFileSync(file, app.getVersion());
+  } catch {
+    // не записали — проверим и в следующий раз
+  }
+  return ensureNow;
+}
+
 /** Значки ярлыков должны лежать вне asar — копируем их в папку данных приложения. */
 function iconPath(night) {
   const name = night ? 'icon-night.ico' : 'icon-day.ico';
@@ -49,10 +73,11 @@ function syncShortcuts(night) {
   const exe = process.execPath;
   const name = night ? 'Lynnet' : 'Sunnet';
   const dirs = [app.getPath('desktop'), path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs')];
+  const ensure = firstRunOfVersion();
   for (const dir of dirs) {
     try {
-      // Ярлык создаём, только если он уже был: удалённый пользователем не возвращаем
-      let had = false;
+      // Обычно только переименовываем существующий ярлык; после установки — создаём, если его нет
+      let had = ensure;
       for (const old of NAMES) {
         const file = path.join(dir, `${old}.lnk`);
         if (!fs.existsSync(file) || !isOurs(file, exe)) continue;

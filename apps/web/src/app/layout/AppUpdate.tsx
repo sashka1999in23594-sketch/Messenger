@@ -8,7 +8,7 @@ import { Download } from 'lucide-react';
 import { Logo, Modal } from '../../shared/ui';
 
 /** Последняя версия приложения для компьютера (desktop-app/package.json) */
-export const DESKTOP_LATEST = '1.3.0';
+export const DESKTOP_LATEST = '1.3.1';
 /** С этой версии Windows и Linux обновляются сами */
 const SELF_UPDATING = '1.2.0';
 const RELEASES = 'https://github.com/sashka1999in23594-sketch/Messenger/releases/latest/download';
