@@ -21,7 +21,11 @@ export { countdown } from '../video/lib';
 export type PremierePhase = 'before' | 'live' | null;
 
 /** Фаза премьеры с пересчётом каждую секунду, пока она не закончилась. */
-export function usePremierePhase(post: Post | undefined): { phase: PremierePhase; left: number; elapsed: number } {
+export function usePremierePhase(post: Post | undefined): {
+  phase: PremierePhase;
+  left: number;
+  elapsed: number;
+} {
   const [now, setNow] = useState(Date.now());
   const at = post?.premiereAt ? Date.parse(post.premiereAt) : null;
   const dur = (post?.media[0]?.durationSec ?? 0) * 1000;
@@ -41,7 +45,8 @@ export function usePremierePhase(post: Post | undefined): { phase: PremierePhase
 export function usePremiereRoom(post: Post, enabled = true) {
   const join = useQuery({
     queryKey: ['premiere-room', post.id],
-    queryFn: () => api.post<{ watching: number; chat: LiveChatMessage[] }>(`/premieres/${post.id}/join`),
+    queryFn: () =>
+      api.post<{ watching: number; chat: LiveChatMessage[] }>(`/premieres/${post.id}/join`),
     staleTime: Infinity,
     enabled,
   });
@@ -58,7 +63,10 @@ export function RemindButton({ post, small }: { post: Post; small?: boolean }) {
     mutationFn: (v: boolean) => api.post(`/premieres/${post.id}/remind`, { on: v }),
     onSuccess: (_d, v) => {
       setOn(v);
-      toast({ text: v ? 'Напомним, когда премьера начнётся' : 'Напоминание отменено', kind: 'success' });
+      toast({
+        text: v ? 'Напомним, когда премьера начнётся' : 'Напоминание отменено',
+        kind: 'success',
+      });
     },
     onError: (e) => toast({ text: errorMessage(e), kind: 'error' }),
   });
@@ -81,7 +89,15 @@ export function RemindButton({ post, small }: { post: Post; small?: boolean }) {
 }
 
 /** Зал ожидания вместо плеера: обложка, большой отсчёт, «Напомнить». */
-export function PremiereWaiting({ post, left, watching }: { post: Post; left: number; watching?: number }) {
+export function PremiereWaiting({
+  post,
+  left,
+  watching,
+}: {
+  post: Post;
+  left: number;
+  watching?: number;
+}) {
   const m = post.media[0];
   const s = Math.max(0, Math.ceil(left / 1000));
   const parts: [number, string][] = [
@@ -94,7 +110,13 @@ export function PremiereWaiting({ post, left, watching }: { post: Post; left: nu
   const starting = left <= 0;
   return (
     <div className="vwait">
-      {m?.posterUrl && <div className="vwait__bg" style={{ backgroundImage: `url("${m.posterUrl}")` }} aria-hidden />}
+      {m?.posterUrl && (
+        <div
+          className="vwait__bg"
+          style={{ backgroundImage: `url("${m.posterUrl}")` }}
+          aria-hidden
+        />
+      )}
       <div className="vwait__scrim" aria-hidden />
       <div className="vwait__badges">
         <span className="vbadge vbadge--premiere vbadge--lg">
@@ -107,14 +129,18 @@ export function PremiereWaiting({ post, left, watching }: { post: Post; left: nu
         )}
       </div>
       <div className="vwait__inner">
-        <span className="vwait__label">{starting ? 'Премьера начинается' : 'Премьера начнётся через'}</span>
+        <span className="vwait__label">
+          {starting ? 'Премьера начинается' : 'Премьера начнётся через'}
+        </span>
         {starting ? (
           <span className="vwait__spinner" aria-label="Начинается" />
         ) : (
           <div className="vwait__count" aria-live="polite" role="timer">
             {visible.map(([v, label], i) => (
               <span key={label} className="vwait__cell">
-                <span className="vwait__num">{String(v).padStart(i === 0 && label === 'дн' ? 1 : 2, '0')}</span>
+                <span className="vwait__num">
+                  {String(v).padStart(i === 0 && label === 'дн' ? 1 : 2, '0')}
+                </span>
                 <span className="vwait__unit">{label}</span>
               </span>
             ))}
@@ -144,7 +170,11 @@ export function PremiereChat({ post, live }: { post: Post; live?: boolean }) {
 }
 
 export function PremieresPage() {
-  const q = useQuery({ queryKey: ['premieres'], queryFn: () => api.get<{ items: Post[] }>('/premieres'), refetchInterval: 60_000 });
+  const q = useQuery({
+    queryKey: ['premieres'],
+    queryFn: () => api.get<{ items: Post[] }>('/premieres'),
+    refetchInterval: 60_000,
+  });
   const now = useNow(5000);
   const items = q.data?.items ?? [];
   const live = items.filter((p) => premiereState(p, now) === 'live');

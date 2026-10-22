@@ -5,7 +5,17 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { CalendarClock, CheckCircle2, Clapperboard, FileVideo, Globe, Lock, MessageSquare, UploadCloud, Users } from 'lucide-react';
+import {
+  CalendarClock,
+  CheckCircle2,
+  Clapperboard,
+  FileVideo,
+  Globe,
+  Lock,
+  MessageSquare,
+  UploadCloud,
+  Users,
+} from 'lucide-react';
 import { LIMITS, type MediaItem, type Post, type Visibility } from '@omni/shared';
 import { api, ApiError, errorMessage } from '../../shared/api/client';
 import { queryClient } from '../../shared/api/query';
@@ -18,12 +28,25 @@ import './video.css';
 
 const VISIBILITY: { id: Visibility; label: string; hint: string; icon: typeof Globe }[] = [
   { id: 'public', label: 'Открытый доступ', hint: 'Видео увидят все', icon: Globe },
-  { id: 'followers', label: 'Для подписчиков', hint: 'Только те, кто на вас подписан', icon: Users },
+  {
+    id: 'followers',
+    label: 'Для подписчиков',
+    hint: 'Только те, кто на вас подписан',
+    icon: Users,
+  },
   { id: 'private', label: 'Только я', hint: 'Видно только вам', icon: Lock },
 ];
 
 /** Загрузка видео или Reels: выбор файла, обложка кадром, название, описание. */
-export function UploadVideoForm({ kind, onDone, premiereDefault }: { kind: 'video' | 'short'; onDone: (p: Post) => void; premiereDefault?: boolean }) {
+export function UploadVideoForm({
+  kind,
+  onDone,
+  premiereDefault,
+}: {
+  kind: 'video' | 'short';
+  onDone: (p: Post) => void;
+  premiereDefault?: boolean;
+}) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -52,7 +75,13 @@ export function UploadVideoForm({ kind, onDone, premiereDefault }: { kind: 'vide
     setFile(f);
     setPreview(URL.createObjectURL(f));
     setMeta(null);
-    if (!title) setTitle(f.name.replace(/\.[^.]+$/, '').replace(/[_]+/g, ' ').slice(0, LIMITS.titleMax));
+    if (!title)
+      setTitle(
+        f.name
+          .replace(/\.[^.]+$/, '')
+          .replace(/[_]+/g, ' ')
+          .slice(0, LIMITS.titleMax),
+      );
     setMedia(null);
     setProgress(0);
     uploadAny(f, { onProgress: setProgress, signal: ctrl.signal })
@@ -83,12 +112,23 @@ export function UploadVideoForm({ kind, onDone, premiereDefault }: { kind: 'vide
         premiereAt: isVideo && premiere ? new Date(premiereAt).toISOString() : undefined,
       }),
     onSuccess: (p) => {
-      toast({ text: p.premiereAt ? 'Премьера назначена — подписчики смогут поставить напоминание' : isVideo ? 'Видео опубликовано' : 'Видео опубликовано в Reels', kind: 'success' });
+      toast({
+        text: p.premiereAt
+          ? 'Премьера назначена — подписчики смогут поставить напоминание'
+          : isVideo
+            ? 'Видео опубликовано'
+            : 'Видео опубликовано в Reels',
+        kind: 'success',
+      });
       void queryClient.invalidateQueries({ queryKey: ['feed'] });
       void queryClient.invalidateQueries({ queryKey: ['premieres'] });
       onDone(p);
     },
-    onError: (e) => toast({ text: e instanceof ApiError && e.fields ? Object.values(e.fields)[0]! : errorMessage(e), kind: 'error' }),
+    onError: (e) =>
+      toast({
+        text: e instanceof ApiError && e.fields ? Object.values(e.fields)[0]! : errorMessage(e),
+        kind: 'error',
+      }),
   });
 
   if (!file) {
@@ -96,7 +136,9 @@ export function UploadVideoForm({ kind, onDone, premiereDefault }: { kind: 'vide
       <div
         className={cn('vup-drop', over && 'vup-drop--over')}
         onClick={() => input.current?.click()}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), input.current?.click())}
+        onKeyDown={(e) =>
+          (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), input.current?.click())
+        }
         onDragOver={(e) => {
           e.preventDefault();
           setOver(true);
@@ -117,10 +159,18 @@ export function UploadVideoForm({ kind, onDone, premiereDefault }: { kind: 'vide
         </span>
         <b className="vup-drop__title">Перетащите видеофайл сюда</b>
         <span className="vup-drop__hint">
-          {isVideo ? 'MP4, WebM или MOV · обложка и длительность определятся автоматически' : 'Вертикальное видео до 3 минут · обложка создаётся автоматически'}
+          {isVideo
+            ? 'MP4, WebM или MOV · обложка и длительность определятся автоматически'
+            : 'Вертикальное видео до 3 минут · обложка создаётся автоматически'}
         </span>
         <span className="vup-drop__btn">Выбрать файл</span>
-        <input ref={input} type="file" accept="video/*" hidden onChange={(e) => e.target.files?.[0] && pick(e.target.files[0])} />
+        <input
+          ref={input}
+          type="file"
+          accept="video/*"
+          hidden
+          onChange={(e) => e.target.files?.[0] && pick(e.target.files[0])}
+        />
       </div>
     );
   }
@@ -128,7 +178,8 @@ export function UploadVideoForm({ kind, onDone, premiereDefault }: { kind: 'vide
   const chapters = isVideo ? parseChapters(text, meta?.d) : [];
   const done = !!media;
   const minPremiere = localInput(Date.now() + 5 * 60_000);
-  const canPublish = done && (!isVideo || !!title.trim()) && !(premiere && premiereAt < minPremiere);
+  const canPublish =
+    done && (!isVideo || !!title.trim()) && !(premiere && premiereAt < minPremiere);
 
   return (
     <div className={cn('vup', !isVideo && 'vup--short')}>
@@ -138,7 +189,14 @@ export function UploadVideoForm({ kind, onDone, premiereDefault }: { kind: 'vide
           {isVideo && (
             <label className="vup-field">
               <span className="vup-field__label">Название (обязательно)</span>
-              <textarea className="vup-field__input" rows={2} value={title} onChange={(e) => setTitle(e.target.value.replace(/\n/g, ' '))} maxLength={LIMITS.titleMax} placeholder="Расскажите зрителям, о чём видео" />
+              <textarea
+                className="vup-field__input"
+                rows={2}
+                value={title}
+                onChange={(e) => setTitle(e.target.value.replace(/\n/g, ' '))}
+                maxLength={LIMITS.titleMax}
+                placeholder="Расскажите зрителям, о чём видео"
+              />
               <span className="vup-field__count">
                 {title.length}/{LIMITS.titleMax}
               </span>
@@ -152,7 +210,11 @@ export function UploadVideoForm({ kind, onDone, premiereDefault }: { kind: 'vide
               value={text}
               onChange={(e) => setText(e.target.value)}
               maxLength={LIMITS.postMax}
-              placeholder={isVideo ? 'Расскажите о видео, добавьте #хэштеги.\nТаймкоды вида «0:00 Вступление» превратятся в главы' : 'Добавьте подпись и #хэштеги'}
+              placeholder={
+                isVideo
+                  ? 'Расскажите о видео, добавьте #хэштеги.\nТаймкоды вида «0:00 Вступление» превратятся в главы'
+                  : 'Добавьте подпись и #хэштеги'
+              }
             />
             <span className="vup-field__count">
               {text.length}/{LIMITS.postMax}
@@ -162,7 +224,8 @@ export function UploadVideoForm({ kind, onDone, premiereDefault }: { kind: 'vide
             <div className="vup-chapters">
               <Clapperboard size={16} />
               <span>
-                Главы: {chapters.length} — {chapters.map((c) => `${duration(c.start)} ${c.title}`).join(' · ')}
+                Главы: {chapters.length} —{' '}
+                {chapters.map((c) => `${duration(c.start)} ${c.title}`).join(' · ')}
               </span>
             </div>
           )}
@@ -170,7 +233,14 @@ export function UploadVideoForm({ kind, onDone, premiereDefault }: { kind: 'vide
           <h3 className="vup__h3">Доступ</h3>
           <div className="vup-vis" role="radiogroup" aria-label="Доступ">
             {VISIBILITY.map((v) => (
-              <button key={v.id} type="button" role="radio" aria-checked={visibility === v.id} className={cn('vup-vis__opt', visibility === v.id && 'vup-vis__opt--on')} onClick={() => setVisibility(v.id)}>
+              <button
+                key={v.id}
+                type="button"
+                role="radio"
+                aria-checked={visibility === v.id}
+                className={cn('vup-vis__opt', visibility === v.id && 'vup-vis__opt--on')}
+                onClick={() => setVisibility(v.id)}
+              >
                 <v.icon size={18} />
                 <span>
                   <b>{v.label}</b>
@@ -184,9 +254,17 @@ export function UploadVideoForm({ kind, onDone, premiereDefault }: { kind: 'vide
             <MessageSquare size={18} className="vup-row__icon" />
             <span className="vup-row__text">
               <b>Комментарии</b>
-              <span>{commentsDisabled ? 'Зрители не смогут комментировать' : 'Зрители могут оставлять комментарии'}</span>
+              <span>
+                {commentsDisabled
+                  ? 'Зрители не смогут комментировать'
+                  : 'Зрители могут оставлять комментарии'}
+              </span>
             </span>
-            <Switch checked={!commentsDisabled} onChange={(v) => setCommentsDisabled(!v)} label="Разрешить комментарии" />
+            <Switch
+              checked={!commentsDisabled}
+              onChange={(v) => setCommentsDisabled(!v)}
+              label="Разрешить комментарии"
+            />
           </div>
 
           {isVideo && (
@@ -195,7 +273,10 @@ export function UploadVideoForm({ kind, onDone, premiereDefault }: { kind: 'vide
                 <CalendarClock size={18} className="vup-row__icon" />
                 <span className="vup-row__text">
                   <b>Премьера</b>
-                  <span>Видео откроется всем одновременно: зрители смотрят вместе, с общим чатом и обратным отсчётом</span>
+                  <span>
+                    Видео откроется всем одновременно: зрители смотрят вместе, с общим чатом и
+                    обратным отсчётом
+                  </span>
                 </span>
                 <Switch checked={premiere} onChange={setPremiere} label="Премьера" />
               </div>
@@ -210,7 +291,11 @@ export function UploadVideoForm({ kind, onDone, premiereDefault }: { kind: 'vide
                     max={localInput(Date.now() + 30 * 86_400_000)}
                     onChange={(e) => setPremiereAt(e.target.value)}
                   />
-                  <span className="vup-field__hint">{premiereAt >= minPremiere ? fullDate(new Date(premiereAt).toISOString()) : 'Не раньше чем через 5 минут'}</span>
+                  <span className="vup-field__hint">
+                    {premiereAt >= minPremiere
+                      ? fullDate(new Date(premiereAt).toISOString())
+                      : 'Не раньше чем через 5 минут'}
+                  </span>
                 </label>
               )}
             </div>
@@ -226,7 +311,13 @@ export function UploadVideoForm({ kind, onDone, premiereDefault }: { kind: 'vide
                   controls
                   muted
                   playsInline
-                  onLoadedMetadata={(e) => setMeta({ w: e.currentTarget.videoWidth, h: e.currentTarget.videoHeight, d: e.currentTarget.duration })}
+                  onLoadedMetadata={(e) =>
+                    setMeta({
+                      w: e.currentTarget.videoWidth,
+                      h: e.currentTarget.videoHeight,
+                      d: e.currentTarget.duration,
+                    })
+                  }
                 />
               )}
             </div>

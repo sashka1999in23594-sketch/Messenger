@@ -1466,7 +1466,11 @@
   background: var(--vid-glass-strong);
 }
 .vupnext__btn--go {
-  background: linear-gradient(90deg, var(--vid-on-media) calc(var(--p) * 100%), var(--vid-on-media-2) 0);
+  background: linear-gradient(
+    90deg,
+    var(--vid-on-media) calc(var(--p) * 100%),
+    var(--vid-on-media-2) 0
+  );
   color: var(--vid-player-bg);
 }
 .vupnext__btn--go:hover {
@@ -2464,7 +2468,11 @@
   flex-direction: column;
   gap: 14px;
   padding: 24px;
-  background: linear-gradient(to bottom, transparent, color-mix(in oklab, var(--panel-solid) 70%, transparent));
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in oklab, var(--panel-solid) 70%, transparent)
+  );
 }
 .vlist__cover {
   display: grid;

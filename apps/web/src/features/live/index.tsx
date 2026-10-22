@@ -34,26 +34,88 @@ import { api, errorMessage } from '../../shared/api/client';
 import { useMe } from '../../shared/stores/session';
 import { toast, useCrumb } from '../../shared/stores/ui';
 import { cn, fullDate, timeAgo } from '../../shared/lib/format';
-import { Button, ButtonLink, confirm, EmptyState, ErrorState, Input, Switch, Textarea } from '../../shared/ui';
+import {
+  Button,
+  ButtonLink,
+  confirm,
+  EmptyState,
+  ErrorState,
+  Input,
+  Switch,
+  Textarea,
+} from '../../shared/ui';
 import { shareLink } from '../posts/actions';
-import { ChannelLine, LiveBadge, LiveCard, SubscribeButton, useChannel, useLiveList, VideoCardSkeleton, VideoChips } from '../video/components';
+import {
+  ChannelLine,
+  LiveBadge,
+  LiveCard,
+  SubscribeButton,
+  useChannel,
+  useLiveList,
+  VideoCardSkeleton,
+  VideoChips,
+} from '../video/components';
 import { Player } from '../video/player';
-import { elapsedLabel, useCompact, useLocal, useNow, viewersLabel, watchingLabel } from '../video/lib';
+import {
+  elapsedLabel,
+  useCompact,
+  useLocal,
+  useNow,
+  viewersLabel,
+  watchingLabel,
+} from '../video/lib';
 import { LiveChat } from './chat';
 import { liveKey, roomKey } from './bus';
-import { bitrateFor, discardRecording, endLive, goLive, prepareSource, publishRecording, releasePreview, toggleCam, toggleMic, useHost, type DeviceChoice, type LiveSource } from './host';
+import {
+  bitrateFor,
+  discardRecording,
+  endLive,
+  goLive,
+  prepareSource,
+  publishRecording,
+  releasePreview,
+  toggleCam,
+  toggleMic,
+  useHost,
+  type DeviceChoice,
+  type LiveSource,
+} from './host';
 import { useLiveViewer } from './viewer';
 import '../video/video.css';
 import './live.css';
 
-export { PremieresPage, PremiereChat, PremiereWaiting, usePremierePhase, usePremiereRoom } from './premiere';
+export {
+  PremieresPage,
+  PremiereChat,
+  PremiereWaiting,
+  usePremierePhase,
+  usePremiereRoom,
+} from './premiere';
 
-function StreamVideo({ stream, muted, className, mirror }: { stream: MediaStream | null; muted?: boolean; className?: string; mirror?: boolean }) {
+function StreamVideo({
+  stream,
+  muted,
+  className,
+  mirror,
+}: {
+  stream: MediaStream | null;
+  muted?: boolean;
+  className?: string;
+  mirror?: boolean;
+}) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     if (ref.current && ref.current.srcObject !== stream) ref.current.srcObject = stream;
   }, [stream]);
-  return <video ref={ref} className={cn(className, mirror && 'is-mirror')} autoPlay playsInline muted={muted} />;
+  return (
+    <video
+      ref={ref}
+      className={cn(className, mirror && 'is-mirror')}
+      autoPlay
+      playsInline
+      muted={muted}
+    />
+  );
 }
 
 // ─── Сейчас в эфире ─────────────────────────────────────────────────────────
@@ -68,7 +130,13 @@ export function LiveHome() {
         <div className="vhome">
           <div className="vhome__top">
             <VideoChips active="live" />
-            <ButtonLink to="/live/new" size="sm" pill className="lgo-link" icon={<Radio size={16} />}>
+            <ButtonLink
+              to="/live/new"
+              size="sm"
+              pill
+              className="lgo-link"
+              icon={<Radio size={16} />}
+            >
               Начать трансляцию
             </ButtonLink>
           </div>
@@ -99,7 +167,10 @@ export function LiveHome() {
                     </span>
                     <div>
                       <b>Сейчас никто не в эфире</b>
-                      <p>Начните первым — подписчики с колокольчиком получат уведомление, а зрители смогут писать в чат</p>
+                      <p>
+                        Начните первым — подписчики с колокольчиком получат уведомление, а зрители
+                        смогут писать в чат
+                      </p>
                     </div>
                     <ButtonLink to="/live/new" pill icon={<Radio size={16} />}>
                       Начать трансляцию
@@ -170,7 +241,14 @@ function LevelMeter({ level }: { level: number }) {
   return (
     <span className="lmeter" aria-label={`Уровень звука ${Math.round(level * 100)}%`}>
       {Array.from({ length: 12 }, (_, i) => (
-        <span key={i} className={cn('lmeter__bar', level * 12 > i && 'lmeter__bar--on', i >= 9 && 'lmeter__bar--hot')} />
+        <span
+          key={i}
+          className={cn(
+            'lmeter__bar',
+            level * 12 > i && 'lmeter__bar--on',
+            i >= 9 && 'lmeter__bar--hot',
+          )}
+        />
       ))}
     </span>
   );
@@ -178,7 +256,9 @@ function LevelMeter({ level }: { level: number }) {
 
 function trackInfo(stream: MediaStream | null) {
   const s = stream?.getVideoTracks()[0]?.getSettings();
-  return s?.width ? `${s.width}×${s.height}${s.frameRate ? ` · ${Math.round(s.frameRate)} к/с` : ''}` : null;
+  return s?.width
+    ? `${s.width}×${s.height}${s.frameRate ? ` · ${Math.round(s.frameRate)} к/с` : ''}`
+    : null;
 }
 
 export function GoLivePage() {
@@ -188,13 +268,19 @@ export function GoLivePage() {
   const [description, setDescription] = useState('');
   const [record, setRecord] = useLocal('live-record', true);
   const [busy, setBusy] = useState(false);
-  const [devices, setDevices] = useState<{ cams: MediaDeviceInfo[]; mics: MediaDeviceInfo[] }>({ cams: [], mics: [] });
+  const [devices, setDevices] = useState<{ cams: MediaDeviceInfo[]; mics: MediaDeviceInfo[] }>({
+    cams: [],
+    mics: [],
+  });
   const [choice, setChoice] = useState<DeviceChoice>({});
   const level = useAudioLevel(host.stream);
 
   const refreshDevices = async () => {
     const all = await navigator.mediaDevices?.enumerateDevices().catch(() => []);
-    setDevices({ cams: (all ?? []).filter((d) => d.kind === 'videoinput' && d.deviceId), mics: (all ?? []).filter((d) => d.kind === 'audioinput' && d.deviceId) });
+    setDevices({
+      cams: (all ?? []).filter((d) => d.kind === 'videoinput' && d.deviceId),
+      mics: (all ?? []).filter((d) => d.kind === 'audioinput' && d.deviceId),
+    });
   };
   const choose = async (source: LiveSource, next: DeviceChoice = choice) => {
     try {
@@ -203,7 +289,12 @@ export function GoLivePage() {
     } catch (e) {
       const name = (e as DOMException).name;
       toast({
-        text: name === 'NotAllowedError' ? 'Доступ не разрешён — разрешите камеру и микрофон для сайта' : name === 'NotFoundError' ? 'Устройство не найдено' : errorMessage(e),
+        text:
+          name === 'NotAllowedError'
+            ? 'Доступ не разрешён — разрешите камеру и микрофон для сайта'
+            : name === 'NotFoundError'
+              ? 'Устройство не найдено'
+              : errorMessage(e),
         kind: 'error',
       });
     }
@@ -220,7 +311,10 @@ export function GoLivePage() {
       const s = await goLive({ title: title.trim(), description, record });
       navigate(`/live/${s.id}`, { replace: true });
     } catch (e) {
-      toast({ text: errorMessage(e) === 'Что-то пошло не так' ? (e as Error).message : errorMessage(e), kind: 'error' });
+      toast({
+        text: errorMessage(e) === 'Что-то пошло не так' ? (e as Error).message : errorMessage(e),
+        kind: 'error',
+      });
     } finally {
       setBusy(false);
     }
@@ -244,7 +338,12 @@ export function GoLivePage() {
               <div className="lstage">
                 {host.stream ? (
                   <>
-                    <StreamVideo stream={host.stream} muted className="lstage__video" mirror={host.source === 'camera'} />
+                    <StreamVideo
+                      stream={host.stream}
+                      muted
+                      className="lstage__video"
+                      mirror={host.source === 'camera'}
+                    />
                     <span className="lstage__badges">
                       <span className="vbadge vbadge--glass">Предпросмотр</span>
                       {!host.micOn && (
@@ -258,12 +357,20 @@ export function GoLivePage() {
                   <div className="lstage__pick">
                     <b>Что показываем зрителям?</b>
                     <div className="lstage__choices">
-                      <button type="button" className="lchoice" onClick={() => void choose('camera')}>
+                      <button
+                        type="button"
+                        className="lchoice"
+                        onClick={() => void choose('camera')}
+                      >
                         <Video size={26} />
                         <b>Камера</b>
                         <span>Вы в кадре, с микрофоном</span>
                       </button>
-                      <button type="button" className="lchoice" onClick={() => void choose('screen')}>
+                      <button
+                        type="button"
+                        className="lchoice"
+                        onClick={() => void choose('screen')}
+                      >
                         <Monitor size={26} />
                         <b>Экран</b>
                         <span>Игра, презентация, код — со звуком</span>
@@ -275,10 +382,22 @@ export function GoLivePage() {
               {host.stream && (
                 <div className="lstudio__toolbar">
                   <div className="vseg" role="radiogroup" aria-label="Источник">
-                    <button type="button" role="radio" aria-checked={host.source === 'camera'} className={cn('vseg__opt', host.source === 'camera' && 'vseg__opt--on')} onClick={() => void choose('camera')}>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={host.source === 'camera'}
+                      className={cn('vseg__opt', host.source === 'camera' && 'vseg__opt--on')}
+                      onClick={() => void choose('camera')}
+                    >
                       <Video size={16} /> Камера
                     </button>
-                    <button type="button" role="radio" aria-checked={host.source === 'screen'} className={cn('vseg__opt', host.source === 'screen' && 'vseg__opt--on')} onClick={() => void choose('screen')}>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={host.source === 'screen'}
+                      className={cn('vseg__opt', host.source === 'screen' && 'vseg__opt--on')}
+                      onClick={() => void choose('screen')}
+                    >
                       <Monitor size={16} /> Экран
                     </button>
                   </div>
@@ -286,7 +405,11 @@ export function GoLivePage() {
                     <select
                       className="lselect"
                       aria-label="Камера"
-                      value={choice.cameraId ?? host.stream.getVideoTracks()[0]?.getSettings().deviceId ?? ''}
+                      value={
+                        choice.cameraId ??
+                        host.stream.getVideoTracks()[0]?.getSettings().deviceId ??
+                        ''
+                      }
                       onChange={(e) => {
                         const next = { ...choice, cameraId: e.target.value };
                         setChoice(next);
@@ -304,7 +427,11 @@ export function GoLivePage() {
                     <select
                       className="lselect"
                       aria-label="Микрофон"
-                      value={choice.micId ?? host.stream.getAudioTracks()[0]?.getSettings().deviceId ?? ''}
+                      value={
+                        choice.micId ??
+                        host.stream.getAudioTracks()[0]?.getSettings().deviceId ??
+                        ''
+                      }
                       onChange={(e) => {
                         const next = { ...choice, micId: e.target.value };
                         setChoice(next);
@@ -319,24 +446,44 @@ export function GoLivePage() {
                     </select>
                   )}
                   <span className="vp__grow" />
-                  <button type="button" className={cn('lround', !host.micOn && 'lround--off')} onClick={toggleMic} aria-label={host.micOn ? 'Выключить микрофон' : 'Включить микрофон'} title="Микрофон">
+                  <button
+                    type="button"
+                    className={cn('lround', !host.micOn && 'lround--off')}
+                    onClick={toggleMic}
+                    aria-label={host.micOn ? 'Выключить микрофон' : 'Включить микрофон'}
+                    title="Микрофон"
+                  >
                     {host.micOn ? <Mic size={18} /> : <MicOff size={18} />}
                   </button>
-                  <button type="button" className={cn('lround', !host.camOn && 'lround--off')} onClick={toggleCam} aria-label={host.camOn ? 'Выключить видео' : 'Включить видео'} title="Видео">
+                  <button
+                    type="button"
+                    className={cn('lround', !host.camOn && 'lround--off')}
+                    onClick={toggleCam}
+                    aria-label={host.camOn ? 'Выключить видео' : 'Включить видео'}
+                    title="Видео"
+                  >
                     {host.camOn ? <Video size={18} /> : <VideoOff size={18} />}
                   </button>
                 </div>
               )}
               <div className="lchecks">
                 <div className="lcheck">
-                  {info ? <CircleCheck size={18} className="lcheck__ok" /> : <CircleAlert size={18} className="lcheck__wait" />}
+                  {info ? (
+                    <CircleCheck size={18} className="lcheck__ok" />
+                  ) : (
+                    <CircleAlert size={18} className="lcheck__wait" />
+                  )}
                   <span>
                     <b>Видео</b>
                     <span>{info ?? 'Выберите камеру или экран'}</span>
                   </span>
                 </div>
                 <div className="lcheck">
-                  {hasAudio ? <CircleCheck size={18} className="lcheck__ok" /> : <CircleAlert size={18} className="lcheck__wait" />}
+                  {hasAudio ? (
+                    <CircleCheck size={18} className="lcheck__ok" />
+                  ) : (
+                    <CircleAlert size={18} className="lcheck__wait" />
+                  )}
                   <span>
                     <b>Звук</b>
                     {hasAudio ? <LevelMeter level={level} /> : <span>Микрофон не подключён</span>}
@@ -355,14 +502,27 @@ export function GoLivePage() {
             <aside className="lstudio__side">
               <label className="vup-field">
                 <span className="vup-field__label">Название (обязательно)</span>
-                <input className="vup-field__input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={LIMITS.titleMax} placeholder="О чём трансляция" />
+                <input
+                  className="vup-field__input"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  maxLength={LIMITS.titleMax}
+                  placeholder="О чём трансляция"
+                />
                 <span className="vup-field__count">
                   {title.length}/{LIMITS.titleMax}
                 </span>
               </label>
               <label className="vup-field">
                 <span className="vup-field__label">Описание</span>
-                <textarea className="vup-field__input" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} placeholder="Расскажите зрителям, что будет в эфире" />
+                <textarea
+                  className="vup-field__input"
+                  rows={4}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  maxLength={1000}
+                  placeholder="Расскажите зрителям, что будет в эфире"
+                />
               </label>
               <div className="vup-row">
                 <Download size={18} className="vup-row__icon" />
@@ -372,11 +532,26 @@ export function GoLivePage() {
                 </span>
                 <Switch checked={record} onChange={setRecord} label="Записывать трансляцию" />
               </div>
-              <button type="button" className="lgo" disabled={!ready || busy} onClick={() => void start()}>
-                {busy ? <span className="spinner" style={{ width: 18, height: 18 }} /> : <Radio size={20} />}
+              <button
+                type="button"
+                className="lgo"
+                disabled={!ready || busy}
+                onClick={() => void start()}
+              >
+                {busy ? (
+                  <span className="spinner" style={{ width: 18, height: 18 }} />
+                ) : (
+                  <Radio size={20} />
+                )}
                 Начать трансляцию
               </button>
-              <p className="lstudio__note">{!host.stream ? 'Сначала выберите, что показывать' : !title.trim() ? 'Добавьте название трансляции' : 'Подписчики с колокольчиком получат уведомление'}</p>
+              <p className="lstudio__note">
+                {!host.stream
+                  ? 'Сначала выберите, что показывать'
+                  : !title.trim()
+                    ? 'Добавьте название трансляции'
+                    : 'Подписчики с колокольчиком получат уведомление'}
+              </p>
             </aside>
           </div>
         </div>
@@ -405,7 +580,12 @@ function RecordingPanel({ stream }: { stream: LiveStream }) {
   const publish = async () => {
     setProgress(0);
     try {
-      const post = await publishRecording(stream.id, title.trim() || stream.title, stream.description, setProgress);
+      const post = await publishRecording(
+        stream.id,
+        title.trim() || stream.title,
+        stream.description,
+        setProgress,
+      );
       toast({ text: 'Запись опубликована в «Видео»', kind: 'success' });
       navigate(`/watch/${post.id}`);
     } catch (e) {
@@ -421,7 +601,12 @@ function RecordingPanel({ stream }: { stream: LiveStream }) {
           {mb < 1 ? 'меньше 1' : Math.round(mb)} МБ · {elapsedLabel(0, rec.durationSec * 1000)}
         </span>
       </div>
-      <Input label="Название видео" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={LIMITS.titleMax} />
+      <Input
+        label="Название видео"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        maxLength={LIMITS.titleMax}
+      />
       {progress !== null && (
         <span className="vup__progress" aria-hidden>
           <span style={{ width: `${progress * 100}%` }} />
@@ -444,7 +629,15 @@ function RecordingPanel({ stream }: { stream: LiveStream }) {
 
 // ─── Комната эфира ──────────────────────────────────────────────────────────
 
-function StatTile({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
+function StatTile({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+}) {
   return (
     <div className="lstat">
       <span className="lstat__label">
@@ -459,7 +652,10 @@ export function LiveRoom() {
   const { id = '' } = useParams();
   const me = useMe();
   const host = useHost();
-  const q = useQuery({ queryKey: liveKey(id), queryFn: () => api.get<{ stream: LiveStream; chat: LiveChatMessage[] }>(`/live/${id}`) });
+  const q = useQuery({
+    queryKey: liveKey(id),
+    queryFn: () => api.get<{ stream: LiveStream; chat: LiveChatMessage[] }>(`/live/${id}`),
+  });
   const stream = q.data?.stream;
   const isHost = host.streamId === id;
   const watching = !!stream && stream.status === 'live' && !isHost && stream.owner.id !== me.id;
@@ -468,7 +664,12 @@ export function LiveRoom() {
   const [chatHidden, setChatHidden] = useLocal('live-chat-hidden', false);
   const [rootRef, compact] = useCompact<HTMLDivElement>(1000);
   const channel = useChannel(stream?.owner);
-  const chat = useQuery({ queryKey: roomKey(`stream:${id}`), queryFn: () => q.data?.chat ?? [], enabled: false, initialData: q.data?.chat });
+  const chat = useQuery({
+    queryKey: roomKey(`stream:${id}`),
+    queryFn: () => q.data?.chat ?? [],
+    enabled: false,
+    initialData: q.data?.chat,
+  });
   const [peak, setPeak] = useState(0);
   useCrumb(stream?.title);
   useEffect(() => setPeak((p) => Math.max(p, host.viewers)), [host.viewers]);
@@ -477,7 +678,15 @@ export function LiveRoom() {
     onError: (e) => toast({ text: errorMessage(e), kind: 'error' }),
   });
   const askEnd = async () => {
-    if (await confirm({ title: 'Завершить трансляцию?', text: 'Зрители увидят, что эфир закончился', confirmLabel: 'Завершить', danger: true })) end.mutate();
+    if (
+      await confirm({
+        title: 'Завершить трансляцию?',
+        text: 'Зрители увидят, что эфир закончился',
+        confirmLabel: 'Завершить',
+        danger: true,
+      })
+    )
+      end.mutate();
   };
 
   if (q.isLoading)
@@ -531,7 +740,12 @@ export function LiveRoom() {
     stage = (
       <div className="vp-shell">
         <div className="vp vp--host">
-          <StreamVideo stream={host.stream} muted className="vp__video" mirror={host.source === 'camera'} />
+          <StreamVideo
+            stream={host.stream}
+            muted
+            className="vp__video"
+            mirror={host.source === 'camera'}
+          />
           <div className="vp__shade vp__shade--top" aria-hidden />
           <div className="vp__badges">
             {badges}
@@ -579,27 +793,34 @@ export function LiveRoom() {
     );
   }
 
-  const chatPanel = chatHidden && !compact ? (
-    <button type="button" className="lshow-chat" onClick={() => setChatHidden(false)}>
-      <PanelRightOpen size={18} /> Показать чат
-    </button>
-  ) : (
-    <LiveChat
-      room={`stream:${id}`}
-      initial={q.data!.chat}
-      sendPath={`/live/${id}/chat`}
-      disabled={ended ? 'Трансляция завершена — чат закрыт' : null}
-      title="Чат"
-      subtitle={ended ? undefined : watchingLabel(viewers)}
-      ownerId={stream.owner.id}
-      onClose={compact ? undefined : () => setChatHidden(true)}
-    />
-  );
+  const chatPanel =
+    chatHidden && !compact ? (
+      <button type="button" className="lshow-chat" onClick={() => setChatHidden(false)}>
+        <PanelRightOpen size={18} /> Показать чат
+      </button>
+    ) : (
+      <LiveChat
+        room={`stream:${id}`}
+        initial={q.data!.chat}
+        sendPath={`/live/${id}/chat`}
+        disabled={ended ? 'Трансляция завершена — чат закрыт' : null}
+        title="Чат"
+        subtitle={ended ? undefined : watchingLabel(viewers)}
+        ownerId={stream.owner.id}
+        onClose={compact ? undefined : () => setChatHidden(true)}
+      />
+    );
 
   return (
     <div className="scroll">
       <div className="vroot" ref={rootRef}>
-        <div className={cn('lroom', compact && 'lroom--compact', chatHidden && !compact && 'lroom--nochat')}>
+        <div
+          className={cn(
+            'lroom',
+            compact && 'lroom--compact',
+            chatHidden && !compact && 'lroom--nochat',
+          )}
+        >
           <div className="lroom__player">{stage}</div>
           <div className="lroom__main">
             {isHost && !ended && (
@@ -609,31 +830,72 @@ export function LiveRoom() {
                     <span className="lstatus__dot" /> Вы в эфире · {elapsed}
                   </span>
                   <span className="vp__grow" />
-                  <button type="button" className={cn('lround', !host.micOn && 'lround--off')} onClick={toggleMic} aria-label="Микрофон" title={host.micOn ? 'Выключить микрофон' : 'Включить микрофон'}>
+                  <button
+                    type="button"
+                    className={cn('lround', !host.micOn && 'lround--off')}
+                    onClick={toggleMic}
+                    aria-label="Микрофон"
+                    title={host.micOn ? 'Выключить микрофон' : 'Включить микрофон'}
+                  >
                     {host.micOn ? <Mic size={18} /> : <MicOff size={18} />}
                   </button>
-                  <button type="button" className={cn('lround', !host.camOn && 'lround--off')} onClick={toggleCam} aria-label="Видео" title={host.camOn ? 'Выключить видео' : 'Включить видео'}>
-                    {host.camOn ? host.source === 'screen' ? <Monitor size={18} /> : <Video size={18} /> : <VideoOff size={18} />}
+                  <button
+                    type="button"
+                    className={cn('lround', !host.camOn && 'lround--off')}
+                    onClick={toggleCam}
+                    aria-label="Видео"
+                    title={host.camOn ? 'Выключить видео' : 'Включить видео'}
+                  >
+                    {host.camOn ? (
+                      host.source === 'screen' ? (
+                        <Monitor size={18} />
+                      ) : (
+                        <Video size={18} />
+                      )
+                    ) : (
+                      <VideoOff size={18} />
+                    )}
                   </button>
                   <button
                     type="button"
                     className="lround"
-                    onClick={() => void navigator.clipboard.writeText(`${location.origin}/live/${id}`).then(() => toast('Ссылка на трансляцию скопирована'))}
+                    onClick={() =>
+                      void navigator.clipboard
+                        .writeText(`${location.origin}/live/${id}`)
+                        .then(() => toast('Ссылка на трансляцию скопирована'))
+                    }
                     aria-label="Скопировать ссылку"
                     title="Скопировать ссылку"
                   >
                     <Copy size={18} />
                   </button>
-                  <button type="button" className="lend" disabled={end.isPending} onClick={() => void askEnd()}>
+                  <button
+                    type="button"
+                    className="lend"
+                    disabled={end.isPending}
+                    onClick={() => void askEnd()}
+                  >
                     <Square size={14} fill="currentColor" /> Завершить
                   </button>
                 </div>
                 <div className="lstats">
                   <StatTile icon={<Eye size={14} />} label="Смотрят сейчас" value={host.viewers} />
-                  <StatTile icon={<TrendingUp size={14} />} label="Пик" value={Math.max(peak, stream.peakViewers)} />
+                  <StatTile
+                    icon={<TrendingUp size={14} />}
+                    label="Пик"
+                    value={Math.max(peak, stream.peakViewers)}
+                  />
                   <StatTile icon={<Clock size={14} />} label="Длительность" value={elapsed} />
-                  <StatTile icon={<MessageSquare size={14} />} label="Сообщений" value={chat.data?.length ?? 0} />
-                  <StatTile icon={<Signal size={14} />} label="Битрейт" value={`${(bitrateFor(host.viewers) / 1_000_000).toFixed(1).replace('.', ',')} Мбит/с`} />
+                  <StatTile
+                    icon={<MessageSquare size={14} />}
+                    label="Сообщений"
+                    value={chat.data?.length ?? 0}
+                  />
+                  <StatTile
+                    icon={<Signal size={14} />}
+                    label="Битрейт"
+                    value={`${(bitrateFor(host.viewers) / 1_000_000).toFixed(1).replace('.', ',')} Мбит/с`}
+                  />
                 </div>
               </div>
             )}
@@ -654,7 +916,9 @@ export function LiveRoom() {
               <div className="vdesc__meta">
                 {ended ? (
                   <b>
-                    Трансляция {timeAgo(stream.startedAt)} · {viewersLabel(stream.totalViewers || stream.peakViewers)} · пик {stream.peakViewers}
+                    Трансляция {timeAgo(stream.startedAt)} ·{' '}
+                    {viewersLabel(stream.totalViewers || stream.peakViewers)} · пик{' '}
+                    {stream.peakViewers}
                   </b>
                 ) : (
                   <b>
@@ -662,7 +926,11 @@ export function LiveRoom() {
                   </b>
                 )}
               </div>
-              {stream.description ? <div className="vdesc__body pre-wrap">{stream.description}</div> : <div className="vdesc__body vdesc__empty">Без описания</div>}
+              {stream.description ? (
+                <div className="vdesc__body pre-wrap">{stream.description}</div>
+              ) : (
+                <div className="vdesc__body vdesc__empty">Без описания</div>
+              )}
             </div>
             {!isHost && !ended && (
               <Link to="/live" className="lmore">

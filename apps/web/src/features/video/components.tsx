@@ -36,9 +36,32 @@ import { qk, queryClient } from '../../shared/api/query';
 import { useMe } from '../../shared/stores/session';
 import { toast } from '../../shared/stores/ui';
 import { cn, duration, fullDate, plural, timeAgo, views } from '../../shared/lib/format';
-import { Avatar, Button, Menu, Modal, ReportDialog, RichText, Skeleton, useMenu, Verified, type MenuEntry } from '../../shared/ui';
+import {
+  Avatar,
+  Button,
+  Menu,
+  Modal,
+  ReportDialog,
+  RichText,
+  Skeleton,
+  useMenu,
+  Verified,
+  type MenuEntry,
+} from '../../shared/ui';
 import { shareLink, usePostActions } from '../posts/actions';
-import { channelPath, countdown, premiereState, readPosition, setHidden, subscribersLabel, TIMESTAMP_RE, parseTime, useNow, viewersLabel, watchingLabel } from './lib';
+import {
+  channelPath,
+  countdown,
+  premiereState,
+  readPosition,
+  setHidden,
+  subscribersLabel,
+  TIMESTAMP_RE,
+  parseTime,
+  useNow,
+  viewersLabel,
+  watchingLabel,
+} from './lib';
 import './video.css';
 
 export { UploadVideoForm } from './upload';
@@ -86,7 +109,16 @@ interface VideoCardProps {
   noHide?: boolean;
 }
 
-export function VideoCard({ post, row, size = 'sm', progressSec, to, current, footer, noHide }: VideoCardProps) {
+export function VideoCard({
+  post,
+  row,
+  size = 'sm',
+  progressSec,
+  to,
+  current,
+  footer,
+  noHide,
+}: VideoCardProps) {
   const m = post.media[0];
   const short = post.kind === 'short';
   const href = to ?? (short ? `/reels?start=${post.id}` : `/watch/${post.id}`);
@@ -97,7 +129,10 @@ export function VideoCard({ post, row, size = 'sm', progressSec, to, current, fo
   const hoverTimer = useRef(0);
   const menu = useMenu();
   const [dialog, setDialog] = useState<null | 'save' | 'report'>(null);
-  const watched = useMemo(() => progressSec ?? readPosition(post.id) ?? undefined, [progressSec, post.id]);
+  const watched = useMemo(
+    () => progressSec ?? readPosition(post.id) ?? undefined,
+    [progressSec, post.id],
+  );
   const canPreview = !!m?.url && !short && premiere !== 'upcoming';
 
   useEffect(() => () => window.clearTimeout(hoverTimer.current), []);
@@ -113,7 +148,13 @@ export function VideoCard({ post, row, size = 'sm', progressSec, to, current, fo
 
   return (
     <article
-      className={cn('vcard', row && 'vcard--row', row && size === 'lg' && 'vcard--row-lg', short && !row && 'vcard--short', current && 'vcard--current')}
+      className={cn(
+        'vcard',
+        row && 'vcard--row',
+        row && size === 'lg' && 'vcard--row-lg',
+        short && !row && 'vcard--short',
+        current && 'vcard--current',
+      )}
       onPointerEnter={(e) => {
         if (e.pointerType !== 'mouse' || !canPreview) return;
         window.clearTimeout(hoverTimer.current);
@@ -126,44 +167,63 @@ export function VideoCard({ post, row, size = 'sm', progressSec, to, current, fo
       }}
     >
       <div className="vcard__media">
-      <Link to={href} className="vcard__thumb" aria-label={title} draggable={false}>
-        {m?.posterUrl ? <img src={m.posterUrl} alt="" loading="lazy" decoding="async" draggable={false} /> : <span className="vcard__noposter"><Video size={28} /></span>}
-        {preview && m?.url && (
-          <video
-            className="vcard__preview"
-            src={m.url}
-            muted
-            autoPlay
-            playsInline
-            loop
-            onTimeUpdate={(e) => setPreviewT(e.currentTarget.currentTime)}
-            onError={() => setPreview(false)}
-          />
-        )}
-        {premiere ? (
-          <span className="vcard__badges">
-            <PremiereBadge post={post} />
-          </span>
-        ) : m?.durationSec ? (
-          <span className="vbadge vbadge--dur">{preview ? `${duration(Math.max(0, m.durationSec - previewT))}` : duration(m.durationSec)}</span>
-        ) : null}
-        {watched !== undefined && m?.durationSec && !preview ? (
-          <span className="vcard__watched">
-            <span style={{ width: `${Math.min(100, (watched / m.durationSec) * 100)}%` }} />
-          </span>
-        ) : null}
-        {preview && m?.durationSec ? (
-          <span className="vcard__watched vcard__watched--preview">
-            <span style={{ width: `${Math.min(100, (previewT / m.durationSec) * 100)}%` }} />
-          </span>
-        ) : null}
-      </Link>
-      {!short && premiere !== 'upcoming' && <WatchLaterQuick post={post} />}
+        <Link to={href} className="vcard__thumb" aria-label={title} draggable={false}>
+          {m?.posterUrl ? (
+            <img src={m.posterUrl} alt="" loading="lazy" decoding="async" draggable={false} />
+          ) : (
+            <span className="vcard__noposter">
+              <Video size={28} />
+            </span>
+          )}
+          {preview && m?.url && (
+            <video
+              className="vcard__preview"
+              src={m.url}
+              muted
+              autoPlay
+              playsInline
+              loop
+              onTimeUpdate={(e) => setPreviewT(e.currentTarget.currentTime)}
+              onError={() => setPreview(false)}
+            />
+          )}
+          {premiere ? (
+            <span className="vcard__badges">
+              <PremiereBadge post={post} />
+            </span>
+          ) : m?.durationSec ? (
+            <span className="vbadge vbadge--dur">
+              {preview
+                ? `${duration(Math.max(0, m.durationSec - previewT))}`
+                : duration(m.durationSec)}
+            </span>
+          ) : null}
+          {watched !== undefined && m?.durationSec && !preview ? (
+            <span className="vcard__watched">
+              <span style={{ width: `${Math.min(100, (watched / m.durationSec) * 100)}%` }} />
+            </span>
+          ) : null}
+          {preview && m?.durationSec ? (
+            <span className="vcard__watched vcard__watched--preview">
+              <span style={{ width: `${Math.min(100, (previewT / m.durationSec) * 100)}%` }} />
+            </span>
+          ) : null}
+        </Link>
+        {!short && premiere !== 'upcoming' && <WatchLaterQuick post={post} />}
       </div>
       <div className="vcard__body">
         {!row && !short && (
-          <Link to={channelPath(post.author)} className="vcard__avatar" aria-label={post.author.displayName}>
-            <Avatar src={post.author.avatarUrl} name={post.author.displayName} id={post.author.id} size={36} />
+          <Link
+            to={channelPath(post.author)}
+            className="vcard__avatar"
+            aria-label={post.author.displayName}
+          >
+            <Avatar
+              src={post.author.avatarUrl}
+              name={post.author.displayName}
+              id={post.author.id}
+              size={36}
+            />
           </Link>
         )}
         <div className="vcard__text">
@@ -179,13 +239,31 @@ export function VideoCard({ post, row, size = 'sm', progressSec, to, current, fo
           <span className="vcard__meta">{meta}</span>
           {footer}
         </div>
-        <button type="button" className="vcard__more" aria-label="Действия" onClick={(e) => menu.openFromEvent(e)}>
+        <button
+          type="button"
+          className="vcard__more"
+          aria-label="Действия"
+          onClick={(e) => menu.openFromEvent(e)}
+        >
           <EllipsisVertical size={18} />
         </button>
       </div>
-      {menu.anchor && <CardMenu post={post} anchor={menu.anchor} onClose={menu.close} onDialog={setDialog} noHide={noHide} />}
+      {menu.anchor && (
+        <CardMenu
+          post={post}
+          anchor={menu.anchor}
+          onClose={menu.close}
+          onDialog={setDialog}
+          noHide={noHide}
+        />
+      )}
       {dialog === 'save' && <SaveDialog post={post} onClose={() => setDialog(null)} />}
-      <ReportDialog open={dialog === 'report'} onClose={() => setDialog(null)} entityType="post" entityId={post.id} />
+      <ReportDialog
+        open={dialog === 'report'}
+        onClose={() => setDialog(null)}
+        entityType="post"
+        entityId={post.id}
+      />
     </article>
   );
 }
@@ -203,7 +281,10 @@ function WatchLaterQuick({ post }: { post: Post }) {
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        watchLater.mutate(!on, { onSuccess: () => toast(on ? 'Убрано из «Смотреть позже»' : 'Добавлено в «Смотреть позже»') });
+        watchLater.mutate(!on, {
+          onSuccess: () =>
+            toast(on ? 'Убрано из «Смотреть позже»' : 'Добавлено в «Смотреть позже»'),
+        });
       }}
     >
       {on ? <Check size={18} /> : <Clock size={18} />}
@@ -232,10 +313,27 @@ function CardMenu({
       label: post.viewer.watchLater ? 'Убрать из «Смотреть позже»' : 'Смотреть позже',
       icon: <Clock size={18} />,
       hidden: short,
-      onClick: () => watchLater.mutate(!post.viewer.watchLater, { onSuccess: () => toast(post.viewer.watchLater ? 'Убрано из «Смотреть позже»' : 'Добавлено в «Смотреть позже»') }),
+      onClick: () =>
+        watchLater.mutate(!post.viewer.watchLater, {
+          onSuccess: () =>
+            toast(
+              post.viewer.watchLater
+                ? 'Убрано из «Смотреть позже»'
+                : 'Добавлено в «Смотреть позже»',
+            ),
+        }),
     },
-    { label: 'Сохранить в плейлист', icon: <ListPlus size={18} />, hidden: short, onClick: () => onDialog('save') },
-    { label: 'Поделиться', icon: <Share2 size={18} />, onClick: () => shareLink(short ? `/reels?start=${post.id}` : `/watch/${post.id}`) },
+    {
+      label: 'Сохранить в плейлист',
+      icon: <ListPlus size={18} />,
+      hidden: short,
+      onClick: () => onDialog('save'),
+    },
+    {
+      label: 'Поделиться',
+      icon: <Share2 size={18} />,
+      onClick: () => shareLink(short ? `/reels?start=${post.id}` : `/watch/${post.id}`),
+    },
     'separator',
     {
       label: 'Не интересно',
@@ -243,10 +341,18 @@ function CardMenu({
       hidden: noHide || post.author.id === me.id,
       onClick: () => {
         setHidden(post.id, true);
-        toast({ text: 'Видео скрыто. Будем показывать меньше похожего', action: { label: 'Отменить', onClick: () => setHidden(post.id, false) } });
+        toast({
+          text: 'Видео скрыто. Будем показывать меньше похожего',
+          action: { label: 'Отменить', onClick: () => setHidden(post.id, false) },
+        });
       },
     },
-    { label: 'Пожаловаться', icon: <Flag size={18} />, hidden: post.author.id === me.id, onClick: () => onDialog('report') },
+    {
+      label: 'Пожаловаться',
+      icon: <Flag size={18} />,
+      hidden: post.author.id === me.id,
+      onClick: () => onDialog('report'),
+    },
   ];
   return <Menu anchor={anchor} items={items} onClose={onClose} />;
 }
@@ -273,11 +379,21 @@ export function VideoCardSkeleton({ row }: { row?: boolean }) {
 
 export function LiveCard({ s }: { s: LiveStream }) {
   const live = s.status === 'live';
-  const to = live ? `/live/${s.id}` : s.recordingPostId ? `/watch/${s.recordingPostId}` : `/live/${s.id}`;
+  const to = live
+    ? `/live/${s.id}`
+    : s.recordingPostId
+      ? `/watch/${s.recordingPostId}`
+      : `/live/${s.id}`;
   return (
     <article className="vcard vcard--stream">
       <Link to={to} className="vcard__thumb vcard__thumb--stream" aria-label={s.title}>
-        {s.owner.avatarUrl && <span className="vcard__stream-bg" style={{ backgroundImage: `url("${s.owner.avatarUrl}")` }} aria-hidden />}
+        {s.owner.avatarUrl && (
+          <span
+            className="vcard__stream-bg"
+            style={{ backgroundImage: `url("${s.owner.avatarUrl}")` }}
+            aria-hidden
+          />
+        )}
         <span className={cn('vcard__stream-avatar', live && 'vcard__stream-avatar--live')}>
           <Avatar src={s.owner.avatarUrl} name={s.owner.displayName} id={s.owner.id} size={64} />
         </span>
@@ -304,7 +420,8 @@ export function LiveCard({ s }: { s: LiveStream }) {
           <span className="vcard__meta">
             {live ? (
               <>
-                <b className="vcard__live-count">{watchingLabel(s.viewers)}</b> · начат {timeAgo(s.startedAt)}
+                <b className="vcard__live-count">{watchingLabel(s.viewers)}</b> · начат{' '}
+                {timeAgo(s.startedAt)}
               </>
             ) : (
               `Трансляция ${timeAgo(s.startedAt)} · ${viewersLabel(s.totalViewers || s.peakViewers)}`
@@ -318,16 +435,32 @@ export function LiveCard({ s }: { s: LiveStream }) {
 
 // ─── Полка с горизонтальной прокруткой ──────────────────────────────────────
 
-export function Shelf({ title, icon, more, children, className }: { title: ReactNode; icon?: ReactNode; more?: { to: string; label?: string }; children: ReactNode; className?: string }) {
+export function Shelf({
+  title,
+  icon,
+  more,
+  children,
+  className,
+}: {
+  title: ReactNode;
+  icon?: ReactNode;
+  more?: { to: string; label?: string };
+  children: ReactNode;
+  className?: string;
+}) {
   const row = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ start: true, end: false });
   const update = () => {
     const el = row.current;
     if (!el) return;
-    setEdges({ start: el.scrollLeft < 8, end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 8 });
+    setEdges({
+      start: el.scrollLeft < 8,
+      end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 8,
+    });
   };
   useEffect(update, [children]);
-  const scroll = (dir: 1 | -1) => row.current?.scrollBy({ left: dir * row.current.clientWidth * 0.85, behavior: 'smooth' });
+  const scroll = (dir: 1 | -1) =>
+    row.current?.scrollBy({ left: dir * row.current.clientWidth * 0.85, behavior: 'smooth' });
   return (
     <section className={cn('vshelf', className)}>
       <header className="vshelf__head">
@@ -343,7 +476,12 @@ export function Shelf({ title, icon, more, children, className }: { title: React
       </header>
       <div className="vshelf__wrap">
         {!edges.start && (
-          <button type="button" className="vshelf__arrow vshelf__arrow--l" onClick={() => scroll(-1)} aria-label="Назад">
+          <button
+            type="button"
+            className="vshelf__arrow vshelf__arrow--l"
+            onClick={() => scroll(-1)}
+            aria-label="Назад"
+          >
             <ChevronLeft size={20} />
           </button>
         )}
@@ -351,7 +489,12 @@ export function Shelf({ title, icon, more, children, className }: { title: React
           {children}
         </div>
         {!edges.end && (
-          <button type="button" className="vshelf__arrow vshelf__arrow--r" onClick={() => scroll(1)} aria-label="Дальше">
+          <button
+            type="button"
+            className="vshelf__arrow vshelf__arrow--r"
+            onClick={() => scroll(1)}
+            aria-label="Дальше"
+          >
             <ChevronRight size={20} />
           </button>
         )}
@@ -365,11 +508,19 @@ export function Shelf({ title, icon, more, children, className }: { title: React
 export type ChipId = 'all' | 'subscriptions' | 'live' | 'premieres' | 'trending' | `tag:${string}`;
 
 export function useLiveList() {
-  return useQuery({ queryKey: ['live-list'], queryFn: () => api.get<{ live: LiveStream[]; recent: LiveStream[] }>('/live'), refetchInterval: 30_000 });
+  return useQuery({
+    queryKey: ['live-list'],
+    queryFn: () => api.get<{ live: LiveStream[]; recent: LiveStream[] }>('/live'),
+    refetchInterval: 30_000,
+  });
 }
 
 export function VideoChips({ active }: { active: ChipId }) {
-  const tags = useQuery({ queryKey: ['trends', 30], queryFn: () => api.get<{ items: { tag: string }[] }>('/hashtags/trending?days=30'), staleTime: 5 * 60_000 });
+  const tags = useQuery({
+    queryKey: ['trends', 30],
+    queryFn: () => api.get<{ items: { tag: string }[] }>('/hashtags/trending?days=30'),
+    staleTime: 5 * 60_000,
+  });
   const live = useLiveList();
   const liveNow = live.data?.live.length ?? 0;
   const chips: { id: ChipId; label: ReactNode; to: string }[] = [
@@ -379,19 +530,31 @@ export function VideoChips({ active }: { active: ChipId }) {
       id: 'live',
       label: (
         <>
-          {liveNow > 0 && <span className="vchip__live" aria-hidden />}В эфире{liveNow ? ` · ${liveNow}` : ''}
+          {liveNow > 0 && <span className="vchip__live" aria-hidden />}В эфире
+          {liveNow ? ` · ${liveNow}` : ''}
         </>
       ),
       to: '/live',
     },
     { id: 'premieres', label: 'Премьеры', to: '/premieres' },
     { id: 'trending', label: 'В тренде', to: '/video/trending' },
-    ...(tags.data?.items ?? []).slice(0, 10).map((t) => ({ id: `tag:${t.tag}` as ChipId, label: t.tag, to: `/video?tag=${encodeURIComponent(t.tag)}` })),
+    ...(tags.data?.items ?? [])
+      .slice(0, 10)
+      .map((t) => ({
+        id: `tag:${t.tag}` as ChipId,
+        label: t.tag,
+        to: `/video?tag=${encodeURIComponent(t.tag)}`,
+      })),
   ];
   return (
     <nav className="vchips" aria-label="Подборки видео">
       {chips.map((c) => (
-        <Link key={c.id} to={c.to} className={cn('vchip', active === c.id && 'vchip--on')} aria-current={active === c.id ? 'page' : undefined}>
+        <Link
+          key={c.id}
+          to={c.to}
+          className={cn('vchip', active === c.id && 'vchip--on')}
+          aria-current={active === c.id ? 'page' : undefined}
+        >
           {c.label}
         </Link>
       ))}
@@ -405,7 +568,12 @@ export function CreateButton({ compact }: { compact?: boolean }) {
   const navigate = useNavigate();
   return (
     <>
-      <button type="button" className={cn('vcreate', compact && 'vcreate--icon')} onClick={(e) => menu.openFromEvent(e)} aria-label="Создать">
+      <button
+        type="button"
+        className={cn('vcreate', compact && 'vcreate--icon')}
+        onClick={(e) => menu.openFromEvent(e)}
+        aria-label="Создать"
+      >
         <Plus size={20} />
         {!compact && <span>Создать</span>}
       </button>
@@ -413,10 +581,26 @@ export function CreateButton({ compact }: { compact?: boolean }) {
         anchor={menu.anchor}
         onClose={menu.close}
         items={[
-          { label: 'Загрузить видео', icon: <Upload size={18} />, onClick: () => navigate('/video/upload') },
-          { label: 'Начать трансляцию', icon: <Radio size={18} />, onClick: () => navigate('/live/new') },
-          { label: 'Назначить премьеру', icon: <Clapperboard size={18} />, onClick: () => navigate('/video/upload?premiere=1') },
-          { label: 'Снять Reels', icon: <Video size={18} />, onClick: () => navigate('/reels/new') },
+          {
+            label: 'Загрузить видео',
+            icon: <Upload size={18} />,
+            onClick: () => navigate('/video/upload'),
+          },
+          {
+            label: 'Начать трансляцию',
+            icon: <Radio size={18} />,
+            onClick: () => navigate('/live/new'),
+          },
+          {
+            label: 'Назначить премьеру',
+            icon: <Clapperboard size={18} />,
+            onClick: () => navigate('/video/upload?premiere=1'),
+          },
+          {
+            label: 'Снять Reels',
+            icon: <Video size={18} />,
+            onClick: () => navigate('/reels/new'),
+          },
         ]}
       />
     </>
@@ -426,7 +610,10 @@ export function CreateButton({ compact }: { compact?: boolean }) {
 // ─── Сохранить в плейлист ───────────────────────────────────────────────────
 
 export function SaveDialog({ post, onClose }: { post: Post; onClose: () => void }) {
-  const lists = useQuery({ queryKey: ['playlists'], queryFn: () => api.get<{ items: Playlist[] }>('/me/playlists') });
+  const lists = useQuery({
+    queryKey: ['playlists'],
+    queryFn: () => api.get<{ items: Playlist[] }>('/me/playlists'),
+  });
   const { watchLater } = usePostActions(post);
   const [added, setAdded] = useState<Set<string>>(new Set());
   const [creating, setCreating] = useState(false);
@@ -454,23 +641,43 @@ export function SaveDialog({ post, onClose }: { post: Post; onClose: () => void 
   return (
     <Modal open onClose={onClose} title="Сохранить в…" className="vsave">
       <div className="vsave__list">
-        <button type="button" className="vsave__item" onClick={() => watchLater.mutate(!post.viewer.watchLater)} aria-pressed={post.viewer.watchLater}>
-          <span className={cn('vsave__check', post.viewer.watchLater && 'vsave__check--on')}>{post.viewer.watchLater && <Check size={14} strokeWidth={3} />}</span>
+        <button
+          type="button"
+          className="vsave__item"
+          onClick={() => watchLater.mutate(!post.viewer.watchLater)}
+          aria-pressed={post.viewer.watchLater}
+        >
+          <span className={cn('vsave__check', post.viewer.watchLater && 'vsave__check--on')}>
+            {post.viewer.watchLater && <Check size={14} strokeWidth={3} />}
+          </span>
           <span className="vsave__name">Смотреть позже</span>
           <Lock size={15} className="vsave__icon" />
         </button>
         {lists.data?.items.map((p) => {
           const on = added.has(p.id);
           return (
-            <button key={p.id} type="button" className="vsave__item" disabled={on || add.isPending} onClick={() => add.mutate(p.id)} aria-pressed={on}>
-              <span className={cn('vsave__check', on && 'vsave__check--on')}>{on && <Check size={14} strokeWidth={3} />}</span>
+            <button
+              key={p.id}
+              type="button"
+              className="vsave__item"
+              disabled={on || add.isPending}
+              onClick={() => add.mutate(p.id)}
+              aria-pressed={on}
+            >
+              <span className={cn('vsave__check', on && 'vsave__check--on')}>
+                {on && <Check size={14} strokeWidth={3} />}
+              </span>
               <span className="vsave__name">
                 {p.title}
                 <span className="vsave__sub">
                   {p.itemCount} {plural(p.itemCount, 'видео', 'видео', 'видео')}
                 </span>
               </span>
-              {p.isPublic ? <Globe size={15} className="vsave__icon" /> : <Lock size={15} className="vsave__icon" />}
+              {p.isPublic ? (
+                <Globe size={15} className="vsave__icon" />
+              ) : (
+                <Lock size={15} className="vsave__icon" />
+              )}
             </button>
           );
         })}
@@ -485,13 +692,32 @@ export function SaveDialog({ post, onClose }: { post: Post; onClose: () => void 
         >
           <label className="field">
             <span className="field__label">Название</span>
-            <input className="input" autoFocus value={title} maxLength={100} onChange={(e) => setTitle(e.target.value)} placeholder="Например, «Посмотреть на выходных»" />
+            <input
+              className="input"
+              autoFocus
+              value={title}
+              maxLength={100}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Например, «Посмотреть на выходных»"
+            />
           </label>
           <div className="vseg" role="radiogroup" aria-label="Доступ">
-            <button type="button" role="radio" aria-checked={!isPublic} className={cn('vseg__opt', !isPublic && 'vseg__opt--on')} onClick={() => setPublic(false)}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={!isPublic}
+              className={cn('vseg__opt', !isPublic && 'vseg__opt--on')}
+              onClick={() => setPublic(false)}
+            >
               <Lock size={15} /> Личный
             </button>
-            <button type="button" role="radio" aria-checked={isPublic} className={cn('vseg__opt', isPublic && 'vseg__opt--on')} onClick={() => setPublic(true)}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={isPublic}
+              className={cn('vseg__opt', isPublic && 'vseg__opt--on')}
+              onClick={() => setPublic(true)}
+            >
               <Globe size={15} /> Открытый
             </button>
           </div>
@@ -529,26 +755,55 @@ function patchChannel(username: string, fn: (p: UserProfile) => UserProfile) {
 }
 
 /** «Подписаться» → «Вы подписаны 🔔» с выбором уведомлений, как у видеохостингов. */
-export function SubscribeButton({ user, profile }: { user: UserSummary; profile: UserProfile | undefined }) {
+export function SubscribeButton({
+  user,
+  profile,
+}: {
+  user: UserSummary;
+  profile: UserProfile | undefined;
+}) {
   const me = useMe();
   const navigate = useNavigate();
   const menu = useMenu();
   const follow = useMutation({
-    mutationFn: async (on: boolean): Promise<{ status: 'accepted' | 'pending' | 'none' }> => (on ? api.post<{ status: 'accepted' | 'pending' }>(`/users/${user.id}/follow`) : api.del(`/users/${user.id}/follow`).then(() => ({ status: 'none' as const }))),
+    mutationFn: async (on: boolean): Promise<{ status: 'accepted' | 'pending' | 'none' }> =>
+      on
+        ? api.post<{ status: 'accepted' | 'pending' }>(`/users/${user.id}/follow`)
+        : api.del(`/users/${user.id}/follow`).then(() => ({ status: 'none' as const })),
     onSuccess: (r, on) => {
       patchChannel(user.username, (p) => ({
         ...p,
-        stats: { ...p.stats, followers: Math.max(0, p.stats.followers + (on && r.status === 'accepted' ? 1 : !on && p.relationship?.following ? -1 : 0)) },
-        relationship: p.relationship ? { ...p.relationship, following: on && r.status === 'accepted', requested: on && r.status === 'pending' } : p.relationship,
+        stats: {
+          ...p.stats,
+          followers: Math.max(
+            0,
+            p.stats.followers +
+              (on && r.status === 'accepted' ? 1 : !on && p.relationship?.following ? -1 : 0),
+          ),
+        },
+        relationship: p.relationship
+          ? {
+              ...p.relationship,
+              following: on && r.status === 'accepted',
+              requested: on && r.status === 'pending',
+            }
+          : p.relationship,
         subscribed: on ? p.subscribed : false,
       }));
-      toast(on ? (r.status === 'pending' ? 'Заявка на подписку отправлена' : 'Подписка оформлена') : 'Подписка отменена');
+      toast(
+        on
+          ? r.status === 'pending'
+            ? 'Заявка на подписку отправлена'
+            : 'Подписка оформлена'
+          : 'Подписка отменена',
+      );
       void queryClient.invalidateQueries({ queryKey: ['feed', 'following'] });
     },
     onError: (e) => toast({ text: errorMessage(e), kind: 'error' }),
   });
   const bell = useMutation({
-    mutationFn: (on: boolean) => (on ? api.post(`/users/${user.id}/subscribe`) : api.del(`/users/${user.id}/subscribe`)),
+    mutationFn: (on: boolean) =>
+      on ? api.post(`/users/${user.id}/subscribe`) : api.del(`/users/${user.id}/subscribe`),
     onSuccess: (_d, on) => {
       patchChannel(user.username, (p) => ({ ...p, subscribed: on }));
       toast(on ? 'Будем присылать уведомления о новых видео и эфирах' : 'Уведомления отключены');
@@ -558,7 +813,11 @@ export function SubscribeButton({ user, profile }: { user: UserSummary; profile:
 
   if (user.id === me.id)
     return (
-      <button type="button" className="vsub vsub--ghost" onClick={() => navigate('/video/studio/content')}>
+      <button
+        type="button"
+        className="vsub vsub--ghost"
+        onClick={() => navigate('/video/studio/content')}
+      >
         Управление видео
       </button>
     );
@@ -567,19 +826,34 @@ export function SubscribeButton({ user, profile }: { user: UserSummary; profile:
   if (rel.blocked || rel.blockedBy) return null;
   if (rel.requested)
     return (
-      <button type="button" className="vsub vsub--ghost" onClick={() => follow.mutate(false)} disabled={follow.isPending}>
+      <button
+        type="button"
+        className="vsub vsub--ghost"
+        onClick={() => follow.mutate(false)}
+        disabled={follow.isPending}
+      >
         Заявка отправлена
       </button>
     );
   if (!rel.following)
     return (
-      <button type="button" className="vsub" onClick={() => follow.mutate(true)} disabled={follow.isPending}>
+      <button
+        type="button"
+        className="vsub"
+        onClick={() => follow.mutate(true)}
+        disabled={follow.isPending}
+      >
         Подписаться
       </button>
     );
   return (
     <>
-      <button type="button" className="vsub vsub--ghost" onClick={(e) => menu.openFromEvent(e)} aria-haspopup="menu">
+      <button
+        type="button"
+        className="vsub vsub--ghost"
+        onClick={(e) => menu.openFromEvent(e)}
+        aria-haspopup="menu"
+      >
         {profile.subscribed ? <BellRing size={18} /> : <Bell size={18} />}
         Вы подписаны
         <ChevronDown size={16} />
@@ -588,10 +862,23 @@ export function SubscribeButton({ user, profile }: { user: UserSummary; profile:
         anchor={menu.anchor}
         onClose={menu.close}
         items={[
-          { label: profile.subscribed ? '✓ Все уведомления' : 'Все уведомления', icon: <BellRing size={18} />, onClick: () => !profile.subscribed && bell.mutate(true) },
-          { label: !profile.subscribed ? '✓ Без уведомлений' : 'Без уведомлений', icon: <BellOff size={18} />, onClick: () => profile.subscribed && bell.mutate(false) },
+          {
+            label: profile.subscribed ? '✓ Все уведомления' : 'Все уведомления',
+            icon: <BellRing size={18} />,
+            onClick: () => !profile.subscribed && bell.mutate(true),
+          },
+          {
+            label: !profile.subscribed ? '✓ Без уведомлений' : 'Без уведомлений',
+            icon: <BellOff size={18} />,
+            onClick: () => profile.subscribed && bell.mutate(false),
+          },
           'separator',
-          { label: 'Отменить подписку', icon: <UserMinus size={18} />, danger: true, onClick: () => follow.mutate(false) },
+          {
+            label: 'Отменить подписку',
+            icon: <UserMinus size={18} />,
+            danger: true,
+            onClick: () => follow.mutate(false),
+          },
         ]}
       />
     </>
@@ -599,7 +886,17 @@ export function SubscribeButton({ user, profile }: { user: UserSummary; profile:
 }
 
 /** Строка канала: аватар, имя с галочкой, подписчики. */
-export function ChannelLine({ user, profile, size = 40, sub }: { user: UserSummary; profile?: UserProfile; size?: number; sub?: ReactNode }) {
+export function ChannelLine({
+  user,
+  profile,
+  size = 40,
+  sub,
+}: {
+  user: UserSummary;
+  profile?: UserProfile;
+  size?: number;
+  sub?: ReactNode;
+}) {
   return (
     <Link to={channelPath(user)} className="vchan">
       <Avatar src={user.avatarUrl} name={user.displayName} id={user.id} size={size} />
@@ -608,7 +905,9 @@ export function ChannelLine({ user, profile, size = 40, sub }: { user: UserSumma
           <span className="ellipsis">{user.displayName}</span>
           {user.verified && <Verified size={14} />}
         </span>
-        <span className="vchan__sub">{sub ?? (profile ? subscribersLabel(profile.stats.followers) : ' ')}</span>
+        <span className="vchan__sub">
+          {sub ?? (profile ? subscribersLabel(profile.stats.followers) : ' ')}
+        </span>
       </span>
     </Link>
   );
@@ -616,7 +915,15 @@ export function ChannelLine({ user, profile, size = 40, sub }: { user: UserSumma
 
 // ─── Описание с кликабельными таймкодами ────────────────────────────────────
 
-export function DescriptionText({ text, onSeek, max }: { text: string; onSeek?: (sec: number) => void; max?: number }) {
+export function DescriptionText({
+  text,
+  onSeek,
+  max,
+}: {
+  text: string;
+  onSeek?: (sec: number) => void;
+  max?: number;
+}) {
   const parts: ReactNode[] = [];
   let last = 0;
   for (const m of text.matchAll(TIMESTAMP_RE)) {

@@ -46,13 +46,20 @@ export function LiveChat({
   const [unread, setUnread] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const q = useQuery({ queryKey: roomKey(room), queryFn: () => initial, initialData: initial, staleTime: Infinity });
+  const q = useQuery({
+    queryKey: roomKey(room),
+    queryFn: () => initial,
+    initialData: initial,
+    staleTime: Infinity,
+  });
   const messages = q.data;
   // Свежая история с сервера дополняет то, что уже пришло в реальном времени
   useEffect(() => {
     queryClient.setQueryData<LiveChatMessage[]>(roomKey(room), (old) => {
       const seen = new Set(initial.map((m) => m.id));
-      return [...initial, ...(old ?? []).filter((m) => !seen.has(m.id))].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+      return [...initial, ...(old ?? []).filter((m) => !seen.has(m.id))].sort((a, b) =>
+        a.createdAt.localeCompare(b.createdAt),
+      );
     });
   }, [room, initial]);
   const send = useMutation({
@@ -60,7 +67,9 @@ export function LiveChat({
     onSuccess: (m) => {
       setText('');
       setStuck(true);
-      queryClient.setQueryData<LiveChatMessage[]>(roomKey(room), (old) => (old?.some((x) => x.id === m.id) ? old : [...(old ?? []), m]));
+      queryClient.setQueryData<LiveChatMessage[]>(roomKey(room), (old) =>
+        old?.some((x) => x.id === m.id) ? old : [...(old ?? []), m],
+      );
     },
     onError: (e) => toast({ text: errorMessage(e), kind: 'error' }),
   });
@@ -101,26 +110,50 @@ export function LiveChat({
           {subtitle && <span className="live-chat__sub">{subtitle}</span>}
         </span>
         {onClose && (
-          <button type="button" className="live-chat__icon" onClick={onClose} aria-label="Скрыть чат" title="Скрыть чат">
+          <button
+            type="button"
+            className="live-chat__icon"
+            onClick={onClose}
+            aria-label="Скрыть чат"
+            title="Скрыть чат"
+          >
             <PanelRightClose size={18} />
           </button>
         )}
       </header>
-      <div className="live-chat__list" ref={listRef} role="log" aria-live="polite" onScroll={onScroll}>
+      <div
+        className="live-chat__list"
+        ref={listRef}
+        role="log"
+        aria-live="polite"
+        onScroll={onScroll}
+      >
         <p className="live-chat__welcome">Добро пожаловать в чат. Соблюдайте правила сообщества.</p>
-        {messages.length === 0 && <p className="live-chat__empty">Здесь пока тихо — напишите первым</p>}
+        {messages.length === 0 && (
+          <p className="live-chat__empty">Здесь пока тихо — напишите первым</p>
+        )}
         {messages.map((m) => {
           const owner = m.user.id === ownerId;
           const mine = m.user.id === me.id;
           const mentioned = !mine && m.text.toLowerCase().includes(mention);
           return (
-            <div key={m.id} className={cn('live-chat__msg', mentioned && 'live-chat__msg--mention')}>
+            <div
+              key={m.id}
+              className={cn('live-chat__msg', mentioned && 'live-chat__msg--mention')}
+            >
               <Link to={`/u/${m.user.username}`} className="live-chat__avatar" tabIndex={-1}>
                 <Avatar src={m.user.avatarUrl} name={m.user.displayName} id={m.user.id} size={24} />
               </Link>
               <span className="live-chat__body">
                 <span className="live-chat__time">{clockTime(m.createdAt)}</span>
-                <Link to={`/u/${m.user.username}`} className={cn('live-chat__name', owner && 'live-chat__name--owner', mine && !owner && 'live-chat__name--me')}>
+                <Link
+                  to={`/u/${m.user.username}`}
+                  className={cn(
+                    'live-chat__name',
+                    owner && 'live-chat__name--owner',
+                    mine && !owner && 'live-chat__name--me',
+                  )}
+                >
                   {m.user.displayName}
                 </Link>
                 <span className="live-chat__text">{m.text}</span>
@@ -160,13 +193,26 @@ export function LiveChat({
               onChange={(e) => setText(e.target.value)}
               aria-label="Сообщение в чат"
             />
-            <button type="button" className="live-chat__icon" onClick={() => setEmoji((v) => !v)} aria-label="Эмодзи" aria-expanded={emoji}>
+            <button
+              type="button"
+              className="live-chat__icon"
+              onClick={() => setEmoji((v) => !v)}
+              aria-label="Эмодзи"
+              aria-expanded={emoji}
+            >
               <Smile size={18} />
             </button>
-            <span className={cn('live-chat__count', text.length > MAX - 20 && 'live-chat__count--warn')}>
+            <span
+              className={cn('live-chat__count', text.length > MAX - 20 && 'live-chat__count--warn')}
+            >
               {text.length}/{MAX}
             </span>
-            <button type="submit" className="live-chat__send" disabled={!text.trim() || send.isPending} aria-label="Отправить">
+            <button
+              type="submit"
+              className="live-chat__send"
+              disabled={!text.trim() || send.isPending}
+              aria-label="Отправить"
+            >
               <Send size={18} />
             </button>
           </div>

@@ -9,11 +9,15 @@ import { compactNumber, plural } from '../../shared/lib/format';
 
 // ─── Склонения ──────────────────────────────────────────────────────────────
 
-export const viewersLabel = (n: number) => `${compactNumber(n)} ${plural(n, 'зритель', 'зрителя', 'зрителей')}`;
-export const watchingLabel = (n: number) => `${compactNumber(n)} ${plural(n, 'смотрит', 'смотрят', 'смотрят')}`;
-export const waitingLabel = (n: number) => `${compactNumber(n)} ${plural(n, 'ждёт', 'ждут', 'ждут')}`;
+export const viewersLabel = (n: number) =>
+  `${compactNumber(n)} ${plural(n, 'зритель', 'зрителя', 'зрителей')}`;
+export const watchingLabel = (n: number) =>
+  `${compactNumber(n)} ${plural(n, 'смотрит', 'смотрят', 'смотрят')}`;
+export const waitingLabel = (n: number) =>
+  `${compactNumber(n)} ${plural(n, 'ждёт', 'ждут', 'ждут')}`;
 export const videosLabel = (n: number) => `${compactNumber(n)} видео`;
-export const subscribersLabel = (n: number) => `${compactNumber(n)} ${plural(n, 'подписчик', 'подписчика', 'подписчиков')}`;
+export const subscribersLabel = (n: number) =>
+  `${compactNumber(n)} ${plural(n, 'подписчик', 'подписчика', 'подписчиков')}`;
 
 /** Ссылка на канал автора. */
 export const channelPath = (u: Pick<UserSummary, 'username'>) => `/u/${u.username}`;
@@ -122,7 +126,9 @@ export function trackViews(el: HTMLVideoElement, postId: string): () => void {
   let last = -1;
   const report = () => {
     if (!Number.isFinite(el.currentTime)) return;
-    void api.post(`/posts/${postId}/view`, { progressSec: Math.floor(el.currentTime) }).catch(() => undefined);
+    void api
+      .post(`/posts/${postId}/view`, { progressSec: Math.floor(el.currentTime) })
+      .catch(() => undefined);
   };
   const onTime = () => {
     if (last < 0 || Math.abs(el.currentTime - last) > 15) {
@@ -134,7 +140,9 @@ export function trackViews(el: HTMLVideoElement, postId: string): () => void {
     if (!el.ended) report();
   };
   const onEnded = () => {
-    void api.post(`/posts/${postId}/view`, { progressSec: Math.floor(el.duration || el.currentTime) }).catch(() => undefined);
+    void api
+      .post(`/posts/${postId}/view`, { progressSec: Math.floor(el.duration || el.currentTime) })
+      .catch(() => undefined);
   };
   el.addEventListener('timeupdate', onTime);
   el.addEventListener('pause', onPause);
@@ -216,7 +224,9 @@ export function savePosition(id: string, sec: number | null): void {
  * Узкий контейнер (окно, телефон): колонки страницы встают друг под друга.
  * Возвращает ref-колбэк, флаг и сам узел (он появляется после загрузки данных).
  */
-export function useCompact<T extends HTMLElement>(threshold = 1000): [(el: T | null) => void, boolean, T | null] {
+export function useCompact<T extends HTMLElement>(
+  threshold = 1000,
+): [(el: T | null) => void, boolean, T | null] {
   const [node, setNode] = useState<T | null>(null);
   const [compact, setCompact] = useState(false);
   useLayoutEffect(() => {

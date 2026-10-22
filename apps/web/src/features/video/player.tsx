@@ -9,7 +9,16 @@
  * Элемент <video> создаётся вручную, а не React-ом, — так его можно отдать
  * мини-плееру и забрать обратно без остановки воспроизведения.
  */
-import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useReducer,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import {
   Check,
   ChevronLeft,
@@ -33,7 +42,15 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { cn, duration } from '../../shared/lib/format';
-import { chapterAt, readLocal, readPosition, savePosition, useLocal, writeLocal, type Chapter } from './lib';
+import {
+  chapterAt,
+  readLocal,
+  readPosition,
+  savePosition,
+  useLocal,
+  writeLocal,
+  type Chapter,
+} from './lib';
 
 export type PlayerMode = 'vod' | 'premiere' | 'live';
 
@@ -138,7 +155,8 @@ export function Player(p: PlayerProps) {
     return () => {
       alive.current = false;
       props.current.onElement?.(null);
-      if (props.current.storageKey && mode === 'vod' && !el.ended && el.currentTime > 0) savePosition(props.current.storageKey, el.currentTime);
+      if (props.current.storageKey && mode === 'vod' && !el.ended && el.currentTime > 0)
+        savePosition(props.current.storageKey, el.currentTime);
       // Уход со страницы: пока элемент ещё в документе, его может забрать мини-плеер
       if (props.current.onRelease?.(el)) return;
       // StrictMode монтирует повторно — гасим видео, только если плеер действительно ушёл
@@ -216,7 +234,16 @@ export function Player(p: PlayerProps) {
       }
       rerender();
     };
-    const evs = ['play', 'pause', 'durationchange', 'loadedmetadata', 'progress', 'seeking', 'seeked', 'emptied'] as const;
+    const evs = [
+      'play',
+      'pause',
+      'durationchange',
+      'loadedmetadata',
+      'progress',
+      'seeking',
+      'seeked',
+      'emptied',
+    ] as const;
     evs.forEach((e) => el.addEventListener(e, on));
     el.addEventListener('timeupdate', onTime);
     el.addEventListener('waiting', onWaiting);
@@ -328,7 +355,9 @@ export function Player(p: PlayerProps) {
         ms.metadata = new MediaMetadata({
           title: props.current.title ?? '',
           artist: props.current.artist ?? 'Sunnet',
-          artwork: props.current.poster ? [{ src: new URL(props.current.poster, location.href).href }] : [],
+          artwork: props.current.poster
+            ? [{ src: new URL(props.current.poster, location.href).href }]
+            : [],
         });
       } catch {
         /* старый браузер */
@@ -337,7 +366,10 @@ export function Player(p: PlayerProps) {
       set('pause', () => el.pause());
       if (!live) {
         set('seekbackward', () => (el.currentTime = Math.max(0, el.currentTime - 10)));
-        set('seekforward', () => (el.currentTime = Math.min(el.duration || 0, el.currentTime + 10)));
+        set(
+          'seekforward',
+          () => (el.currentTime = Math.min(el.duration || 0, el.currentTime + 10)),
+        );
       }
       set('nexttrack', props.current.onNext ? () => props.current.onNext?.() : null);
     };
@@ -379,7 +411,10 @@ export function Player(p: PlayerProps) {
   const dur = Number.isFinite(el.duration) ? el.duration : 0;
   const edge = premiere ? Math.min(dur || Infinity, p.liveEdge ?? dur) : dur;
 
-  const flash = useCallback((icon: ReactNode, text?: string) => setBezel((b) => ({ icon, text, n: (b?.n ?? 0) + 1 })), []);
+  const flash = useCallback(
+    (icon: ReactNode, text?: string) => setBezel((b) => ({ icon, text, n: (b?.n ?? 0) + 1 })),
+    [],
+  );
 
   const poke = useCallback(() => {
     setActive(true);
@@ -450,7 +485,9 @@ export function Player(p: PlayerProps) {
         .requestFullscreen()
         .then(() => {
           // На телефоне горизонтальное видео — в горизонтальную ориентацию
-          const o = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> };
+          const o = screen.orientation as ScreenOrientation & {
+            lock?: (o: string) => Promise<void>;
+          };
           if (el.videoWidth > el.videoHeight) void o.lock?.('landscape').catch(() => undefined);
         })
         .catch(() => undefined);
@@ -459,9 +496,13 @@ export function Player(p: PlayerProps) {
     }
   }, [el]);
 
-  const pipSupported = typeof document !== 'undefined' && 'pictureInPictureEnabled' in document && document.pictureInPictureEnabled;
+  const pipSupported =
+    typeof document !== 'undefined' &&
+    'pictureInPictureEnabled' in document &&
+    document.pictureInPictureEnabled;
   const togglePip = useCallback(() => {
-    if (document.pictureInPictureElement === el) void document.exitPictureInPicture().catch(() => undefined);
+    if (document.pictureInPictureElement === el)
+      void document.exitPictureInPicture().catch(() => undefined);
     else void el.requestPictureInPicture?.().catch(() => undefined);
   }, [el]);
 
@@ -483,9 +524,11 @@ export function Player(p: PlayerProps) {
       const node = box.current;
       if (!node || !node.isConnected || node.offsetParent === null) return;
       const target = e.target as HTMLElement | null;
-      if (target?.closest('input, textarea, select, [contenteditable="true"], .modal, .menu')) return;
+      if (target?.closest('input, textarea, select, [contenteditable="true"], .modal, .menu'))
+        return;
       const inside = !!target && node.contains(target);
-      if ((e.key === ' ' || e.key === 'Enter') && target?.closest('button, a, [role="slider"]')) return;
+      if ((e.key === ' ' || e.key === 'Enter') && target?.closest('button, a, [role="slider"]'))
+        return;
       const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
       const handled = () => {
         e.preventDefault();
@@ -570,7 +613,10 @@ export function Player(p: PlayerProps) {
           if (mode !== 'vod') return;
           handled();
           const i = SPEEDS.indexOf(el.playbackRate);
-          const next = SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, (i < 0 ? 3 : i) + (k === '>' ? 1 : -1)))]!;
+          const next =
+            SPEEDS[
+              Math.max(0, Math.min(SPEEDS.length - 1, (i < 0 ? 3 : i) + (k === '>' ? 1 : -1)))
+            ]!;
           setSpeed(next);
           break;
         }
@@ -608,7 +654,26 @@ export function Player(p: PlayerProps) {
       window.removeEventListener('keydown', onKey);
       if (activePlayer === mine) activePlayer = null;
     };
-  }, [el, live, mode, premiere, edge, fs, help, pipSupported, toggle, seekBy, seek, setVolume, toggleMute, toggleFs, togglePip, setSpeed, flash, poke]);
+  }, [
+    el,
+    live,
+    mode,
+    premiere,
+    edge,
+    fs,
+    help,
+    pipSupported,
+    toggle,
+    seekBy,
+    seek,
+    setVolume,
+    toggleMute,
+    toggleFs,
+    togglePip,
+    setSpeed,
+    flash,
+    poke,
+  ]);
 
   // ─── Полоса перемотки ────────────────────────────────────────────────────
 
@@ -619,9 +684,12 @@ export function Player(p: PlayerProps) {
   };
 
   const chapters = p.chapters ?? [];
-  const segments = chapters.length ? chapters.map((c, i) => ({ s: c.start, e: chapters[i + 1]?.start ?? dur, title: c.title })) : [{ s: 0, e: dur, title: '' }];
+  const segments = chapters.length
+    ? chapters.map((c, i) => ({ s: c.start, e: chapters[i + 1]?.start ?? dur, title: c.title }))
+    : [{ s: 0, e: dur, title: '' }];
   let bufEnd = 0;
-  for (let i = 0; i < el.buffered.length; i++) if (el.buffered.start(i) <= el.currentTime + 1) bufEnd = Math.max(bufEnd, el.buffered.end(i));
+  for (let i = 0; i < el.buffered.length; i++)
+    if (el.buffered.start(i) <= el.currentTime + 1) bufEnd = Math.max(bufEnd, el.buffered.end(i));
   const shown = drag ?? el.currentTime;
   const current = chapterAt(chapters, shown);
   const hoverChapter = hover ? chapterAt(chapters, hover.t) : null;
@@ -654,7 +722,11 @@ export function Player(p: PlayerProps) {
     if (!live && now - lastTap.current < 320 && (rel < 0.38 || rel > 0.62)) {
       const side = rel < 0.5 ? 'l' : 'r';
       seekBy(side === 'l' ? -10 : 10);
-      setRipple((x) => ({ side, sec: x && x.side === side && now - lastTap.current < 700 ? x.sec + 10 : 10, n: (x?.n ?? 0) + 1 }));
+      setRipple((x) => ({
+        side,
+        sec: x && x.side === side && now - lastTap.current < 700 ? x.sec + 10 : 10,
+        n: (x?.n ?? 0) + 1,
+      }));
       lastTap.current = now;
       return;
     }
@@ -677,14 +749,23 @@ export function Player(p: PlayerProps) {
     <div className={cn('vp-shell', p.className)}>
       {ambientActive && (
         <div className="vp-ambient" aria-hidden>
-          {p.poster && <div className="vp-ambient__poster" style={{ backgroundImage: `url("${p.poster}")` }} />}
+          {p.poster && (
+            <div className="vp-ambient__poster" style={{ backgroundImage: `url("${p.poster}")` }} />
+          )}
           <canvas ref={ambA} width={48} height={27} />
           <canvas ref={ambB} width={48} height={27} />
         </div>
       )}
       <div
         ref={box}
-        className={cn('vp', idle && 'vp--idle', paused && 'vp--paused', fs && 'vp--fs', live && 'vp--live', !started && 'vp--fresh')}
+        className={cn(
+          'vp',
+          idle && 'vp--idle',
+          paused && 'vp--paused',
+          fs && 'vp--fs',
+          live && 'vp--live',
+          !started && 'vp--fresh',
+        )}
         style={style}
         tabIndex={-1}
         onPointerDown={() => (activePlayer = id.current)}
@@ -710,7 +791,11 @@ export function Player(p: PlayerProps) {
         {p.badges && <div className="vp__badges">{p.badges}</div>}
 
         {needUnmute && (
-          <button type="button" className="vp__unmute" onClick={() => ((el.muted = false), setNeedUnmute(false))}>
+          <button
+            type="button"
+            className="vp__unmute"
+            onClick={() => ((el.muted = false), setNeedUnmute(false))}
+          >
             <VolumeX size={18} /> Включить звук
           </button>
         )}
@@ -730,13 +815,22 @@ export function Player(p: PlayerProps) {
         )}
 
         {bezel && (
-          <div key={bezel.n} className="vp__bezel" onAnimationEnd={() => setBezel(null)} aria-hidden>
+          <div
+            key={bezel.n}
+            className="vp__bezel"
+            onAnimationEnd={() => setBezel(null)}
+            aria-hidden
+          >
             <span className="vp__bezel-icon">{bezel.icon}</span>
             {bezel.text && <span className="vp__bezel-text">{bezel.text}</span>}
           </div>
         )}
         {ripple && (
-          <div key={ripple.n} className={cn('vp__ripple', `vp__ripple--${ripple.side}`)} aria-hidden>
+          <div
+            key={ripple.n}
+            className={cn('vp__ripple', `vp__ripple--${ripple.side}`)}
+            aria-hidden
+          >
             <span>{ripple.side === 'l' ? '«' : '»'}</span>
             {ripple.sec} с
           </div>
@@ -763,15 +857,36 @@ export function Player(p: PlayerProps) {
         {!p.overlay && !failed && (
           <div className="vp__center" aria-hidden={!paused && !active}>
             {!live && (
-              <button type="button" className="vp__center-btn vp__center-btn--sm" onClick={() => seekBy(-10)} aria-label="Назад на 10 секунд">
+              <button
+                type="button"
+                className="vp__center-btn vp__center-btn--sm"
+                onClick={() => seekBy(-10)}
+                aria-label="Назад на 10 секунд"
+              >
                 <RotateCcw size={22} />
               </button>
             )}
-            <button type="button" className="vp__center-btn" onClick={toggle} aria-label={paused ? 'Смотреть' : 'Пауза'}>
-              {el.ended ? <RotateCcw size={30} /> : paused ? <Play size={30} fill="currentColor" /> : <Pause size={30} fill="currentColor" />}
+            <button
+              type="button"
+              className="vp__center-btn"
+              onClick={toggle}
+              aria-label={paused ? 'Смотреть' : 'Пауза'}
+            >
+              {el.ended ? (
+                <RotateCcw size={30} />
+              ) : paused ? (
+                <Play size={30} fill="currentColor" />
+              ) : (
+                <Pause size={30} fill="currentColor" />
+              )}
             </button>
             {!live && (
-              <button type="button" className="vp__center-btn vp__center-btn--sm" onClick={() => seekBy(10)} aria-label="Вперёд на 10 секунд">
+              <button
+                type="button"
+                className="vp__center-btn vp__center-btn--sm"
+                onClick={() => seekBy(10)}
+                aria-label="Вперёд на 10 секунд"
+              >
                 <RotateCcw size={22} style={{ transform: 'scaleX(-1)' }} />
               </button>
             )}
@@ -783,7 +898,11 @@ export function Player(p: PlayerProps) {
           {!live && (
             <div
               ref={bar}
-              className={cn('vp-bar', drag !== null && 'vp-bar--drag', premiere && 'vp-bar--premiere')}
+              className={cn(
+                'vp-bar',
+                drag !== null && 'vp-bar--drag',
+                premiere && 'vp-bar--premiere',
+              )}
               role="slider"
               tabIndex={0}
               aria-label="Перемотка"
@@ -836,35 +955,67 @@ export function Player(p: PlayerProps) {
                   const hov = hover ? Math.max(0, Math.min(1, (hover.t - s.s) / len)) : 0;
                   const hoverOn = hover && hover.t >= s.s && hover.t < s.e;
                   return (
-                    <div key={s.s} className={cn('vp-seg', hoverOn && chapters.length > 0 && 'vp-seg--hover')} style={{ flexGrow: len, '--s': s.s, '--l': len } as CSSProperties}>
+                    <div
+                      key={s.s}
+                      className={cn('vp-seg', hoverOn && chapters.length > 0 && 'vp-seg--hover')}
+                      style={{ flexGrow: len, '--s': s.s, '--l': len } as CSSProperties}
+                    >
                       <span className="vp-seg__buf" style={{ width: `${buf * 100}%` }} />
                       {hover && <span className="vp-seg__hov" style={{ width: `${hov * 100}%` }} />}
                       <span className="vp-seg__play" />
                     </div>
                   );
                 })}
-                {premiere && dur > 0 && edge < dur && <span className="vp-bar__future" style={{ left: `${(edge / dur) * 100}%` }} />}
+                {premiere && dur > 0 && edge < dur && (
+                  <span className="vp-bar__future" style={{ left: `${(edge / dur) * 100}%` }} />
+                )}
               </div>
               <span className="vp-bar__thumb" />
               {hover && dur > 0 && (
                 <span className="vp-bar__tip" style={{ left: tipLeft(hover.x, barWidth) }}>
-                  {hoverChapter && <span className="vp-bar__tip-chapter ellipsis">{hoverChapter.title}</span>}
+                  {hoverChapter && (
+                    <span className="vp-bar__tip-chapter ellipsis">{hoverChapter.title}</span>
+                  )}
                   <b>{duration(premiere ? Math.min(hover.t, edge) : hover.t)}</b>
                 </span>
               )}
             </div>
           )}
           <div className="vp__row">
-            <button type="button" className="vp-btn" onClick={toggle} data-tip={paused ? 'Смотреть (k)' : 'Пауза (k)'} aria-label={paused ? 'Смотреть' : 'Пауза'}>
-              {el.ended ? <RotateCcw size={22} /> : paused ? <Play size={22} fill="currentColor" /> : <Pause size={22} fill="currentColor" />}
+            <button
+              type="button"
+              className="vp-btn"
+              onClick={toggle}
+              data-tip={paused ? 'Смотреть (k)' : 'Пауза (k)'}
+              aria-label={paused ? 'Смотреть' : 'Пауза'}
+            >
+              {el.ended ? (
+                <RotateCcw size={22} />
+              ) : paused ? (
+                <Play size={22} fill="currentColor" />
+              ) : (
+                <Pause size={22} fill="currentColor" />
+              )}
             </button>
             {p.onNext && (
-              <button type="button" className="vp-btn vp-btn--next" onClick={p.onNext} data-tip={p.nextTitle ? `Далее: ${p.nextTitle}` : 'Следующее (Shift+N)'} aria-label="Следующее видео">
+              <button
+                type="button"
+                className="vp-btn vp-btn--next"
+                onClick={p.onNext}
+                data-tip={p.nextTitle ? `Далее: ${p.nextTitle}` : 'Следующее (Shift+N)'}
+                aria-label="Следующее видео"
+              >
                 <SkipForward size={21} fill="currentColor" />
               </button>
             )}
             <div className="vp-vol">
-              <button type="button" className="vp-btn" onClick={toggleMute} data-tip={el.muted ? 'Включить звук (m)' : 'Без звука (m)'} aria-label={el.muted ? 'Включить звук' : 'Выключить звук'}>
+              <button
+                type="button"
+                className="vp-btn"
+                onClick={toggleMute}
+                data-tip={el.muted ? 'Включить звук (m)' : 'Без звука (m)'}
+                aria-label={el.muted ? 'Включить звук' : 'Выключить звук'}
+              >
                 <VolumeIcon size={22} />
               </button>
               <input
@@ -889,7 +1040,12 @@ export function Player(p: PlayerProps) {
               </span>
             )}
             {premiere && (
-              <button type="button" className={cn('vp__edge', atEdge && 'vp__edge--on')} onClick={() => seek(edge)} data-tip="К общему показу">
+              <button
+                type="button"
+                className={cn('vp__edge', atEdge && 'vp__edge--on')}
+                onClick={() => seek(edge)}
+                data-tip="К общему показу"
+              >
                 <span className="vp__dot" /> ПРЕМЬЕРА
               </button>
             )}
@@ -909,20 +1065,40 @@ export function Player(p: PlayerProps) {
                 aria-expanded={!!menu}
               >
                 <Settings size={21} />
-                {p.quality && Number.parseInt(p.quality) >= 720 && <span className="vp-btn__hd">HD</span>}
+                {p.quality && Number.parseInt(p.quality) >= 720 && (
+                  <span className="vp-btn__hd">HD</span>
+                )}
               </button>
             )}
             {pipSupported && (
-              <button type="button" className={cn('vp-btn vp-btn--pip', pip && 'vp-btn--on')} onClick={togglePip} data-tip="Картинка в картинке (i)" aria-label="Картинка в картинке">
+              <button
+                type="button"
+                className={cn('vp-btn vp-btn--pip', pip && 'vp-btn--on')}
+                onClick={togglePip}
+                data-tip="Картинка в картинке (i)"
+                aria-label="Картинка в картинке"
+              >
                 <PictureInPicture2 size={20} />
               </button>
             )}
             {p.onTheater && !fs && (
-              <button type="button" className="vp-btn vp-btn--theater" onClick={p.onTheater} data-tip={p.theater ? 'Обычный режим (t)' : 'Кинорежим (t)'} aria-label="Кинорежим">
+              <button
+                type="button"
+                className="vp-btn vp-btn--theater"
+                onClick={p.onTheater}
+                data-tip={p.theater ? 'Обычный режим (t)' : 'Кинорежим (t)'}
+                aria-label="Кинорежим"
+              >
                 <RectangleHorizontal size={22} strokeWidth={p.theater ? 2.6 : 2} />
               </button>
             )}
-            <button type="button" className="vp-btn" onClick={toggleFs} data-tip={fs ? 'Выйти из полноэкранного режима (f)' : 'Во весь экран (f)'} aria-label="Во весь экран">
+            <button
+              type="button"
+              className="vp-btn"
+              onClick={toggleFs}
+              data-tip={fs ? 'Выйти из полноэкранного режима (f)' : 'Во весь экран (f)'}
+              aria-label="Во весь экран"
+            >
               {fs ? <Minimize size={21} /> : <Maximize size={21} />}
             </button>
           </div>
@@ -933,19 +1109,36 @@ export function Player(p: PlayerProps) {
             {menu === 'main' ? (
               <>
                 {p.ambient && !live && (
-                  <button type="button" className="vp-menu__item" role="menuitemcheckbox" aria-checked={ambientOn} onClick={() => setAmbientOn(!ambientOn)}>
+                  <button
+                    type="button"
+                    className="vp-menu__item"
+                    role="menuitemcheckbox"
+                    aria-checked={ambientOn}
+                    onClick={() => setAmbientOn(!ambientOn)}
+                  >
                     <Sparkles size={18} /> <span className="vp__grow">Атмосферная подсветка</span>
                     <span className={cn('vp-switch', ambientOn && 'vp-switch--on')} />
                   </button>
                 )}
                 {mode === 'vod' && (
-                  <button type="button" className="vp-menu__item" role="menuitemcheckbox" aria-checked={loop} onClick={() => setLoop(!loop)}>
+                  <button
+                    type="button"
+                    className="vp-menu__item"
+                    role="menuitemcheckbox"
+                    aria-checked={loop}
+                    onClick={() => setLoop(!loop)}
+                  >
                     <Repeat size={18} /> <span className="vp__grow">Повтор</span>
                     <span className={cn('vp-switch', loop && 'vp-switch--on')} />
                   </button>
                 )}
                 {mode === 'vod' && (
-                  <button type="button" className="vp-menu__item" role="menuitem" onClick={() => setMenu('speed')}>
+                  <button
+                    type="button"
+                    className="vp-menu__item"
+                    role="menuitem"
+                    onClick={() => setMenu('speed')}
+                  >
                     <Gauge size={18} /> <span className="vp__grow">Скорость</span>
                     <span className="vp-menu__value">{speedLabel(el.playbackRate)}</span>
                     <ChevronRight size={16} />
@@ -953,7 +1146,11 @@ export function Player(p: PlayerProps) {
                 )}
                 <div className="vp-menu__item vp-menu__item--static">
                   <SlidersHorizontal size={18} /> <span className="vp__grow">Качество</span>
-                  <span className="vp-menu__value">{live ? 'Авто' : (p.quality ?? (el.videoHeight ? `${el.videoHeight}p` : 'Авто'))}</span>
+                  <span className="vp-menu__value">
+                    {live
+                      ? 'Авто'
+                      : (p.quality ?? (el.videoHeight ? `${el.videoHeight}p` : 'Авто'))}
+                  </span>
                 </div>
                 <button
                   type="button"
@@ -985,7 +1182,9 @@ export function Player(p: PlayerProps) {
                       setMenu(null);
                     }}
                   >
-                    <span className="vp-menu__check">{el.playbackRate === s && <Check size={16} />}</span>
+                    <span className="vp-menu__check">
+                      {el.playbackRate === s && <Check size={16} />}
+                    </span>
                     {speedLabel(s)}
                   </button>
                 ))}
@@ -1017,7 +1216,12 @@ const SHORTCUTS: [string, string, boolean?][] = [
 
 function ShortcutsHelp({ live, onClose }: { live: boolean; onClose: () => void }) {
   return (
-    <div className="vp-help" role="dialog" aria-label="Горячие клавиши" onPointerUp={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className="vp-help"
+      role="dialog"
+      aria-label="Горячие клавиши"
+      onPointerUp={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div className="vp-help__card">
         <div className="vp-help__head">
           <b>Горячие клавиши</b>

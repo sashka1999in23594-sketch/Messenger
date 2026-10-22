@@ -30,7 +30,8 @@ export function useLiveViewer(streamId: string, enabled: boolean) {
     setState('connecting');
     setError(null);
 
-    const send = (signal: CallSignal) => peer && realtime.send({ t: 'live.signal', streamId, peer, signal });
+    const send = (signal: CallSignal) =>
+      peer && realtime.send({ t: 'live.signal', streamId, peer, signal });
 
     const handle = async (signal: CallSignal) => {
       if (!pc) return;
@@ -41,7 +42,11 @@ export function useLiveViewer(streamId: string, enabled: boolean) {
         await pc.setLocalDescription(answer);
         send({ type: 'answer', sdp: answer.sdp ?? '' });
       } else if (signal.type === 'ice') {
-        const c = { candidate: signal.candidate, sdpMid: signal.sdpMid, sdpMLineIndex: signal.sdpMLineIndex };
+        const c = {
+          candidate: signal.candidate,
+          sdpMid: signal.sdpMid,
+          sdpMLineIndex: signal.sdpMLineIndex,
+        };
         if (pc.remoteDescription) await pc.addIceCandidate(c).catch(() => undefined);
         else pendingIce.push(c);
       }
@@ -52,13 +57,16 @@ export function useLiveViewer(streamId: string, enabled: boolean) {
         if (peer && e.peer === peer) void handle(e.signal);
         else if (!peer) early.push({ peer: e.peer, signal: e.signal });
       }
-      if (e.t === 'live.updated' && e.stream.id === streamId && e.stream.status === 'ended') setState('ended');
+      if (e.t === 'live.updated' && e.stream.id === streamId && e.stream.status === 'ended')
+        setState('ended');
     });
 
     const timer = window.setTimeout(() => {
       if (!disposed && pc?.connectionState !== 'connected') {
         setState('failed');
-        setError('Не удалось подключиться к эфиру: сеть не пропускает видео. Попробуйте другую сеть');
+        setError(
+          'Не удалось подключиться к эфиру: сеть не пропускает видео. Попробуйте другую сеть',
+        );
       }
     }, CONNECT_TIMEOUT_MS);
 
@@ -71,7 +79,13 @@ export function useLiveViewer(streamId: string, enabled: boolean) {
           setStream(new MediaStream(remote.getTracks()));
         };
         pc.onicecandidate = (e) => {
-          if (e.candidate) send({ type: 'ice', candidate: e.candidate.candidate, sdpMid: e.candidate.sdpMid, sdpMLineIndex: e.candidate.sdpMLineIndex });
+          if (e.candidate)
+            send({
+              type: 'ice',
+              candidate: e.candidate.candidate,
+              sdpMid: e.candidate.sdpMid,
+              sdpMLineIndex: e.candidate.sdpMLineIndex,
+            });
         };
         pc.onconnectionstatechange = () => {
           if (pc?.connectionState === 'connected') setState('playing');
