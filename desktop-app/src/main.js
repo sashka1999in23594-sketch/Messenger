@@ -72,6 +72,7 @@ async function start() {
     },
   );
   app.on('activate', showMainWindow); // клик по значку в Dock
+  keepServerAwake(); // пока приложение живёт (даже свёрнутое в трей) — не даём серверу заснуть
 
   // Запуск вместе с системой (или после фонового обновления) — без окон
   const hidden = process.argv.includes('--hidden') || app.getLoginItemSettings().wasOpenedAsHidden || updates.consumeHiddenMarker();
@@ -217,6 +218,16 @@ function startBackgroundUpdates() {
   return check;
 }
 
+// ─── Сервер не спит, пока приложение запущено ────────────────────────────────
+// Бесплатный сервер засыпает после простоя. Пока Sunnet работает (в том числе
+// свёрнутый в трей или запущенный вместе с системой), раз в несколько минут
+// тихо дёргаем /health — тогда при открытии окна всё готово, без ожидания.
+function keepServerAwake() {
+  const ping = () => void net.fetch(HEALTH_URL, { cache: 'no-store', signal: AbortSignal.timeout(20_000) }).catch(() => {});
+  ping();
+  setInterval(ping, 10 * 60 * 1000).unref?.();
+}
+
 // ─── Сервер ──────────────────────────────────────────────────────────────────
 
 /** Одна попытка проверки — не дольше этого: зависший запрос не должен останавливать загрузку */
@@ -309,6 +320,8 @@ function createWindow() {
   mainWindow.on('close', (event) => {
     if (quitting || (!isMac && !tray)) return;
     event.preventDefault();
+    // Закрыли окно во время звонка — завершаем звонок (в фоне остаётся свёрнутое окно, не звонок)
+    mainWindow.webContents.executeJavaScript('window.__sunnetEndCall && window.__sunnetEndCall()').catch(() => {});
     if (mainWindow.isFullScreen()) {
       mainWindow.once('leave-full-screen', () => mainWindow.hide());
       mainWindow.setFullScreen(false);

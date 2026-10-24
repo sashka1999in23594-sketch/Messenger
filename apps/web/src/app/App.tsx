@@ -45,7 +45,8 @@ function Gate() {
   useEffect(() => {
     void bootstrapSession();
   }, []);
-  if (status === 'loading') return <Loading label={`${brandName()} загружается…`} />;
+  if (status === 'loading' || status === 'waking')
+    return <Loading label={status === 'waking' ? 'Сервер просыпается — это занимает до минуты…' : `${brandName()} загружается…`} />;
   if (status === 'guest')
     return (
       <BrowserRouter>

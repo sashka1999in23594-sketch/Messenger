@@ -1,5 +1,5 @@
 import type { Me } from '@omni/shared';
-import { api, onUnauthorized } from '../shared/api/client';
+import { api, ApiError, onUnauthorized } from '../shared/api/client';
 import { queryClient } from '../shared/api/query';
 import { registerDevice } from '../shared/crypto/e2e';
 import { useSession } from '../shared/stores/session';
@@ -21,14 +21,33 @@ export function leaveSession(): void {
   useSession.getState().setMe(null);
 }
 
+/** Сервер недоступен или ещё просыпается (сеть/5xx/таймаут), а не «не авторизован». */
+function serverUnreachable(e: unknown): boolean {
+  const s = e instanceof ApiError ? e.status : 0;
+  return s === 0 || s === 408 || s >= 500;
+}
+
+/**
+ * Старт: пока бесплатный сервер просыпается, показываем экран загрузки и ждём,
+ * а не выкидываем на вход. Как только сервер ответил — входим или показываем вход.
+ */
 export async function bootstrapSession(): Promise<void> {
-  try {
-    const { me } = await api.get<{ me: Me | null }>('/auth/session');
-    if (me) enterSession(me);
-    else useSession.getState().setMe(null);
-  } catch {
-    // Сервер недоступен — показываем вход (там будет сообщение об ошибке)
-    useSession.getState().setMe(null);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const { me } = await api.get<{ me: Me | null }>('/auth/session');
+      if (me) enterSession(me);
+      else useSession.getState().setMe(null);
+      return;
+    } catch (e) {
+      if (!serverUnreachable(e)) {
+        // Понятная ошибка (не «сервер спит») — показываем вход
+        useSession.getState().setMe(null);
+        return;
+      }
+      // Сервер просыпается — держим экран загрузки и пробуем снова (с нарастающей паузой)
+      useSession.getState().setWaking(true);
+      await new Promise((r) => setTimeout(r, Math.min(1500 + attempt * 500, 4000)));
+    }
   }
 }
 
@@ -51,11 +70,26 @@ export async function confirmLogout(): Promise<void> {
   if (ok) await logout();
 }
 
+// Один 401 ещё не значит «выйти»: сервер мог перезапуститься или проснуться.
+// Прежде чем выходить, переспрашиваем — и выходим только если сеанс правда недействителен.
+let verifying = false;
 onUnauthorized(() => {
-  if (useSession.getState().status === 'authenticated') {
-    leaveSession();
-    toast({ text: 'Сеанс завершён. Войдите снова', kind: 'error' });
-  }
+  if (useSession.getState().status !== 'authenticated' || verifying) return;
+  verifying = true;
+  void api
+    .get<{ me: Me | null }>('/auth/session')
+    .then(({ me }) => {
+      if (me) return; // сеанс жив — ложная тревога (например, после пробуждения сервера)
+      leaveSession();
+      toast({ text: 'Сеанс завершён. Войдите снова', kind: 'error' });
+    })
+    .catch(() => {
+      // Сервер недоступен — не выходим, просто сообщаем
+      toast({ text: 'Сервер недоступен — переподключаемся…', kind: 'error' });
+    })
+    .finally(() => {
+      verifying = false;
+    });
 });
 
 sessionEvents.addEventListener('revoked', () => {

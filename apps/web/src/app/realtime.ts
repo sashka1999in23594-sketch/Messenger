@@ -7,8 +7,9 @@ import { realtime } from '../shared/realtime/socket';
 import { useRealtime } from '../shared/stores/realtime';
 import { useSession } from '../shared/stores/session';
 import { toast } from '../shared/stores/ui';
-import { handleCallEvent, restoreIncomingCall } from '../shared/calls/engine';
-import { handleRoomEvent, restoreRoom } from '../shared/calls/room';
+import { handleCallEvent, hangup, restoreIncomingCall, useCall } from '../shared/calls/engine';
+import { handleRoomEvent, leaveRoom, restoreRoom, useRoom } from '../shared/calls/room';
+import { beacon } from '../shared/api/client';
 import { desktopNotify, playSound } from '../shared/lib/sounds';
 import { isQuietNow, usePrefs } from '../shared/stores/prefs';
 import { activeChat, forgetChat, onIncomingMessage, patchChat, patchMessage, removeMessage } from '../features/chats/cache';
@@ -147,6 +148,30 @@ export function startRealtime(): void {
   realtime.connect();
   void restoreIncomingCall();
   void restoreRoom();
+  registerCallCleanup();
+}
+
+/**
+ * Закрывают окно (вкладку или приложение) во время звонка — завершаем его,
+ * чтобы собеседники сразу это увидели, а не ждали обрыва связи.
+ * `window.__sunnetEndCall` вызывает приложение для компьютера перед сворачиванием.
+ */
+let callCleanupReady = false;
+function registerCallCleanup(): void {
+  if (callCleanupReady) return;
+  callCleanupReady = true;
+  const endNow = () => {
+    const room = useRoom.getState();
+    if (room.room && (room.phase === 'active' || room.phase === 'joining')) beacon(`/calls/rooms/${room.room.id}/leave`);
+    const call = useCall.getState();
+    if (call.call && call.phase !== 'idle' && call.phase !== 'ended') beacon(`/calls/${call.call.id}/hangup`);
+  };
+  window.addEventListener('pagehide', endNow);
+  window.addEventListener('beforeunload', endNow);
+  (window as Window & { __sunnetEndCall?: () => void }).__sunnetEndCall = () => {
+    void leaveRoom().catch(() => undefined);
+    void hangup().catch(() => undefined);
+  };
 }
 
 export function stopRealtime(): void {

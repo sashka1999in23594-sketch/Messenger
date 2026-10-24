@@ -82,6 +82,24 @@ export async function request<T>(method: string, path: string, body?: unknown, r
   return (await res.json()) as T;
 }
 
+/**
+ * Надёжная отправка при закрытии страницы: fetch с keepalive живёт дольше вкладки.
+ * Нужна, чтобы «положить трубку» и выйти из звонка, когда окно закрывают.
+ */
+export function beacon(path: string, body: unknown = {}): void {
+  try {
+    void fetch(`${API_PREFIX}${path}`, {
+      method: 'POST',
+      keepalive: true,
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': readCookie(CSRF_COOKIE) ?? '' },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    /* окно уже закрывается — ничего не поделать */
+  }
+}
+
 export const api = {
   get: <T>(path: string) => request<T>('GET', path),
   post: <T>(path: string, body: unknown = {}) => request<T>('POST', path, body),
