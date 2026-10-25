@@ -751,7 +751,7 @@ a.list-item:hover {
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
-  animation: scale-in var(--dur) var(--ease);
+  animation: scale-in var(--dur-slow) var(--ease-spring);
   overflow: hidden;
 }
 .modal--wide {
@@ -842,7 +842,7 @@ a.list-item:hover {
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(var(--blur-strong)) saturate(1.6);
   -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(1.6);
-  animation: scale-in var(--dur-fast) var(--ease);
+  animation: scale-in var(--dur) var(--ease-spring);
   transform-origin: top left;
   max-height: calc(var(--vvh, 100dvh) - 16px);
   overflow-y: auto;
