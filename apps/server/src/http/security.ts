@@ -10,7 +10,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { ErrorCode, type ApiErrorBody, ERROR_MESSAGES } from '@omni/shared';
 import { AppError } from '../lib/errors.js';
 import { deriveKey, hmac, randomToken, safeEqual } from '../lib/crypto.js';
-import { CSRF_COOKIE, CSRF_HEADER, SESSION_COOKIE } from './request.js';
+import { CSRF_COOKIE, CSRF_HEADER, DEVICE_COOKIE, SESSION_COOKIE } from './request.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
@@ -50,9 +50,17 @@ export async function registerSecurity(app: FastifyInstance): Promise<void> {
     reply.header('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), interest-cohort=()');
   });
 
-  // Определяем сеанс
+  // Определяем устройство и сеанс
   app.decorateRequest('auth', null);
-  app.addHook('onRequest', async (req) => {
+  app.decorateRequest('deviceId', '');
+  app.addHook('onRequest', async (req, reply) => {
+    // Долгоживущая метка устройства (для привязки нескольких аккаунтов) — ставим один раз
+    let did = req.cookies[DEVICE_COOKIE];
+    if (!did || did.length < 16 || did.length > 64) {
+      did = randomToken(16);
+      reply.setCookie(DEVICE_COOKIE, did, { path: '/', httpOnly: true, sameSite: 'strict', secure: config.secureCookies, maxAge: 400 * 24 * 3600 });
+    }
+    req.deviceId = did;
     const token = req.cookies[SESSION_COOKIE];
     if (!token) return;
     const s = app.ctx.services.sessions.resolve(token, req.ip);

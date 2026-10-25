@@ -34,7 +34,7 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
 
   const hub = new RealtimeHub();
   const s = createServices(db, config, hub);
-  const meta = { ip: '127.0.0.1', userAgent: 'seed', deviceName: 'Seed' };
+  const meta = { ip: '127.0.0.1', userAgent: 'seed', deviceName: 'Seed', deviceId: '' };
 
   /** Действия, запрещённые политикой приватности (например, закрытый профиль), просто пропускаем. */
   const attempt = <T>(fn: () => T): T | undefined => {

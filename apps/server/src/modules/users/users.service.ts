@@ -47,6 +47,12 @@ export class UsersService {
     private readonly hub: RealtimeHub,
   ) {}
 
+  /** Краткие профили по id, сохраняя порядок, — для списка привязанных аккаунтов. */
+  summariesByIds(ids: string[]): UserSummary[] {
+    const map = this.repo.summaries(ids);
+    return ids.map((id) => map.get(id)).filter((v): v is UserSummary => !!v);
+  }
+
   me(userId: string): Me {
     const u = this.repo.byId(userId);
     if (!u) throw notFound('Пользователь не найден');

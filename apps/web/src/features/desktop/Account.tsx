@@ -1,11 +1,15 @@
 /**
  * Меню аккаунта рабочего стола: открывается по аватару в доке и в строке меню.
  */
-import { Download, LifeBuoy, Lock, LogOut, Settings, UserRound } from 'lucide-react';
-import { confirmLogout } from '../../app/session';
+import { Download, LifeBuoy, Lock, LogOut, Settings, UserPlus, UserRound } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import type { UserSummary } from '@omni/shared';
+import { addAccount, confirmLogout, switchAccount } from '../../app/session';
+import { api, errorMessage } from '../../shared/api/client';
 import { useLock } from '../../shared/lib/passcode';
 import { usePrefs } from '../../shared/stores/prefs';
 import { useSession } from '../../shared/stores/session';
+import { toast } from '../../shared/stores/ui';
 import { Avatar } from '../../shared/ui';
 import { DeskMenu, type MenuAnchor } from './DeskMenu';
 import { openPath } from './fx';
@@ -13,7 +17,15 @@ import { openPath } from './fx';
 export function AccountMenu({ anchor, onClose }: { anchor: MenuAnchor | null; onClose: () => void }) {
   const me = useSession((s) => s.me);
   const passcode = usePrefs((s) => !!s.passcode);
+  const linked = useQuery({
+    queryKey: ['linked-accounts'],
+    queryFn: () => api.get<{ accounts: UserSummary[] }>('/auth/accounts'),
+    staleTime: 30_000,
+    enabled: !!anchor,
+  });
   if (!me) return null;
+  const others = (linked.data?.accounts ?? []).filter((a) => a.id !== me.id);
+  const switchTo = (id: string) => void switchAccount(id).catch((e) => toast({ text: errorMessage(e), kind: 'error' }));
   return (
     <DeskMenu
       anchor={anchor}
@@ -29,6 +41,14 @@ export function AccountMenu({ anchor, onClose }: { anchor: MenuAnchor | null; on
         </div>
       }
       items={[
+        ...others.map((a) => ({
+          label: a.displayName,
+          hint: `@${a.username}`,
+          icon: <Avatar src={a.avatarUrl} name={a.displayName} id={a.id} size={24} />,
+          onClick: () => switchTo(a.id),
+        })),
+        { label: 'Добавить аккаунт', icon: <UserPlus size={18} />, onClick: () => addAccount() },
+        'separator',
         { label: 'Мой профиль', icon: <UserRound size={18} />, onClick: () => openPath('/profile') },
         { label: 'Настройки', icon: <Settings size={18} />, onClick: () => openPath('/settings') },
         { label: 'Скачать приложение', icon: <Download size={18} />, onClick: () => openPath('/download') },

@@ -195,6 +195,9 @@ export const flowTotpSchema = z.object({ flow: flowToken, code: totpCode });
 /** Сброс пароля: код из письма и код из чата Sunnet */
 export const flowResetCodesSchema = z.object({ flow: flowToken, emailCode, accountCode: emailCode.optional() });
 
+/** Переключение на другой привязанный к устройству аккаунт */
+export const switchAccountSchema = z.object({ userId: id });
+
 /** Новый пароль: дважды и с подсказкой. */
 function newPasswordRules(v: { password: string; repeat: string; passwordHint: string }, ctx: z.RefinementCtx, personal: string[] = []) {
   const problem = checkPasswordPolicy(v.password, personal);

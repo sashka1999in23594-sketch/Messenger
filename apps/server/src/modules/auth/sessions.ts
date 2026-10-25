@@ -19,6 +19,7 @@ interface SessionRow {
   last_seen_at: number;
   expires_at: number;
   revoked_at: number | null;
+  device_id: string | null;
 }
 
 export interface ResolvedSession {
@@ -43,11 +44,46 @@ export class SessionService {
     const id = newId(now);
     const expiresAt = now + this.ttlMs;
     this.db.run(
-      `INSERT INTO sessions (id, user_id, token_hash, device_name, user_agent, ip, created_at, last_seen_at, expires_at)
-       VALUES (:id, :userId, :hash, :device, :ua, :ip, :now, :now, :exp)`,
-      { id, userId, hash: sha256(token), device: meta.deviceName, ua: meta.userAgent, ip: meta.ip, now, exp: expiresAt },
+      `INSERT INTO sessions (id, user_id, token_hash, device_name, user_agent, ip, created_at, last_seen_at, expires_at, device_id)
+       VALUES (:id, :userId, :hash, :device, :ua, :ip, :now, :now, :exp, :did)`,
+      { id, userId, hash: sha256(token), device: meta.deviceName, ua: meta.userAgent, ip: meta.ip, now, exp: expiresAt, did: meta.deviceId || null },
     );
     return { token, sessionId: id, expiresAt };
+  }
+
+  /** Аккаунты (их userId), привязанные к этому устройству, — для переключения. */
+  linkedUserIds(deviceId: string): string[] {
+    if (!deviceId) return [];
+    return this.db
+      .all<{ user_id: string }>(
+        `SELECT user_id, MAX(last_seen_at) AS seen FROM sessions
+         WHERE device_id = :did AND revoked_at IS NULL AND expires_at > :now
+         GROUP BY user_id ORDER BY seen DESC`,
+        { did: deviceId, now: Date.now() },
+      )
+      .map((r) => r.user_id);
+  }
+
+  /** Есть ли живой сеанс этого аккаунта на этом устройстве (право на переключение). */
+  canSwitch(deviceId: string, userId: string): boolean {
+    if (!deviceId) return false;
+    return !!this.db.get('SELECT 1 FROM sessions WHERE device_id = :did AND user_id = :userId AND revoked_at IS NULL AND expires_at > :now LIMIT 1', {
+      did: deviceId,
+      userId,
+      now: Date.now(),
+    });
+  }
+
+  /** Переключение: закрываем прежние сеансы этого аккаунта на устройстве и выдаём новый. */
+  switchTo(userId: string, meta: RequestMeta): { token: string; sessionId: string; expiresAt: number } {
+    if (meta.deviceId) {
+      this.db.run('UPDATE sessions SET revoked_at = :now WHERE user_id = :userId AND device_id = :did AND revoked_at IS NULL', {
+        now: Date.now(),
+        userId,
+        did: meta.deviceId,
+      });
+    }
+    return this.create(userId, meta);
   }
 
   /** Проверяет токен; продлевает сеанс (скользящее окно). */

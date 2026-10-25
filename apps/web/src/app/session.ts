@@ -24,6 +24,27 @@ export function leaveSession(): void {
   useSession.getState().setMe(null);
 }
 
+/**
+ * Переключиться на другой привязанный к устройству аккаунт без повторного входа.
+ * Сервер выдаёт новый сеанс для этого аккаунта, клиент перезагружает данные.
+ */
+export async function switchAccount(userId: string): Promise<void> {
+  const { me } = await api.post<{ me: Me }>('/auth/accounts/switch', { userId });
+  stopRealtime();
+  queryClient.clear();
+  enterSession(me);
+  toast(`Вы в аккаунте @${me.username}`);
+}
+
+/**
+ * Добавить ещё один аккаунт: показываем вход. Текущий аккаунт остаётся привязан
+ * к устройству (его серверный сеанс жив), поэтому после входа можно переключаться
+ * между обоими. Отмена — просто обновите страницу, вернётесь в текущий аккаунт.
+ */
+export function addAccount(): void {
+  leaveSession();
+}
+
 /** Сервер недоступен или ещё просыпается (сеть/5xx/таймаут), а не «не авторизован». */
 function serverUnreachable(e: unknown): boolean {
   const s = e instanceof ApiError ? e.status : 0;

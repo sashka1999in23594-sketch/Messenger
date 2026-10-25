@@ -6,6 +6,8 @@ import type { AuthInfo, RequestMeta } from './types.js';
 export const SESSION_COOKIE = 'omni_sid';
 export const CSRF_COOKIE = 'omni_csrf';
 export const CSRF_HEADER = 'x-csrf-token';
+/** Долгоживущая метка устройства (для привязки нескольких аккаунтов) */
+export const DEVICE_COOKIE = 'omni_did';
 
 /** Требует аутентификации и возвращает данные сеанса. */
 export function requireAuth(req: FastifyRequest): AuthInfo {
@@ -66,6 +68,7 @@ export function requestMeta(req: FastifyRequest, deviceName?: string): RequestMe
     ip: req.ip,
     userAgent,
     deviceName: (deviceName?.trim() || describeDevice(userAgent)).slice(0, LIMITS.deviceNameMax),
+    deviceId: req.deviceId || '',
   };
 }
 

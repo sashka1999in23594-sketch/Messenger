@@ -14,6 +14,7 @@ import {
   passwordConfirmSchema,
   registerSchema,
   resetPasswordSchema,
+  switchAccountSchema,
   totpConfirmSchema,
   totpDisableSchema,
   twoFactorLoginSchema,
@@ -21,7 +22,7 @@ import {
   type DevMail,
   type LoginResult,
 } from '@omni/shared';
-import { notFound, parse } from '../../lib/errors.js';
+import { forbidden, notFound, parse } from '../../lib/errors.js';
 import { noStore, requestMeta, requireAuth, SESSION_COOKIE } from '../../http/request.js';
 import type { IssuedSession } from './auth.service.js';
 
@@ -57,6 +58,27 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   /** Что умеет сервер: отправляются ли письма, публичное ли это демо. */
   app.get('/auth/config', async () => {
     return { mail: { enabled: services.mail.enabled, dev: services.mail.dev }, demo: config.demoSeed } satisfies AuthConfig;
+  });
+
+  /** Аккаунты, привязанные к этому устройству, — для быстрого переключения. */
+  app.get('/auth/accounts', async (req, reply) => {
+    noStore(reply);
+    return { accounts: services.users.summariesByIds(services.sessions.linkedUserIds(req.deviceId)) };
+  });
+
+  /** Переключиться на другой привязанный аккаунт без повторного ввода пароля. */
+  app.post('/auth/accounts/switch', { config: sensitiveRateLimit }, async (req, reply) => {
+    noStore(reply);
+    const auth = requireAuth(req);
+    const { userId } = parse(switchAccountSchema, req.body);
+    if (userId === auth.userId) return { me: services.users.me(userId) };
+    // Переключение разрешено только на аккаунт с живым сеансом на этом устройстве
+    if (!services.sessions.canSwitch(req.deviceId, userId)) {
+      throw forbidden('Этот аккаунт не привязан к устройству — войдите в него');
+    }
+    const s = services.sessions.switchTo(userId, requestMeta(req));
+    setSession(reply, { ...s, userId });
+    return { me: services.users.me(userId) };
   });
 
   /**

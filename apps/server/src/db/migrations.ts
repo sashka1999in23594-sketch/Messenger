@@ -983,4 +983,13 @@ ALTER TABLE call_room_members ADD COLUMN hand_at INTEGER;
 ALTER TABLE call_room_members ADD COLUMN speak INTEGER NOT NULL DEFAULT 0;
 `,
   },
+  {
+    version: '015_account_links',
+    sql: `
+-- Привязка нескольких аккаунтов к одному устройству (быстрое переключение).
+-- device_id берётся из долгоживущей httpOnly-cookie браузера/приложения.
+ALTER TABLE sessions ADD COLUMN device_id TEXT;
+CREATE INDEX sessions_device ON sessions(device_id);
+`,
+  },
 ];

@@ -10,6 +10,8 @@ export interface RequestMeta {
   ip: string;
   userAgent: string;
   deviceName: string;
+  /** Идентификатор браузера/приложения — для привязки нескольких аккаунтов */
+  deviceId: string;
 }
 
 declare module 'fastify' {
@@ -18,5 +20,7 @@ declare module 'fastify' {
   }
   interface FastifyRequest {
     auth: AuthInfo | null;
+    /** Устройство (из httpOnly-cookie omni_did), ставится в onRequest */
+    deviceId: string;
   }
 }
