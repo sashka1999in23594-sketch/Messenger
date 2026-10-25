@@ -1024,7 +1024,9 @@ function RoomWindow() {
   const [max, setMax] = useState(false);
   const [layout, setLayout] = useState<LayoutMode>('auto');
   const [pinned, setPinned] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab | null>(() => (window.innerWidth >= 1100 ? 'media' : null));
+  // Открываемся с полноэкранным видео: боковая панель «Показ» не занимает место,
+  // пока она не нужна. Показ экрана, музыку и участников открываем кнопкой при надобности.
+  const [tab, setTab] = useState<Tab | null>(null);
   const [menu, setMenu] = useState<'layout' | 'more' | null>(null);
   const [inviting, setInviting] = useState(false);
   const drag = useRef<{ kind: 'move' | 'size'; sx: number; sy: number; start: Rect } | null>(null);
