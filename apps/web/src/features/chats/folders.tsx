@@ -34,7 +34,6 @@ const TYPES: { id: FolderType; label: string }[] = [
   { id: 'direct', label: 'Личные' },
   { id: 'groups', label: 'Группы' },
   { id: 'channels', label: 'Каналы' },
-  { id: 'secret', label: 'Секретные' },
   { id: 'saved', label: 'Избранное' },
 ];
 

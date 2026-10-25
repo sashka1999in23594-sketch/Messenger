@@ -173,7 +173,6 @@ export const sections: NavSection[] = [
           { id: 'messenger.folders.custom', label: 'Свои папки', icon: Plus, path: '/chats/folders', keywords: ['папка', 'фильтр', 'сортировка'] },
         ],
       },
-      { id: 'messenger.secret', label: 'Секретные чаты', icon: Lock, path: '/chats/folder/secret', keywords: ['e2e', 'шифрование'] },
       { id: 'messenger.saved', label: 'Избранное', icon: Bookmark, path: '/chats/saved', keywords: ['заметки', 'saved'] },
       {
         id: 'messenger.create',
@@ -182,7 +181,6 @@ export const sections: NavSection[] = [
         children: [
           { id: 'messenger.create.direct', label: 'Новый чат', icon: MessageCircle, path: '/chats/new/direct' },
           { id: 'messenger.create.group', label: 'Новая группа', icon: Users, path: '/chats/new/group', keywords: ['открытая', 'закрытая'] },
-          { id: 'messenger.create.secret', label: 'Секретный чат', icon: Lock, path: '/chats/new/secret' },
         ],
       },
       { id: 'messenger.discover', label: 'Открытые группы', icon: Compass, path: '/chats/discover', keywords: ['вступить', 'найти группу'] },

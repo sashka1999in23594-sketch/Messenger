@@ -48,7 +48,6 @@ export const FOLDERS: { id: string; label: string }[] = [
   { id: 'unread', label: 'Непрочитанные' },
   { id: 'direct', label: 'Личные' },
   { id: 'groups', label: 'Группы' },
-  { id: 'secret', label: 'Секретные' },
   { id: 'archived', label: 'Архив' },
 ];
 
@@ -597,9 +596,7 @@ export function ChatList({
         items={[
           { label: 'Прочитать все', icon: <CheckCheck size={18} />, hidden: unreadChats.length === 0, onClick: () => void readAll() },
           { label: 'Поиск по Sunnet', icon: <Search size={18} />, onClick: () => setPalette(true) },
-          { label: 'Новая группа', icon: <Users size={18} />, hidden: channels, onClick: () => navigate('/chats/new/group') },
-          { label: 'Секретный чат', icon: <Lock size={18} />, hidden: channels, onClick: () => navigate('/chats/new/secret') },
-          { label: 'Избранное', icon: <Bookmark size={18} />, hidden: channels, onClick: () => navigate('/chats/saved') },
+          { label: 'Новая группа', icon: <Users size={18} />, hidden: channels, onClick: () => navigate('/chats/new/group') },          { label: 'Избранное', icon: <Bookmark size={18} />, hidden: channels, onClick: () => navigate('/chats/saved') },
           { label: 'Открытые группы', icon: <Compass size={18} />, hidden: channels, onClick: () => navigate('/chats/discover') },
           { label: 'Контакты', icon: <UsersRound size={18} />, hidden: channels, onClick: () => navigate('/contacts/following') },
           { label: 'Создать канал', icon: <SquarePen size={18} />, hidden: !channels, onClick: () => navigate('/channels/new') },

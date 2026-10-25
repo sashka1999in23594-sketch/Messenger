@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Compass, Lock, Megaphone, MessageCircle, Plus, Search, ShieldCheck, Users } from 'lucide-react';
+import { Compass, Megaphone, MessageCircle, Plus, Search, ShieldCheck, Users } from 'lucide-react';
 import type { ChatSummary } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { qk, queryClient } from '../../shared/api/query';
@@ -77,14 +77,14 @@ export function NoChatSelected() {
     <EmptyState
       icon={<MessageCircle size={30} />}
       title="Выберите, кому написать"
-      text="Личные чаты, группы и секретные переписки со сквозным шифрованием"
+      text="Личные чаты и группы"
       action={
         <div className="row wrap center">
           <ButtonLink to="/chats/new/direct" icon={<MessageCircle size={18} />}>
             Новый чат
           </ButtonLink>
-          <ButtonLink to="/chats/new/secret" variant="secondary" icon={<Lock size={18} />}>
-            Секретный чат
+          <ButtonLink to="/chats/new/group" variant="secondary" icon={<Users size={18} />}>
+            Новая группа
           </ButtonLink>
         </div>
       }

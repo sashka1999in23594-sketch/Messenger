@@ -179,7 +179,6 @@ export function NewChatPage({ kind: fixed }: { kind?: keyof typeof KINDS }) {
                 tabs={[
                   { to: '/chats/new/direct', label: 'Чат' },
                   { to: '/chats/new/group', label: 'Группа' },
-                  { to: '/chats/new/secret', label: 'Секретный' },
                 ]}
               />
               <div style={{ height: 16 }} />
