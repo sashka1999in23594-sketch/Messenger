@@ -871,3 +871,49 @@
   background: var(--moon-card);
   box-shadow: var(--panel-highlight), var(--moon-card-shadow);
 }
+
+/* ─── Галочка согласия перед скачиванием ─── */
+.dl__gate {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease);
+}
+.dl__gate:hover {
+  border-color: var(--border-strong);
+}
+.dl__gate--on {
+  border-color: color-mix(in oklab, var(--accent) 55%, transparent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.dl__gate input {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.dl__gate a {
+  color: var(--accent-fg);
+  text-decoration: underline;
+}
+/* Кнопки скачивания заблокированы, пока нет согласия */
+.dl--locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(0.35);
+}
+.dl--locked .dl__arrow {
+  opacity: 0.4;
+}
