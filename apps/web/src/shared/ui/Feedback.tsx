@@ -4,6 +4,8 @@ import { useUi } from '../stores/ui';
 import { cn } from '../lib/format';
 import { errorMessage } from '../api/client';
 import { Button } from './Button';
+import { Logo } from './Brand';
+import { brandName } from '../lib/brand';
 
 export function Spinner({ large }: { large?: boolean }) {
   return <span className={cn('spinner', large && 'spinner--lg')} role="status" aria-label="Загрузка" />;
@@ -14,6 +16,26 @@ export function Loading({ label }: { label?: string }) {
     <div className="center-fill" style={{ gap: 12 }}>
       <Spinner large />
       {label && <span>{label}</span>}
+    </div>
+  );
+}
+
+/**
+ * Полноэкранная заставка при старте и пробуждении сервера: разгорающееся солнце
+ * Sunnet с лучами и мягкое ожидание снизу. Ночью (Lynnet) — та же сцена с луной.
+ */
+export function SunSplash({ label }: { label?: string }) {
+  return (
+    <div className="sun-splash" role="status" aria-live="polite">
+      <div className="sun-splash__halo" aria-hidden />
+      <div className="sun-splash__logo">
+        <Logo size={120} />
+      </div>
+      <div className="sun-splash__name">{brandName()}</div>
+      {label && <div className="sun-splash__label">{label}</div>}
+      <div className="sun-splash__bar" aria-hidden>
+        <span className="sun-splash__fill" />
+      </div>
     </div>
   );
 }

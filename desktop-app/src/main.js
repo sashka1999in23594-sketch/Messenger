@@ -225,7 +225,9 @@ function startBackgroundUpdates() {
 function keepServerAwake() {
   const ping = () => void net.fetch(HEALTH_URL, { cache: 'no-store', signal: AbortSignal.timeout(20_000) }).catch(() => {});
   ping();
-  setInterval(ping, 10 * 60 * 1000).unref?.();
+  // 4 минуты: с запасом под усыпление бесплатного тарифа (~15 минут простоя),
+  // чтобы сервер не успевал заснуть, а база (и сеанс) не терялись при его перезапуске.
+  setInterval(ping, 4 * 60 * 1000).unref?.();
 }
 
 // ─── Сервер ──────────────────────────────────────────────────────────────────

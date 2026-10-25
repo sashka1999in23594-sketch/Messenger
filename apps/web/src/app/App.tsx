@@ -5,11 +5,10 @@ import { queryClient } from '../shared/api/query';
 import { applyPrefs, usePrefs } from '../shared/stores/prefs';
 import { useMediaQuery } from '../shared/hooks';
 import { useSession } from '../shared/stores/session';
-import { Aurora, ConfirmHost, Loading, Toasts } from '../shared/ui';
+import { Aurora, ConfirmHost, Loading, SunSplash, Toasts } from '../shared/ui';
 import { GuestApp } from '../features/auth/GuestApp';
 import { AppRoutes } from './routes';
 import { bootstrapSession } from './session';
-import { brandName } from '../shared/lib/brand';
 
 /** Внешний вид применяется к <html> при любом изменении настроек. */
 function PrefsSync() {
@@ -46,7 +45,7 @@ function Gate() {
     void bootstrapSession();
   }, []);
   if (status === 'loading' || status === 'waking')
-    return <Loading label={status === 'waking' ? 'Сервер просыпается — это занимает до минуты…' : `${brandName()} загружается…`} />;
+    return <SunSplash label={status === 'waking' ? 'Сервер просыпается — это занимает до минуты…' : 'Загружаем…'} />;
   if (status === 'guest')
     return (
       <BrowserRouter>

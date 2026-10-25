@@ -93,3 +93,118 @@
     animation: none !important;
   }
 }
+
+/* ─── Заставка загрузки: солнце Sunnet разгорается ─── */
+.sun-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  background:
+    radial-gradient(120% 90% at 50% 38%, color-mix(in oklab, var(--brand-sun) 14%, transparent), transparent 60%),
+    var(--bg);
+  animation: sun-splash-in 0.5s var(--ease);
+}
+.sun-splash__halo {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  width: 420px;
+  height: 420px;
+  max-width: 88vw;
+  max-height: 88vw;
+  translate: -50% -50%;
+  pointer-events: none;
+  background: radial-gradient(circle, color-mix(in oklab, var(--brand-sun) 38%, transparent) 0, transparent 60%);
+  filter: blur(10px);
+  animation: sun-splash-breathe 3.2s ease-in-out infinite alternate;
+}
+.sun-splash__logo {
+  position: relative;
+}
+/* В заставке солнце «горит» постоянно — те же лучи и сияние, что при наведении */
+.sun-splash__logo .logo--day .logo__img {
+  animation: sun-splash-float 4s ease-in-out infinite alternate;
+}
+.sun-splash__logo .logo--day .logo__beams {
+  opacity: 0.5;
+  animation: logo-beams 16s linear infinite;
+}
+.sun-splash__logo .logo--day .logo__glow {
+  opacity: 1;
+  animation: logo-glow 2.6s ease-in-out infinite alternate;
+}
+.sun-splash__name {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+.sun-splash__label {
+  max-width: 320px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+.sun-splash__bar {
+  margin-top: 6px;
+  width: 180px;
+  max-width: 60vw;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: color-mix(in oklab, var(--brand-sun) 18%, transparent);
+  overflow: hidden;
+}
+.sun-splash__fill {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--brand-sun), var(--accent));
+  animation: sun-splash-slide 1.3s var(--ease) infinite;
+}
+@keyframes sun-splash-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes sun-splash-breathe {
+  from {
+    opacity: 0.6;
+    scale: 0.96;
+  }
+  to {
+    opacity: 1;
+    scale: 1.05;
+  }
+}
+@keyframes sun-splash-float {
+  from {
+    translate: 0 -2px;
+  }
+  to {
+    translate: 0 5px;
+  }
+}
+@keyframes sun-splash-slide {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(320%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sun-splash,
+  .sun-splash * {
+    animation: none !important;
+  }
+}

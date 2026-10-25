@@ -6,17 +6,20 @@ import { useSession } from '../shared/stores/session';
 import { toast } from '../shared/stores/ui';
 import { confirm } from '../shared/ui/Modal';
 import { sessionEvents, startRealtime, stopRealtime } from './realtime';
+import { startKeepAwake, stopKeepAwake } from './keep-awake';
 
 /** Вызывается после успешного входа/регистрации и при старте с живым сеансом. */
 export function enterSession(me: Me): void {
   useSession.getState().setMe(me);
   startRealtime();
+  startKeepAwake();
   // Публикуем ключ шифрования устройства (для секретных чатов)
   void registerDevice();
 }
 
 export function leaveSession(): void {
   stopRealtime();
+  stopKeepAwake();
   queryClient.clear();
   useSession.getState().setMe(null);
 }
