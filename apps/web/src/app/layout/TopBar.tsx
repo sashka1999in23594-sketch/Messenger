@@ -81,7 +81,6 @@ export function useBack(section: NavSection) {
 }
 
 export function TopBar({ section }: { section: NavSection }) {
-  const navigate = useNavigate();
   const { pathname } = useLocation();
   const isDesktop = useIsDesktop();
   const navCollapsed = usePrefs((s) => s.navCollapsed);
@@ -90,6 +89,7 @@ export function TopBar({ section }: { section: NavSection }) {
   const setNavOpen = useUi((s) => s.setNavOpen);
   const navOpen = useUi((s) => s.navOpen);
   const setPalette = useUi((s) => s.setPalette);
+  const setNotif = useUi((s) => s.setNotif);
   const status = useRealtime((s) => s.status);
   const me = useSession((s) => s.me);
   const notifications = useBadge('notifications');
@@ -144,7 +144,7 @@ export function TopBar({ section }: { section: NavSection }) {
         </IconButton>
       </span>
       {me && (
-        <IconButton label="Уведомления" className="topbar__bell" onClick={() => navigate('/notifications')}>
+        <IconButton label="Уведомления" className="topbar__bell" onClick={() => setNotif(true)}>
           <Bell size={22} />
           {notifications > 0 && <span className="badge badge--red">{notifications > 99 ? '99+' : notifications}</span>}
         </IconButton>

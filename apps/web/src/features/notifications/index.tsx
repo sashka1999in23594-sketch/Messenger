@@ -65,7 +65,7 @@ function bucket(iso: string): string {
 }
 
 /** Мои подписки — чтобы на «подписался на вас» показать «Подписаться в ответ» или «Вы подписаны». */
-function useFollowingIds() {
+export function useFollowingIds() {
   const me = useMe();
   return useQuery({
     queryKey: ['following-ids', me.id],
@@ -92,8 +92,7 @@ function FollowBack({ user, following }: { user: UserSummary; following: boolean
   );
 }
 
-function NotificationRow({ n, followingIds }: { n: AppNotification; followingIds?: Set<string> }) {
-  const navigate = useNavigate();
+export function NotificationRow({ n, followingIds, onOpen }: { n: AppNotification; followingIds?: Set<string>; onOpen: (to: string) => void }) {
   // Приглашение в компанию или сообщество — с кнопками «Принять» и «Отклонить», пока не ответили
   const invite = useMyInvites().data?.items.find((i) => n.type === 'space_invite' && i.id === n.entityId);
   const kind = KIND[n.type];
@@ -102,7 +101,7 @@ function NotificationRow({ n, followingIds }: { n: AppNotification; followingIds
     if (!actor) return;
     try {
       const chat = await api.post<ChatSummary>('/chats/direct', { userId: actor.id });
-      navigate(`/chats/${chat.id}`);
+      onOpen(`/chats/${chat.id}`);
     } catch (e) {
       toast({ text: errorMessage(e), kind: 'error' });
     }
@@ -117,7 +116,7 @@ function NotificationRow({ n, followingIds }: { n: AppNotification; followingIds
     ) : null;
   return (
     <div className={cn('nt-row', !n.readAt && 'nt-row--unread')}>
-      <button type="button" className="nt-row__main" onClick={() => n.link && navigate(n.link)}>
+      <button type="button" className="nt-row__main" onClick={() => n.link && onOpen(n.link)}>
         <span className="nt-row__avatar">
           {actor ? (
             <Avatar src={actor.avatarUrl} name={actor.displayName} id={actor.id} size={48} />
@@ -197,6 +196,7 @@ const FILTERS = [
 
 export function NotificationsPage() {
   const { filter = 'all' } = useParams();
+  const navigate = useNavigate();
   const list = useCursorList<AppNotification>(qk.notifications(filter), `/notifications?filter=${filter}`);
   const items = flatPages(list.data);
   const counters = useSession((s) => s.me?.counters);
@@ -247,7 +247,7 @@ export function NotificationsPage() {
               <section key={g.title} className="nt-group">
                 <h2 className="nt-group__title">{g.title}</h2>
                 {g.items.map((n) => (
-                  <NotificationRow key={n.id} n={n} followingIds={following.data} />
+                  <NotificationRow key={n.id} n={n} followingIds={following.data} onOpen={navigate} />
                 ))}
               </section>
             ))

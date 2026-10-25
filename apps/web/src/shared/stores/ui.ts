@@ -13,6 +13,8 @@ interface UiState {
   drawerOpen: boolean;
   navOpen: boolean;
   paletteOpen: boolean;
+  /** Центр уведомлений — выезжающая справа панель */
+  notifOpen: boolean;
   immersive: boolean;
   /** Страница занимает всю ширину, дерево разделов выезжает по кнопке (мессенджер) */
   bare: boolean;
@@ -22,6 +24,7 @@ interface UiState {
   setDrawer: (v: boolean) => void;
   setNavOpen: (v: boolean) => void;
   setPalette: (v: boolean) => void;
+  setNotif: (v: boolean) => void;
   setImmersive: (v: boolean) => void;
   setBare: (v: boolean) => void;
   setCrumb: (v: string | null) => void;
@@ -35,6 +38,7 @@ export const useUi = create<UiState>((set, get) => ({
   drawerOpen: false,
   navOpen: false,
   paletteOpen: false,
+  notifOpen: false,
   immersive: false,
   bare: false,
   crumb: null,
@@ -42,6 +46,7 @@ export const useUi = create<UiState>((set, get) => ({
   setDrawer: (v) => set({ drawerOpen: v }),
   setNavOpen: (v) => set({ navOpen: v }),
   setPalette: (v) => set({ paletteOpen: v }),
+  setNotif: (v) => set({ notifOpen: v }),
   setImmersive: (v) => set({ immersive: v }),
   setBare: (v) => set({ bare: v }),
   setCrumb: (v) => set({ crumb: v }),

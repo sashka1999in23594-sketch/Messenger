@@ -10,6 +10,7 @@ import { Loading } from '../../shared/ui';
 import { CallScreen } from '../../features/calls/CallScreen';
 import { RoomScreen } from '../../features/calls/RoomScreen';
 import { CommandPalette } from './CommandPalette';
+import { NotificationsPanel } from '../../features/notifications/NotificationsPanel';
 import { LockScreen } from './LockScreen';
 import { BottomTabs, MobileDrawer } from './Mobile';
 import { SectionNav } from './NavTree';
@@ -123,6 +124,7 @@ export function Shell() {
       <CommandPalette />
       <CallScreen />
       <RoomScreen />
+      <NotificationsPanel onOpen={(to) => navigate(to)} />
       <AppUpdate />
       <LockScreen />
     </div>

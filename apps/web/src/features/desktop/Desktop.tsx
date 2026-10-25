@@ -17,6 +17,7 @@ import { LockScreen } from '../../app/layout/LockScreen';
 import { setRealtimeNavigate } from '../../app/realtime';
 import { CallScreen } from '../calls/CallScreen';
 import { RoomScreen } from '../calls/RoomScreen';
+import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import { isAppPath, isMac, titleFor } from './apps';
 import { DeskMenu, useDeskMenu } from './DeskMenu';
 import { Dock } from './Dock';
@@ -272,6 +273,7 @@ export function Desktop() {
       </div>
       <CallScreen />
       <RoomScreen />
+      <NotificationsPanel onOpen={(to) => void openPath(to)} />
       <AppUpdate />
       <LockScreen />
     </>

@@ -247,3 +247,95 @@
 .nt-row__action--pair .btn {
   min-height: 36px;
 }
+
+/* ─── Центр уведомлений: выезжает справа (как у Windows) ─── */
+.notif-center {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  justify-content: flex-end;
+}
+.notif-center__scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: color-mix(in oklab, #000 24%, transparent);
+  animation: fade-in var(--dur) var(--ease);
+  cursor: default;
+}
+.notif-center__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(390px, 100vw);
+  height: 100%;
+  background: var(--bg-elevated-solid);
+  border-left: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-lg);
+  animation: notif-slide var(--dur-slow) var(--ease-spring);
+}
+.notif-center__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 10px 14px 18px;
+  border-bottom: 1px solid var(--panel-border);
+}
+.notif-center__head b {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+.notif-center__act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  color: var(--text-2);
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.notif-center__act:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.notif-center__act:disabled {
+  opacity: 0.4;
+}
+.notif-center__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 6px 10px;
+}
+.notif-center__foot {
+  border-top: 1px solid var(--panel-border);
+  padding: 10px 12px;
+}
+.notif-center__all {
+  width: 100%;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  transition: background var(--dur-fast) var(--ease);
+}
+.notif-center__all:hover {
+  background: var(--surface-hover);
+}
+@keyframes notif-slide {
+  from {
+    transform: translateX(100%);
+    opacity: 0.5;
+  }
+}
+@media (max-width: 480px) {
+  .notif-center__panel {
+    width: 100vw;
+  }
+}

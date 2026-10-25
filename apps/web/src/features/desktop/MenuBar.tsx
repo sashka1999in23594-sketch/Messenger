@@ -189,7 +189,7 @@ export function MenuBar() {
             <WifiOff size={15} /> Нет связи
           </span>
         )}
-        <button type="button" className="menubar__icon" onClick={() => openPath('/notifications')} aria-label={notif ? `Уведомления: ${notif} новых` : 'Уведомления'} title="Уведомления">
+        <button type="button" className="menubar__icon" onClick={() => useUi.getState().setNotif(true)} aria-label={notif ? `Уведомления: ${notif} новых` : 'Уведомления'} title="Уведомления">
           <Bell size={16} />
           {notif > 0 && <span className="badge menubar__badge">{notif > 99 ? '99+' : notif}</span>}
         </button>
