@@ -94,117 +94,260 @@
   }
 }
 
-/* ─── Заставка загрузки: солнце Sunnet разгорается ─── */
+/* ─── Заставка загрузки: полноэкранный анимированный закат Sunnet ─── */
 .sun-splash {
   position: fixed;
   inset: 0;
   z-index: 60;
+  overflow: hidden;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 24px;
-  text-align: center;
-  background:
-    radial-gradient(120% 90% at 50% 38%, color-mix(in oklab, var(--brand-sun) 14%, transparent), transparent 60%),
-    var(--bg);
-  animation: sun-splash-in 0.5s var(--ease);
+  justify-content: flex-end;
+  /* Цвета сцены — из брендовых токенов */
+  --ss-horizon: color-mix(in oklab, var(--sun) 72%, #ff6a2c);
+  --ss-mid: color-mix(in oklab, var(--brand-sun-halo) 70%, var(--sun));
+  --ss-sky: color-mix(in oklab, var(--bg) 58%, #3a1d53);
+  --ss-core: var(--sun-core);
+  --ss-sun: var(--brand-sun);
+  --ss-halo: var(--brand-sun-halo);
+  --ss-y: 48%;
+  animation: ss-fade 0.6s var(--ease);
 }
-.sun-splash__halo {
+/* Небо: закатный градиент */
+.sun-splash__sky {
   position: absolute;
-  top: 38%;
+  inset: 0;
+  background:
+    radial-gradient(130% 80% at 50% var(--ss-y), color-mix(in oklab, var(--ss-horizon) 85%, white) 0%, var(--ss-mid) 26%, transparent 62%),
+    linear-gradient(to bottom, var(--ss-sky) 0%, color-mix(in oklab, var(--ss-sky) 40%, var(--ss-mid)) 48%, var(--ss-mid) 72%, var(--ss-horizon) 100%);
+  animation: ss-sky 12s ease-in-out infinite alternate;
+}
+/* Лучи из-за солнца — медленно вращаются */
+.sun-splash__rays {
+  position: absolute;
   left: 50%;
-  width: 420px;
-  height: 420px;
-  max-width: 88vw;
-  max-height: 88vw;
+  top: var(--ss-y);
+  width: 180vmax;
+  height: 180vmax;
   translate: -50% -50%;
+  background: repeating-conic-gradient(from 0deg, color-mix(in oklab, var(--ss-sun) 55%, transparent) 0deg 2deg, transparent 2deg 9deg);
+  -webkit-mask-image: radial-gradient(circle, black 0, rgba(0, 0, 0, 0.35) 14%, transparent 40%);
+  mask-image: radial-gradient(circle, black 0, rgba(0, 0, 0, 0.35) 14%, transparent 40%);
+  mix-blend-mode: screen;
+  opacity: 0.7;
+  animation: ss-spin 60s linear infinite;
+}
+/* Солнце: диск с сиянием — встаёт, качается и пульсирует */
+.sun-splash__sun {
+  position: absolute;
+  left: 50%;
+  top: var(--ss-y);
+  width: min(42vmin, 340px);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, var(--ss-core) 0%, var(--ss-sun) 18%, color-mix(in oklab, var(--ss-halo) 90%, var(--ss-sun)) 42%, color-mix(in oklab, var(--ss-halo) 55%, transparent) 62%, transparent 74%);
+  filter: drop-shadow(0 0 60px color-mix(in oklab, var(--ss-halo) 70%, transparent));
+  animation: ss-rise 1.4s var(--ease-spring) both, ss-bob 6s ease-in-out 1.4s infinite alternate, ss-pulse 3s ease-in-out 1.4s infinite alternate;
+}
+.sun-splash__sun-core {
+  position: absolute;
+  inset: 26%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--ss-core) 0%, var(--ss-sun) 55%, transparent 72%);
+  filter: blur(2px);
+  animation: ss-flicker 2.4s ease-in-out infinite alternate;
+}
+/* Облака плывут поперёк */
+.sun-splash__clouds {
+  position: absolute;
+  inset: 0;
   pointer-events: none;
-  background: radial-gradient(circle, color-mix(in oklab, var(--brand-sun) 38%, transparent) 0, transparent 60%);
+}
+.sun-splash__cloud {
+  position: absolute;
+  height: 14vmin;
+  width: 46vmin;
+  border-radius: 50%;
+  background: radial-gradient(60% 80% at 50% 50%, color-mix(in oklab, var(--ss-horizon) 55%, #1a0f2a) 0%, transparent 72%);
   filter: blur(10px);
-  animation: sun-splash-breathe 3.2s ease-in-out infinite alternate;
-}
-.sun-splash__logo {
-  position: relative;
-}
-/* В заставке солнце «горит» постоянно — те же лучи и сияние, что при наведении */
-.sun-splash__logo .logo--day .logo__img {
-  animation: sun-splash-float 4s ease-in-out infinite alternate;
-}
-.sun-splash__logo .logo--day .logo__beams {
   opacity: 0.5;
-  animation: logo-beams 16s linear infinite;
+  mix-blend-mode: multiply;
 }
-.sun-splash__logo .logo--day .logo__glow {
-  opacity: 1;
-  animation: logo-glow 2.6s ease-in-out infinite alternate;
+.sun-splash__cloud--1 {
+  top: 40%;
+  animation: ss-cloud 26s linear infinite;
+}
+.sun-splash__cloud--2 {
+  top: 56%;
+  width: 64vmin;
+  opacity: 0.4;
+  animation: ss-cloud 38s linear infinite reverse;
+}
+.sun-splash__cloud--3 {
+  top: 30%;
+  width: 34vmin;
+  opacity: 0.35;
+  animation: ss-cloud 46s linear infinite;
+}
+/* Искры света поднимаются вверх */
+.sun-splash__dust {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.sun-splash__dust span {
+  position: absolute;
+  bottom: -5%;
+  left: calc((var(--i) + 1) * 6.1%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--ss-sun) 80%, white);
+  opacity: 0;
+  filter: blur(0.5px);
+  animation: ss-dust 7s linear infinite;
+  animation-delay: calc(var(--i) * -0.6s);
+}
+/* Текст и прогресс */
+.sun-splash__content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 0 24px 11vmin;
+  text-align: center;
+  animation: ss-up 0.9s var(--ease) both;
 }
 .sun-splash__name {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: var(--text);
+  font-size: clamp(30px, 7vmin, 56px);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: linear-gradient(100deg, #fff 30%, color-mix(in oklab, var(--ss-core) 60%, #fff) 50%, #fff 70%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 2px 30px color-mix(in oklab, var(--ss-halo) 80%, transparent);
+  animation: ss-shine 3.4s linear infinite;
 }
 .sun-splash__label {
-  max-width: 320px;
+  max-width: 340px;
   font-size: 14px;
-  color: var(--text-2);
+  color: color-mix(in oklab, white 86%, var(--ss-halo));
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.35);
 }
 .sun-splash__bar {
-  margin-top: 6px;
-  width: 180px;
-  max-width: 60vw;
-  height: 4px;
+  margin-top: 8px;
+  width: min(300px, 70vw);
+  height: 6px;
   border-radius: var(--radius-full);
-  background: color-mix(in oklab, var(--brand-sun) 18%, transparent);
+  background: color-mix(in oklab, #000 24%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, white 18%, transparent);
   overflow: hidden;
 }
 .sun-splash__fill {
+  position: relative;
   display: block;
-  width: 40%;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, transparent, var(--brand-sun), var(--accent));
-  animation: sun-splash-slide 1.3s var(--ease) infinite;
+  background: linear-gradient(90deg, var(--ss-halo), var(--ss-core), var(--ss-sun));
+  box-shadow: 0 0 14px color-mix(in oklab, var(--ss-halo) 80%, transparent);
+  transition: width 0.2s var(--ease);
 }
-@keyframes sun-splash-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.sun-splash__fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  background-size: 40% 100%;
+  background-repeat: no-repeat;
+  animation: ss-sheen 1.1s linear infinite;
 }
-@keyframes sun-splash-breathe {
-  from {
-    opacity: 0.6;
-    scale: 0.96;
-  }
-  to {
-    opacity: 1;
-    scale: 1.05;
-  }
+.sun-splash__pct {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  color: color-mix(in oklab, white 70%, var(--ss-halo));
 }
-@keyframes sun-splash-float {
-  from {
-    translate: 0 -2px;
-  }
-  to {
-    translate: 0 5px;
-  }
+/* Ночь (Lynnet): лунная сцена — холодные цвета, лучи почти гаснут */
+.sun-splash--night {
+  --ss-horizon: color-mix(in oklab, var(--accent) 40%, #0b1430);
+  --ss-mid: color-mix(in oklab, #24345e 80%, var(--accent));
+  --ss-sky: #070b1a;
+  --ss-core: #eef3ff;
+  --ss-sun: #cdd8f5;
+  --ss-halo: #9fb4ff;
 }
-@keyframes sun-splash-slide {
-  from {
-    transform: translateX(-120%);
-  }
-  to {
-    transform: translateX(320%);
-  }
+.sun-splash--night .sun-splash__rays {
+  opacity: 0.12;
+}
+.sun-splash--night .sun-splash__cloud {
+  mix-blend-mode: screen;
+  opacity: 0.22;
+}
+@keyframes ss-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ss-rise {
+  from { translate: -50% 40%; opacity: 0; scale: 0.8; }
+  to { translate: -50% -50%; opacity: 1; scale: 1; }
+}
+@keyframes ss-bob {
+  from { translate: -50% -52%; }
+  to { translate: -50% -47%; }
+}
+@keyframes ss-pulse {
+  from { filter: drop-shadow(0 0 40px color-mix(in oklab, var(--ss-halo) 55%, transparent)); }
+  to { filter: drop-shadow(0 0 85px color-mix(in oklab, var(--ss-halo) 85%, transparent)); }
+}
+@keyframes ss-flicker {
+  from { opacity: 0.85; scale: 0.98; }
+  to { opacity: 1; scale: 1.04; }
+}
+@keyframes ss-spin {
+  to { rotate: 360deg; }
+}
+@keyframes ss-sky {
+  from { filter: hue-rotate(-6deg) saturate(1); }
+  to { filter: hue-rotate(6deg) saturate(1.12); }
+}
+@keyframes ss-cloud {
+  from { transform: translateX(-70vw); }
+  to { transform: translateX(120vw); }
+}
+@keyframes ss-dust {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: 0.9; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-96vh) translateX(6vw); opacity: 0; }
+}
+@keyframes ss-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ss-shine {
+  to { background-position: -300% 0; }
+}
+@keyframes ss-sheen {
+  from { background-position: -40% 0; }
+  to { background-position: 140% 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .sun-splash,
   .sun-splash * {
-    animation: none !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .sun-splash__dust,
+  .sun-splash__clouds,
+  .sun-splash__rays {
+    display: none;
   }
 }

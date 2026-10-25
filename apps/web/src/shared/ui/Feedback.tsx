@@ -1,11 +1,10 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { useUi } from '../stores/ui';
 import { cn } from '../lib/format';
 import { errorMessage } from '../api/client';
 import { Button } from './Button';
-import { Logo } from './Brand';
-import { brandName } from '../lib/brand';
+import { brandName, useBrand } from '../lib/brand';
 
 export function Spinner({ large }: { large?: boolean }) {
   return <span className={cn('spinner', large && 'spinner--lg')} role="status" aria-label="Загрузка" />;
@@ -21,20 +20,42 @@ export function Loading({ label }: { label?: string }) {
 }
 
 /**
- * Полноэкранная заставка при старте и пробуждении сервера: разгорающееся солнце
- * Sunnet с лучами и мягкое ожидание снизу. Ночью (Lynnet) — та же сцена с луной.
+ * Полноэкранная заставка при старте и пробуждении сервера: анимированный закат
+ * Sunnet — встающее солнце с вращающимися лучами, плывущими облаками, искрами
+ * света и прогрессом загрузки снизу. Ночью (Lynnet) сцена становится лунной.
  */
 export function SunSplash({ label }: { label?: string }) {
+  const night = useBrand((s) => s.night);
+  const [pct, setPct] = useState(6);
+  useEffect(() => {
+    // Прогресс «догоняет» загрузку: быстро в начале, плавно замедляется к ~94%.
+    const t = setInterval(() => setPct((p) => (p >= 94 ? p : p + Math.max(0.5, (95 - p) * 0.06))), 110);
+    return () => clearInterval(t);
+  }, []);
   return (
-    <div className="sun-splash" role="status" aria-live="polite">
-      <div className="sun-splash__halo" aria-hidden />
-      <div className="sun-splash__logo">
-        <Logo size={120} />
+    <div className={cn('sun-splash', night && 'sun-splash--night')} role="status" aria-live="polite">
+      <div className="sun-splash__sky" aria-hidden />
+      <div className="sun-splash__rays" aria-hidden />
+      <div className="sun-splash__clouds" aria-hidden>
+        <span className="sun-splash__cloud sun-splash__cloud--1" />
+        <span className="sun-splash__cloud sun-splash__cloud--2" />
+        <span className="sun-splash__cloud sun-splash__cloud--3" />
       </div>
-      <div className="sun-splash__name">{brandName()}</div>
-      {label && <div className="sun-splash__label">{label}</div>}
-      <div className="sun-splash__bar" aria-hidden>
-        <span className="sun-splash__fill" />
+      <div className="sun-splash__sun" aria-hidden>
+        <span className="sun-splash__sun-core" />
+      </div>
+      <div className="sun-splash__dust" aria-hidden>
+        {Array.from({ length: 16 }, (_, i) => (
+          <span key={i} style={{ '--i': i } as CSSProperties} />
+        ))}
+      </div>
+      <div className="sun-splash__content">
+        <div className="sun-splash__name">{brandName()}</div>
+        {label && <div className="sun-splash__label">{label}</div>}
+        <div className="sun-splash__bar">
+          <span className="sun-splash__fill" style={{ width: `${pct}%` }} />
+        </div>
+        <div className="sun-splash__pct">{Math.round(pct)}%</div>
       </div>
     </div>
   );
