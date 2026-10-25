@@ -20,9 +20,29 @@ export function Loading({ label }: { label?: string }) {
 }
 
 /**
- * Полноэкранная заставка при старте и пробуждении сервера: анимированный закат
- * Sunnet — встающее солнце с вращающимися лучами, плывущими облаками, искрами
- * света и прогрессом загрузки снизу. Ночью (Lynnet) сцена становится лунной.
+ * Неравномерный веер солнечных лучей: лучи разной ширины и яркости выглядят
+ * как настоящие, а не ровной «звёздочкой». Считается один раз, детерминированно,
+ * цвет берётся из переменной сцены --ss-ray, поэтому ночью лучи холодные.
+ */
+function rayFan(seed: number, maxAlpha: number): string {
+  let s = seed >>> 0;
+  const rnd = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+  const stops: string[] = [];
+  for (let a = 0; a < 360; ) {
+    const w = 0.5 + rnd() * 3;
+    const alpha = ((0.2 + rnd() * 0.8) * maxAlpha).toFixed(3);
+    stops.push(`transparent ${a.toFixed(2)}deg`, `rgba(var(--ss-ray), ${alpha}) ${(a + w / 2).toFixed(2)}deg`, `transparent ${(a + w).toFixed(2)}deg`);
+    a += w + 1.4 + rnd() * 6;
+  }
+  return `conic-gradient(from 0deg, ${stops.join(',')})`;
+}
+const RAY_FAN_1 = rayFan(20261022, 0.5);
+const RAY_FAN_2 = rayFan(73510944, 0.34);
+
+/**
+ * Полноэкранная заставка при старте и пробуждении сервера: реалистичный закат
+ * Sunnet — встающее солнце с короной, живыми лучами-веерами, бликами объектива,
+ * плывущими облаками, искрами света и прогрессом снизу. Ночью сцена лунная (Lynnet).
  */
 export function SunSplash({ label }: { label?: string }) {
   const night = useBrand((s) => s.night);
@@ -35,17 +55,25 @@ export function SunSplash({ label }: { label?: string }) {
   return (
     <div className={cn('sun-splash', night && 'sun-splash--night')} role="status" aria-live="polite">
       <div className="sun-splash__sky" aria-hidden />
-      <div className="sun-splash__rays" aria-hidden />
+      <div className="sun-splash__rays sun-splash__rays--1" style={{ backgroundImage: RAY_FAN_1 } as CSSProperties} aria-hidden />
+      <div className="sun-splash__rays sun-splash__rays--2" style={{ backgroundImage: RAY_FAN_2 } as CSSProperties} aria-hidden />
       <div className="sun-splash__clouds" aria-hidden>
         <span className="sun-splash__cloud sun-splash__cloud--1" />
         <span className="sun-splash__cloud sun-splash__cloud--2" />
         <span className="sun-splash__cloud sun-splash__cloud--3" />
       </div>
       <div className="sun-splash__sun" aria-hidden>
+        <span className="sun-splash__sun-corona" />
         <span className="sun-splash__sun-core" />
       </div>
+      <div className="sun-splash__flares" aria-hidden>
+        <span className="sun-splash__flare sun-splash__flare--1" />
+        <span className="sun-splash__flare sun-splash__flare--2" />
+        <span className="sun-splash__flare sun-splash__flare--3" />
+        <span className="sun-splash__flare sun-splash__flare--4" />
+      </div>
       <div className="sun-splash__dust" aria-hidden>
-        {Array.from({ length: 16 }, (_, i) => (
+        {Array.from({ length: 20 }, (_, i) => (
           <span key={i} style={{ '--i': i } as CSSProperties} />
         ))}
       </div>

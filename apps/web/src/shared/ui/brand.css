@@ -112,6 +112,7 @@
   --ss-core: var(--sun-core);
   --ss-sun: var(--brand-sun);
   --ss-halo: var(--brand-sun-halo);
+  --ss-ray: 255, 240, 205;
   --ss-y: 48%;
   animation: ss-fade 0.6s var(--ease);
 }
@@ -124,41 +125,103 @@
     linear-gradient(to bottom, var(--ss-sky) 0%, color-mix(in oklab, var(--ss-sky) 40%, var(--ss-mid)) 48%, var(--ss-mid) 72%, var(--ss-horizon) 100%);
   animation: ss-sky 12s ease-in-out infinite alternate;
 }
-/* Лучи из-за солнца — медленно вращаются */
+/* Лучи из-за солнца: два неравномерных веера (фон задаётся инлайном) вращаются
+   в разные стороны с разной скоростью — живой свет, а не ровная «звёздочка». */
 .sun-splash__rays {
   position: absolute;
   left: 50%;
   top: var(--ss-y);
-  width: 180vmax;
-  height: 180vmax;
+  width: 200vmax;
+  height: 200vmax;
   translate: -50% -50%;
-  background: repeating-conic-gradient(from 0deg, color-mix(in oklab, var(--ss-sun) 55%, transparent) 0deg 2deg, transparent 2deg 9deg);
-  -webkit-mask-image: radial-gradient(circle, black 0, rgba(0, 0, 0, 0.35) 14%, transparent 40%);
-  mask-image: radial-gradient(circle, black 0, rgba(0, 0, 0, 0.35) 14%, transparent 40%);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+  -webkit-mask-image: radial-gradient(circle, transparent 3%, black 9%, rgba(0, 0, 0, 0.5) 20%, transparent 46%);
+  mask-image: radial-gradient(circle, transparent 3%, black 9%, rgba(0, 0, 0, 0.5) 20%, transparent 46%);
   mix-blend-mode: screen;
-  opacity: 0.7;
-  animation: ss-spin 60s linear infinite;
+  will-change: transform, opacity;
 }
-/* Солнце: диск с сиянием — встаёт, качается и пульсирует */
+.sun-splash__rays--1 {
+  opacity: 0.8;
+  animation: ss-spin 72s linear infinite, ss-rays-breathe 7s ease-in-out infinite alternate;
+}
+.sun-splash__rays--2 {
+  width: 150vmax;
+  height: 150vmax;
+  opacity: 0.5;
+  animation: ss-spin-rev 108s linear infinite, ss-rays-breathe 9s ease-in-out infinite alternate -3s;
+}
+/* Солнце: горячее ядро + мягкая корона — встаёт, качается и пульсирует */
 .sun-splash__sun {
   position: absolute;
   left: 50%;
   top: var(--ss-y);
-  width: min(42vmin, 340px);
+  width: min(40vmin, 320px);
   aspect-ratio: 1;
   translate: -50% -50%;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 50%, var(--ss-core) 0%, var(--ss-sun) 18%, color-mix(in oklab, var(--ss-halo) 90%, var(--ss-sun)) 42%, color-mix(in oklab, var(--ss-halo) 55%, transparent) 62%, transparent 74%);
-  filter: drop-shadow(0 0 60px color-mix(in oklab, var(--ss-halo) 70%, transparent));
-  animation: ss-rise 1.4s var(--ease-spring) both, ss-bob 6s ease-in-out 1.4s infinite alternate, ss-pulse 3s ease-in-out 1.4s infinite alternate;
+  background:
+    radial-gradient(circle at 50% 50%, var(--ss-core) 0%, color-mix(in oklab, var(--ss-core) 80%, var(--ss-sun)) 10%, var(--ss-sun) 22%, color-mix(in oklab, var(--ss-halo) 92%, var(--ss-sun)) 40%, color-mix(in oklab, var(--ss-halo) 48%, transparent) 60%, transparent 72%);
+  filter: drop-shadow(0 0 70px color-mix(in oklab, var(--ss-halo) 75%, transparent)) drop-shadow(0 0 18px color-mix(in oklab, var(--ss-core) 80%, transparent));
+  animation: ss-rise 1.5s var(--ease-spring) both, ss-bob 7s ease-in-out 1.5s infinite alternate, ss-pulse 3.4s ease-in-out 1.5s infinite alternate;
+}
+/* Корона: широкое атмосферное сияние вокруг диска */
+.sun-splash__sun-corona {
+  position: absolute;
+  inset: -70%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in oklab, var(--ss-halo) 42%, transparent) 0%, color-mix(in oklab, var(--ss-halo) 16%, transparent) 26%, transparent 55%);
+  mix-blend-mode: screen;
+  animation: ss-corona 4.5s ease-in-out infinite alternate;
 }
 .sun-splash__sun-core {
   position: absolute;
-  inset: 26%;
+  inset: 24%;
   border-radius: 50%;
-  background: radial-gradient(circle, var(--ss-core) 0%, var(--ss-sun) 55%, transparent 72%);
+  background: radial-gradient(circle, #fff 0%, var(--ss-core) 42%, var(--ss-sun) 66%, transparent 78%);
   filter: blur(2px);
   animation: ss-flicker 2.4s ease-in-out infinite alternate;
+}
+/* Блики объектива: тёплые кружки по диагонали от солнца */
+.sun-splash__flares {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  animation: ss-flares 6s ease-in-out infinite alternate;
+}
+.sun-splash__flare {
+  position: absolute;
+  left: 50%;
+  top: var(--ss-y);
+  border-radius: 50%;
+  translate: -50% -50%;
+  filter: blur(0.5px);
+}
+.sun-splash__flare--1 {
+  width: 26px;
+  height: 26px;
+  margin: 16vmin 0 0 16vmin;
+  background: radial-gradient(circle, rgba(255, 220, 160, 0.5), transparent 70%);
+}
+.sun-splash__flare--2 {
+  width: 12px;
+  height: 12px;
+  margin: 26vmin 0 0 26vmin;
+  background: radial-gradient(circle, rgba(150, 220, 255, 0.5), transparent 70%);
+}
+.sun-splash__flare--3 {
+  width: 54px;
+  height: 54px;
+  margin: 34vmin 0 0 34vmin;
+  background: radial-gradient(circle, rgba(255, 170, 120, 0.3), transparent 72%);
+}
+.sun-splash__flare--4 {
+  width: 18px;
+  height: 18px;
+  margin: -14vmin 0 0 -14vmin;
+  background: radial-gradient(circle, rgba(190, 255, 200, 0.4), transparent 72%);
 }
 /* Облака плывут поперёк */
 .sun-splash__clouds {
@@ -283,9 +346,19 @@
   --ss-core: #eef3ff;
   --ss-sun: #cdd8f5;
   --ss-halo: #9fb4ff;
+  --ss-ray: 190, 210, 255;
 }
-.sun-splash--night .sun-splash__rays {
+/* Ночью лучей почти нет (у луны их не бывает) — оставляем лёгкое вращающееся сияние */
+.sun-splash--night .sun-splash__rays--1 {
   opacity: 0.12;
+  animation: ss-spin 120s linear infinite;
+}
+.sun-splash--night .sun-splash__rays--2 {
+  opacity: 0.08;
+  animation: ss-spin-rev 160s linear infinite;
+}
+.sun-splash--night .sun-splash__flares {
+  opacity: 0.4;
 }
 .sun-splash--night .sun-splash__cloud {
   mix-blend-mode: screen;
@@ -304,15 +377,30 @@
   to { translate: -50% -47%; }
 }
 @keyframes ss-pulse {
-  from { filter: drop-shadow(0 0 40px color-mix(in oklab, var(--ss-halo) 55%, transparent)); }
-  to { filter: drop-shadow(0 0 85px color-mix(in oklab, var(--ss-halo) 85%, transparent)); }
+  from { filter: drop-shadow(0 0 48px color-mix(in oklab, var(--ss-halo) 55%, transparent)) drop-shadow(0 0 14px color-mix(in oklab, var(--ss-core) 70%, transparent)); }
+  to { filter: drop-shadow(0 0 92px color-mix(in oklab, var(--ss-halo) 88%, transparent)) drop-shadow(0 0 22px color-mix(in oklab, var(--ss-core) 90%, transparent)); }
 }
 @keyframes ss-flicker {
   from { opacity: 0.85; scale: 0.98; }
-  to { opacity: 1; scale: 1.04; }
+  to { opacity: 1; scale: 1.05; }
+}
+@keyframes ss-corona {
+  from { opacity: 0.6; scale: 0.94; }
+  to { opacity: 1; scale: 1.08; }
+}
+@keyframes ss-flares {
+  from { opacity: 0.5; }
+  to { opacity: 0.95; }
 }
 @keyframes ss-spin {
   to { rotate: 360deg; }
+}
+@keyframes ss-spin-rev {
+  to { rotate: -360deg; }
+}
+@keyframes ss-rays-breathe {
+  from { opacity: 0.45; }
+  to { opacity: 0.9; }
 }
 @keyframes ss-sky {
   from { filter: hue-rotate(-6deg) saturate(1); }
