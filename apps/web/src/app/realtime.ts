@@ -165,6 +165,13 @@ function registerCallCleanup(): void {
     if (room.room && (room.phase === 'active' || room.phase === 'joining')) beacon(`/calls/rooms/${room.room.id}/leave`);
     const call = useCall.getState();
     if (call.call && call.phase !== 'idle' && call.phase !== 'ended') beacon(`/calls/${call.call.id}/hangup`);
+    // Сразу освобождаем камеру и микрофон. Иначе при закрытии окна без выгрузки
+    // страницы (bfcache в браузере, сворачивание в трей) индикатор камеры/микрофона
+    // продолжает гореть, хотя для собеседников звонок уже завершён.
+    call.localStream?.getTracks().forEach((t) => t.stop());
+    room.local?.getTracks().forEach((t) => t.stop());
+    room.screen?.getTracks().forEach((t) => t.stop());
+    room.studio?.getTracks().forEach((t) => t.stop());
   };
   window.addEventListener('pagehide', endNow);
   window.addEventListener('beforeunload', endNow);
