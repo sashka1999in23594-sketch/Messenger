@@ -14,10 +14,18 @@
   overflow: hidden;
   cursor: pointer;
   animation: rise-in var(--dur-slow) var(--ease);
-  transition: border-color var(--dur-fast) var(--ease);
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
 }
-.pc:hover {
+.pc:not(.pc--detail):hover {
   border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.pc:not(.pc--detail):active {
+  transform: translateY(0);
 }
 .pc--detail {
   cursor: default;
