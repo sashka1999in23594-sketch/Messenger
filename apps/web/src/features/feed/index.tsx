@@ -15,7 +15,7 @@ import { PostComposer } from '../posts/PostComposer';
 import { useHiddenPosts } from '../posts/hidden';
 import { StoriesBar } from '../stories';
 import { CollectionsStrip } from '../social/collections-strip';
-import { UnderlineTabs, usePullToRefresh } from '../misc/kit';
+import { usePullToRefresh } from '../misc/kit';
 import '../posts/posts.css';
 
 /** Лента публикаций с бесконечной подгрузкой. В ленты встраивается блок рекомендаций. */
@@ -206,7 +206,6 @@ function BirthdayBanner() {
 export function FeedPage({ mode }: { mode: keyof typeof MODES }) {
   const apiMode = MODES[mode];
   const scroller = useRef<HTMLDivElement>(null);
-  const { pathname } = useLocation();
   const { indicator } = usePullToRefresh(scroller, () =>
     Promise.all([queryClient.resetQueries({ queryKey: qk.feed(apiMode, 'all') }), queryClient.invalidateQueries({ queryKey: qk.stories })]),
   );
@@ -216,21 +215,6 @@ export function FeedPage({ mode }: { mode: keyof typeof MODES }) {
         {indicator}
         <div className="feed-layout">
           <div className="feed-col">
-            <div
-              className="feed-top"
-              onClickCapture={(e) => {
-                // Нажатие на открытую вкладку — наверх, как в Instagram
-                const a = (e.target as HTMLElement).closest('a');
-                if (a && a.getAttribute('href') === pathname) scroller.current?.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            >
-              <UnderlineTabs
-                tabs={[
-                  { to: '/home', label: 'Для вас', end: true },
-                  { to: '/home/following', label: 'Подписки' },
-                ]}
-              />
-            </div>
             <BirthdayBanner />
             <div className="feed-stories">
               <StoriesBar />

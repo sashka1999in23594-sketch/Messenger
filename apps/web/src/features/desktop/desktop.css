@@ -1089,3 +1089,28 @@ body:has(.desk:not(.desk--wp-aurora)) .aurora {
   width: 100%;
   height: 100%;
 }
+
+/* ─── Чёрный стиль на ПК ───
+ * Всё внутри окон — на чистом чёрном, без светлых скруглённых подложек.
+ * Разделяют блоки только тонкие границы. Фильтры под поиском переезжают
+ * в левую панель раздела (дерево развёрнуто по умолчанию). */
+.desk {
+  --bg: #000000;
+  --surface: #000000;
+  --surface-2: #060607;
+  --surface-hover: #161619;
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --panel: rgba(0, 0, 0, 0.82);
+  --panel-solid: #0a0a0c;
+  --bar-bg: rgba(0, 0, 0, 0.88);
+  --bg-elevated: rgba(14, 14, 17, 0.96);
+  --bg-elevated-solid: #0c0c0f;
+  --surface-3: rgba(255, 255, 255, 0.05);
+  --bubble-in: #121216;
+  --desk-win-bg: #000000;
+  --desk-win-edge: rgba(255, 255, 255, 0.12);
+}
+.desk .folder-tabs {
+  display: none;
+}
