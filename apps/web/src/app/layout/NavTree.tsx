@@ -34,7 +34,7 @@ function TreeRow({ node, depth, filter, onNavigate }: { node: NavNode; depth: nu
   const hasChildren = !!node.children?.length;
   const best = findByPath(pathname);
   const active = best?.node.id === node.id;
-  const open = filter ? true : (expanded ?? true);
+  const open = filter ? true : (expanded ?? (depth === 0 || containsPath(node, pathname)));
   const Icon = node.icon;
   const isFav = favorites.includes(node.id);
   // Пункты модерации видны только модераторам (сервер всё равно проверяет роль)
