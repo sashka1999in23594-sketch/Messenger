@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Bookmark, CheckCircle2, Flame, Hash, Heart, Newspaper, TrendingUp, X } from 'lucide-react';
+import { Bookmark, CheckCircle2, Flame, Hash, Heart, ImagePlus, Newspaper, TrendingUp, X } from 'lucide-react';
 import type { Hashtag, Post, UserSummary } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { flatPages, qk, queryClient, useCursorList } from '../../shared/api/query';
@@ -11,7 +11,7 @@ import { compactNumber, plural } from '../../shared/lib/format';
 import { Avatar, Button, EmptyState, ErrorState, IconButton, ListSkeleton, LoadMore, UserRow } from '../../shared/ui';
 import { CommentsSection } from '../posts/Comments';
 import { PostCard, PostSkeleton } from '../posts/PostCard';
-import { PostComposer } from '../posts/PostComposer';
+import { ComposeSheet, PostComposer } from '../posts/PostComposer';
 import { useHiddenPosts } from '../posts/hidden';
 import { StoriesBar } from '../stories';
 import { CollectionsStrip } from '../social/collections-strip';
@@ -203,6 +203,32 @@ function BirthdayBanner() {
   );
 }
 
+/** Строка «Что нового?» — открывает редактор в шторке. */
+function ComposeEntry() {
+  const me = useMe();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <div className="feed-compose">
+        <Link to="/profile" aria-label="Мой профиль">
+          <Avatar src={me.avatarUrl} name={me.displayName} id={me.id} size={40} />
+        </Link>
+        <button type="button" className="feed-compose__field" onClick={() => setOpen(true)}>
+          <b>{me.displayName}</b>
+          <span>Что нового?</span>
+        </button>
+        <button type="button" className="pk-icon" style={{ color: 'var(--text-2)' }} onClick={() => setOpen(true)} aria-label="Добавить фото или видео">
+          <ImagePlus size={22} />
+        </button>
+        <button type="button" className="feed-compose__btn" onClick={() => setOpen(true)}>
+          Опубликовать
+        </button>
+      </div>
+      {open && <ComposeSheet onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
 export function FeedPage({ mode }: { mode: keyof typeof MODES }) {
   const apiMode = MODES[mode];
   const scroller = useRef<HTMLDivElement>(null);
@@ -228,6 +254,8 @@ export function FeedPage({ mode }: { mode: keyof typeof MODES }) {
                 tabs={[
                   { to: '/home', label: 'Для вас', end: true },
                   { to: '/home/following', label: 'Подписки' },
+                  { to: '/home/latest', label: 'Свежее' },
+                  { to: '/home/popular', label: 'Популярное' },
                 ]}
               />
             </div>
@@ -235,6 +263,7 @@ export function FeedPage({ mode }: { mode: keyof typeof MODES }) {
             <div className="feed-stories">
               <StoriesBar />
             </div>
+            <ComposeEntry />
             <PostList queryKey={qk.feed(apiMode, 'all')} path={`/feed/${apiMode}?kind=all`} suggestAfter={2} endNote />
           </div>
           <aside>
