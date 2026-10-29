@@ -190,6 +190,8 @@
   width: 84px;
 }
 .call-ctrl__btn {
+  position: relative;
+  overflow: hidden;
   width: 68px;
   height: 68px;
   border-radius: var(--radius-full);
@@ -201,6 +203,39 @@
   transition:
     transform var(--dur-fast) var(--ease-spring),
     background var(--dur-fast) var(--ease);
+}
+/* Волна от нажатия — отклик на действие */
+.call-ctrl__btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.55), transparent 62%);
+  opacity: 0;
+  transform: scale(0.3);
+  pointer-events: none;
+}
+.call-ctrl:active .call-ctrl__btn::after {
+  animation: call-ripple 0.5s var(--ease);
+}
+@keyframes call-ripple {
+  0% {
+    opacity: 0.6;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+.call-ctrl__btn svg {
+  position: relative;
+  z-index: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .call-ctrl:active .call-ctrl__btn::after {
+    animation: none;
+  }
 }
 .call-ctrl:hover .call-ctrl__btn {
   background: var(--call-glass-strong);

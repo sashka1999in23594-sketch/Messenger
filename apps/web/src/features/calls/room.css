@@ -321,6 +321,22 @@
 }
 .room-tile.is-speaking {
   outline-color: var(--room-speaking);
+  animation: room-speak 1.2s var(--ease) infinite;
+}
+/* Пульсация рамки, пока участник говорит */
+@keyframes room-speak {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--room-speaking) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 16px 2px color-mix(in oklab, var(--room-speaking) 65%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .room-tile.is-speaking {
+    animation: none;
+  }
 }
 .room-tile__video {
   position: absolute;

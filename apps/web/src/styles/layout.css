@@ -327,13 +327,36 @@
   flex: 0 0 auto;
   color: var(--text-3);
   display: flex;
-  transition: color var(--dur-fast) var(--ease);
+  transform-origin: center;
+  transition:
+    color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease-spring, var(--ease));
 }
-.tree__row:hover .tree__icon {
+/* Иконка оживает при наведении… */
+.tree__row:not(.tree__row--active):hover .tree__icon {
   color: var(--text-2);
+  transform: scale(1.18) rotate(-5deg);
 }
+/* …и пока раздел открыт */
 .tree__row--active .tree__icon {
   color: var(--accent-fg);
+  animation: tree-icon-idle 3.2s var(--ease) infinite;
+}
+@keyframes tree-icon-idle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px) scale(1.05);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tree__row:not(.tree__row--active):hover .tree__icon,
+  .tree__row--active .tree__icon {
+    animation: none;
+    transform: none;
+  }
 }
 .tree__label {
   flex: 1;
