@@ -1,0 +1,437 @@
+/* Студия эфира — тёмный «пультовый» интерфейс, как в OBS / Twitch Studio. */
+.estu-root {
+  height: 100%;
+  overflow: hidden;
+}
+.estu {
+  --st-bg: #0a0b10;
+  --st-panel: #12141c;
+  --st-panel-2: #171a24;
+  --st-border: rgba(255, 255, 255, 0.08);
+  --st-text: #eef1f7;
+  --st-text-2: #9aa3b2;
+  display: flex;
+  height: 100%;
+  background: var(--st-bg);
+  color: var(--st-text);
+}
+
+/* ─── Сцена ─── */
+.estu__stage {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+.estu__screen {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000 radial-gradient(120% 90% at 50% 0%, #15171f, #000);
+  box-shadow:
+    inset 0 0 0 1px var(--st-border),
+    0 20px 50px -24px #000;
+}
+.estu__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.estu__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  pointer-events: none;
+}
+.estu__empty b {
+  font-size: 18px;
+}
+.estu__empty span {
+  color: var(--st-text-2);
+  font-size: 13.5px;
+}
+.estu__badges {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.live-badge--on {
+  background: linear-gradient(90deg, #ff3b3b, #ff5a1f);
+  color: #fff;
+  border: none;
+  animation: st-livepulse 1.8s var(--ease) infinite;
+}
+@keyframes st-livepulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 59, 59, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(255, 59, 59, 0);
+  }
+}
+.estu__scenes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.estu-scene {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 15px;
+  border-radius: 12px;
+  background: var(--st-panel);
+  border: 1px solid var(--st-border);
+  color: var(--st-text-2);
+  font-size: 13px;
+  font-weight: 650;
+  transition:
+    transform 0.15s var(--ease),
+    color 0.15s var(--ease),
+    border-color 0.15s var(--ease),
+    background 0.15s var(--ease);
+}
+.estu-scene:hover:not(:disabled) {
+  transform: translateY(-2px);
+  color: var(--st-text);
+}
+.estu-scene--on {
+  background: linear-gradient(160deg, #ffb020, #f0620f);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 8px 20px -10px #f0620f;
+}
+.estu-scene:disabled {
+  opacity: 0.4;
+}
+
+/* ─── Пульт ─── */
+.estu__side {
+  width: 340px;
+  flex: 0 0 340px;
+  display: flex;
+  flex-direction: column;
+  background: var(--st-panel);
+  border-left: 1px solid var(--st-border);
+}
+.estu-tabs {
+  display: flex;
+  padding: 10px 12px 0;
+  gap: 4px;
+}
+.estu-tab {
+  flex: 1;
+  padding: 9px;
+  border-radius: 10px 10px 0 0;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--st-text-2);
+  transition:
+    color 0.15s var(--ease),
+    background 0.15s var(--ease);
+}
+.estu-tab--on {
+  color: var(--st-text);
+  background: var(--st-panel-2);
+}
+.estu__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.estu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.estu-group__title {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--st-text-2);
+}
+.estu-sources {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.estu-src {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 13px;
+  border-radius: 14px;
+  background: var(--st-panel-2);
+  border: 1px solid var(--st-border);
+  color: var(--st-text);
+  transition:
+    transform 0.15s var(--ease),
+    border-color 0.15s var(--ease),
+    box-shadow 0.15s var(--ease);
+}
+.estu-src span {
+  font-size: 14px;
+  font-weight: 650;
+}
+.estu-src i {
+  font-size: 11.5px;
+  font-style: normal;
+  color: var(--st-text-2);
+}
+.estu-src:hover {
+  transform: translateY(-2px);
+}
+.estu-src--on {
+  border-color: #2ad17e;
+  box-shadow: inset 0 0 0 1px #2ad17e;
+  color: #eafff4;
+}
+.estu-src--on i {
+  color: #2ad17e;
+}
+.estu-src--on svg {
+  color: #2ad17e;
+}
+.estu-colors {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.estu-color {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  transition: transform 0.15s var(--ease);
+}
+.estu-color:hover {
+  transform: scale(1.1);
+}
+.estu-color--on {
+  box-shadow:
+    0 0 0 2px var(--st-bg),
+    0 0 0 4px #f0890f;
+}
+.estu-bgrow {
+  display: flex;
+  gap: 8px;
+}
+.estu-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--st-panel-2);
+  border: 1px solid var(--st-border);
+  color: var(--st-text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  transition:
+    color 0.15s var(--ease),
+    border-color 0.15s var(--ease);
+}
+.estu-chip:hover {
+  color: var(--st-text);
+}
+.estu-chip--on {
+  color: #ffd27a;
+  border-color: #f0890f;
+}
+
+/* Микшер */
+.estu-mix {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: auto auto;
+  gap: 4px 10px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 14px;
+  background: var(--st-panel-2);
+  border: 1px solid var(--st-border);
+}
+.estu-mute {
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #223;
+  color: #cfe;
+  transition:
+    background 0.15s var(--ease),
+    transform 0.15s var(--ease);
+}
+.estu-mute:hover {
+  transform: scale(1.06);
+}
+.estu-mute--off {
+  background: #3a2030;
+  color: #ff8a9c;
+}
+.estu-fader {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.estu-meter {
+  position: relative;
+  height: 7px;
+  border-radius: 4px;
+  background: #0c0e14;
+  overflow: hidden;
+}
+.estu-meter__bar {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform: scaleX(var(--l, 0));
+  background: linear-gradient(90deg, #2ad17e 0%, #ffd84d 65%, #ff4d4d 100%);
+  transition: transform 0.06s linear;
+}
+.estu-meter__bar--music {
+  background: linear-gradient(90deg, #6aa8ff 0%, #b98bff 100%);
+}
+.estu-fader input[type='range'] {
+  width: 100%;
+  accent-color: #f0890f;
+}
+.estu-mix__name {
+  grid-column: 2;
+  font-size: 12px;
+  color: var(--st-text-2);
+}
+
+/* Поля */
+.estu-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.estu-field__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--st-text-2);
+}
+.estu-field__input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--st-border);
+  background: var(--st-panel-2);
+  color: var(--st-text);
+  font: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+.estu-field__input:focus {
+  outline: none;
+  border-color: #f0890f;
+}
+.estu-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--st-text);
+}
+.estu-row .grow {
+  flex: 1;
+}
+
+/* Чат */
+.estu__chat {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.estu__chat .live-chat {
+  flex: 1;
+  border: none;
+  border-radius: 0;
+}
+
+/* Кнопка действия */
+.estu__action {
+  padding: 14px 16px;
+  border-top: 1px solid var(--st-border);
+}
+.estu__go {
+  background: linear-gradient(135deg, #ff3b3b, #ff7a1f) !important;
+}
+
+/* Запись после эфира */
+.estu-rec {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(5, 6, 10, 0.72);
+  backdrop-filter: blur(8px);
+  z-index: 3;
+}
+.estu-rec__card {
+  width: min(460px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px;
+  border-radius: 18px;
+  background: var(--panel-solid, #15161c);
+  box-shadow: var(--shadow-lg);
+  animation: st-pop 0.35s var(--ease) both;
+}
+@keyframes st-pop {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 880px) {
+  .estu {
+    flex-direction: column;
+  }
+  .estu__side {
+    width: auto;
+    flex: 1;
+    border-left: none;
+    border-top: 1px solid var(--st-border);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-badge--on,
+  .estu-rec__card {
+    animation: none !important;
+  }
+}

@@ -242,7 +242,7 @@ export const sections: NavSection[] = [
         icon: Radio,
         children: [
           { id: 'video.live.now', label: 'Сейчас в эфире', icon: Radio, path: '/live', keywords: ['стрим', 'трансляция', 'эфир'] },
-          { id: 'video.live.start', label: 'Начать эфир', icon: RadioTower, path: '/live/new', keywords: ['стрим', 'запустить трансляцию', 'экран'] },
+          { id: 'video.live.start', label: 'Студия эфира', icon: RadioTower, path: '/live/studio', keywords: ['стрим', 'запустить трансляцию', 'экран', 'obs', 'студия', 'начать эфир'] },
         ],
       },
       { id: 'video.premieres', label: 'Премьеры', icon: Clapperboard, path: '/premieres', keywords: ['премьера', 'смотреть вместе', 'отсчёт'] },

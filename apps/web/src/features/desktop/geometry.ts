@@ -79,6 +79,7 @@ export function sizeFor(path: string, a: Rect): { w: number; h: number } {
   else if (id === 'notifications' || id === 'search') s = { w: 580, h: 720 };
   else if (id === 'home') s = { w: 820, h: a.h - 24 };
   else if (id === 'video') s = { w: 1120, h: 740 };
+  else if (id === 'studio') s = { w: 1200, h: 760 };
   else if (id === 'help' || id === 'download') s = { w: 1000, h: 740 };
   else if (['settings', 'stats', 'profile'].includes(id)) s = { w: 1040, h: 740 };
   return { w: Math.min(s.w, a.w - 48), h: Math.min(s.h, a.h - 24) };

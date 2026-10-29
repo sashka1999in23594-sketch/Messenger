@@ -637,6 +637,9 @@ body:has(.desk:not(.desk--wp-aurora)) .aurora {
 .desk-tile--create {
   --tile: #f59e0b;
 }
+.desk-tile--studio {
+  --tile: #e23b2e;
+}
 .desk-tile--help {
   --tile: var(--desk-app-help);
 }

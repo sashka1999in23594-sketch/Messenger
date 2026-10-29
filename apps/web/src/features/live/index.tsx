@@ -131,7 +131,7 @@ export function LiveHome() {
           <div className="vhome__top">
             <VideoChips active="live" />
             <ButtonLink
-              to="/live/new"
+              to="/live/studio"
               size="sm"
               pill
               className="lgo-link"
@@ -172,7 +172,7 @@ export function LiveHome() {
                         смогут писать в чат
                       </p>
                     </div>
-                    <ButtonLink to="/live/new" pill icon={<Radio size={16} />}>
+                    <ButtonLink to="/live/studio" pill icon={<Radio size={16} />}>
                       Начать трансляцию
                     </ButtonLink>
                   </div>

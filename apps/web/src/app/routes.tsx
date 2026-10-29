@@ -46,6 +46,7 @@ const stats = () => import('../features/stats');
 const live = () => import('../features/live');
 const LiveHome = lazyNamed(live, 'LiveHome');
 const GoLivePage = lazyNamed(live, 'GoLivePage');
+const StudioLivePage = lazyNamed(() => import('../features/live/Studio'), 'StudioPage');
 const LiveRoom = lazyNamed(live, 'LiveRoom');
 const PremieresPage = lazyNamed(live, 'PremieresPage');
 const StatsPage = lazyNamed(stats, 'StatsPage');
@@ -235,6 +236,7 @@ export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
         <Route path="watch/:id" element={<WatchPage />} />
         <Route path="live" element={<LiveHome />} />
         <Route path="live/new" element={<GoLivePage />} />
+        <Route path="live/studio" element={<StudioLivePage />} />
         <Route path="live/:id" element={<LiveRoom />} />
         <Route path="premieres" element={<PremieresPage />} />
         <Route path="playlist/:id" element={<PlaylistPage />} />
