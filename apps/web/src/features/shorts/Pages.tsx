@@ -113,7 +113,7 @@ export function MyShortsPage() {
             <h1>{me.displayName}</h1>
             <span className="rl-mine__user">@{me.username} · Мои Reels</span>
           </div>
-          <ButtonLink to="/reels/new" size="sm" pill icon={<Plus size={16} />}>
+          <ButtonLink to="/create" size="sm" pill icon={<Plus size={16} />}>
             Загрузить
           </ButtonLink>
         </header>
@@ -159,13 +159,13 @@ export function MyShortsPage() {
             </span>
             <h2>У вас пока нет Reels</h2>
             <p>Загрузите вертикальное видео — оно появится здесь и в ленте «Для вас».</p>
-            <ButtonLink to="/reels/new" pill icon={<Plus size={18} />}>
+            <ButtonLink to="/create" pill icon={<Plus size={18} />}>
               Загрузить Reels
             </ButtonLink>
           </div>
         ) : (
           <div className="rl-grid">
-            <Link to="/reels/new" className="rl-thumb rl-thumb--new" aria-label="Загрузить новый Reels">
+            <Link to="/create" className="rl-thumb rl-thumb--new" aria-label="Загрузить новый Reels">
               <span className="rl-thumb__plus">
                 <Plus size={26} strokeWidth={2.6} />
               </span>

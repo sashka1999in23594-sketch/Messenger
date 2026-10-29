@@ -179,7 +179,7 @@ function TopBar({ mode, mine, wide, showBack }: { mode: FeedMode; mine: boolean;
             <LayoutGrid size={20} />
           </Link>
         )}
-        <Link to="/reels/new" className={cn('rl-top__btn rl-top__btn--upload', wide && 'is-labeled')} aria-label="Загрузить Reels" title="Загрузить Reels">
+        <Link to="/create" className={cn('rl-top__btn rl-top__btn--upload', wide && 'is-labeled')} aria-label="Загрузить Reels" title="Загрузить Reels">
           <Plus size={wide ? 18 : 22} strokeWidth={2.6} />
           {wide && <span>Загрузить</span>}
         </Link>
@@ -419,7 +419,7 @@ function Feed({ mode, from, start, pool, layout, rootRef, onClean, onSheet, onAc
                 <button type="button" className="rl-cta rl-cta--ghost" onClick={() => go(0)}>
                   <ChevronUp size={18} /> К началу
                 </button>
-                <Link to="/reels/new" className="rl-cta">
+                <Link to="/create" className="rl-cta">
                   <Plus size={18} /> Загрузить свой
                 </Link>
               </div>
@@ -515,7 +515,7 @@ function FeedEmpty({ mode }: { mode: FeedMode | 'mine' }) {
       title={mode === 'trending' ? 'Популярных Reels пока нет' : mode === 'mine' ? 'У вас пока нет Reels' : 'Reels пока нет'}
       text="Загрузите первое вертикальное видео — его увидят все."
       action={
-        <Link to="/reels/new" className="rl-cta">
+        <Link to="/create" className="rl-cta">
           <Plus size={18} /> Загрузить Reels
         </Link>
       }

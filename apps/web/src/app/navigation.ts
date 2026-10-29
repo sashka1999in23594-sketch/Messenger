@@ -221,7 +221,7 @@ export const sections: NavSection[] = [
       { id: 'reels.foryou', label: 'Для вас', icon: Sparkles, path: '/reels', keywords: ['короткие видео', 'клипы', 'shorts', 'рилсы', 'кометы'] },
       { id: 'reels.following', label: 'Подписки', icon: UserCheck, path: '/reels/following' },
       { id: 'reels.popular', label: 'Популярные', icon: Flame, path: '/reels/popular' },
-      { id: 'reels.new', label: 'Загрузить в Reels', icon: Plus, path: '/reels/new', keywords: ['загрузить', 'снять', 'рилс'] },
+      { id: 'reels.new', label: 'Загрузить в Reels', icon: Plus, path: '/create', keywords: ['загрузить', 'снять', 'рилс'] },
       { id: 'reels.mine', label: 'Мои Reels', icon: User, path: '/reels/mine' },
     ],
   },

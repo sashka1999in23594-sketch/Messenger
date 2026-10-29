@@ -599,7 +599,7 @@ export function CreateButton({ compact }: { compact?: boolean }) {
           {
             label: 'Снять Reels',
             icon: <Video size={18} />,
-            onClick: () => navigate('/reels/new'),
+            onClick: () => navigate('/create'),
           },
         ]}
       />

@@ -89,7 +89,7 @@ function ProfileContent({ profile, tab, isMe }: { profile: UserProfile; tab: Tab
           <>
             <span>Фото, видео и заметки появятся в вашем профиле</span>
             {tab === 'shorts' ? (
-              <Link to="/reels/new" className="pf-empty__link">
+              <Link to="/create" className="pf-empty__link">
                 Снять Reels
               </Link>
             ) : tab === 'videos' ? (

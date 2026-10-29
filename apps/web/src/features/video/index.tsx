@@ -2022,7 +2022,7 @@ function StudioContent() {
           icon={<Upload size={28} />}
           title={kind === 'short' ? 'Reels пока нет' : 'Видео пока нет'}
           action={
-            <ButtonLink to={kind === 'short' ? '/reels/new' : '/video/upload'} pill>
+            <ButtonLink to={kind === 'short' ? '/create' : '/video/upload'} pill>
               {kind === 'short' ? 'Снять Reels' : 'Загрузить видео'}
             </ButtonLink>
           }
