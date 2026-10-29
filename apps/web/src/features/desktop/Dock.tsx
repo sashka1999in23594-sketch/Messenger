@@ -13,6 +13,8 @@ import { appFor, dockApps, titleFor, type DeskApp } from './apps';
 import { DeskMenu, useDeskMenu, type DeskMenuEntry } from './DeskMenu';
 import { activate, bounce, closeWindows, dockEls, minimizeWindow, motionOn, openPath } from './fx';
 import { activeWin, useDesktop } from './store';
+import { SunBurst } from '../create/SunBurst';
+import { useCreator } from '../create/Creator';
 
 const MAX_SCALE = 1.62;
 
@@ -154,6 +156,53 @@ function DockMin({ id }: { id: string }) {
   );
 }
 
+/**
+ * Солнце в центре дока — единая кнопка публикации. Нажатие сразу открывает
+ * проводник для выбора файла и окно «Новая публикация»; выбранный файл
+ * подхватывается окном и начинает загружаться в фоне.
+ */
+function DockSun() {
+  const enqueue = useCreator((s) => s.enqueue);
+  const input = useRef<HTMLInputElement | null>(null);
+  const tile = useRef<HTMLSpanElement | null>(null);
+  const running = useDesktop((s) => s.wins.some((w) => w.path.startsWith('/create')));
+  const open = () => {
+    bounce(tile.current);
+    openPath('/create', { from: tile.current });
+  };
+  return (
+    <div className={cn('dock-item', 'dock-item--sun', running && 'dock-item--running')} data-mag>
+      <input
+        ref={input}
+        type="file"
+        accept="image/*,video/*"
+        multiple
+        hidden
+        onChange={(e) => {
+          if (e.target.files?.length) enqueue([...e.target.files]);
+          e.target.value = '';
+        }}
+      />
+      <button
+        type="button"
+        className="dock-item__btn"
+        onClick={() => {
+          open();
+          // Открыть проводник в том же жесте пользователя — файл подхватится окном
+          input.current?.click();
+        }}
+        aria-label="Опубликовать"
+      >
+        <span ref={tile} className="dock-item__tile dock-sun">
+          <SunBurst size={48} spin />
+        </span>
+      </button>
+      <span className="dock-item__dot" aria-hidden />
+      <Tip>Опубликовать</Tip>
+    </div>
+  );
+}
+
 function DockAccount() {
   const menu = useDeskMenu();
   return (
@@ -258,7 +307,11 @@ export function Dock() {
     <nav ref={navRef} className="dock" aria-label="Док: разделы и свёрнутые окна" onPointerMove={onMove} onPointerLeave={onLeave}>
       <div className="dock__bg" aria-hidden />
       <div ref={rowRef} className="dock__row">
-        {dockApps.map((a) => (
+        {dockApps.slice(0, Math.ceil(dockApps.length / 2)).map((a) => (
+          <DockApp key={a.id} app={a} />
+        ))}
+        <DockSun />
+        {dockApps.slice(Math.ceil(dockApps.length / 2)).map((a) => (
           <DockApp key={a.id} app={a} />
         ))}
         <span className="dock__sep" aria-hidden />

@@ -3,7 +3,7 @@
  * отдельные страницы — «Помощь» и «Скачать приложение». Каждому окну
  * соответствует приложение по адресу, который в нём открыт.
  */
-import { Download, LifeBuoy, type LucideIcon } from 'lucide-react';
+import { Download, LifeBuoy, Sun, type LucideIcon } from 'lucide-react';
 import { findByPath, sectionFor, sections, type NavSection } from '../../app/navigation';
 
 export interface DeskApp {
@@ -20,6 +20,7 @@ export interface DeskApp {
 export const DOCK_APPS = ['home', 'messenger', 'channels', 'reels', 'video', 'companies', 'communities', 'search', 'notifications', 'stats', 'profile', 'settings'] as const;
 
 const EXTRA: DeskApp[] = [
+  { id: 'create', label: 'Новая публикация', short: 'Создать', icon: Sun, path: '/create', description: 'Фото, видео, Reels или заметка — одним окном' },
   { id: 'help', label: 'Помощь', short: 'Помощь', icon: LifeBuoy, path: '/help', description: 'Ответы на вопросы и связь с командой' },
   { id: 'download', label: 'Скачать приложение', short: 'Скачать', icon: Download, path: '/download', description: 'Sunnet для телефона и компьютера' },
 ];
@@ -87,7 +88,7 @@ export function parentPath(path: string): string | null {
 }
 
 /** Разделы со своим списком слева — боковая панель по умолчанию скрыта. */
-const OWN_LIST = ['messenger', 'channels', 'reels', 'search', 'help', 'download'];
+const OWN_LIST = ['messenger', 'channels', 'reels', 'search', 'help', 'download', 'create'];
 export const SIDE_W = 264;
 export function defaultSide(appId: string, width: number): boolean {
   return !OWN_LIST.includes(appId) && width >= 940;

@@ -25,6 +25,7 @@ const notifications = () => import('../features/notifications');
 const settings = () => import('../features/settings');
 const calls = () => import('../features/calls');
 const social = () => import('../features/social');
+const CreatePage = lazyNamed(() => import('../features/create/Creator'), 'CreatePage');
 
 const authPages = () => import('../features/auth/pages');
 const DownloadPage = lazyNamed(authPages, 'DownloadPage');
@@ -206,6 +207,8 @@ export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
 
         {/* Лента: публикации, закладки, черновики */}
         <Route path="feed" element={<Navigate to="/home" replace />} />
+        {/* Солнце — единое окно публикации: фото, видео, Reels, текст */}
+        <Route path="create" element={<CreatePage />} />
         <Route path="feed/compose" element={<ComposePage />} />
         <Route path="feed/hashtags" element={<HashtagsPage />} />
         <Route path="feed/bookmarks" element={<SavedPostsPage kind="bookmarks" />} />

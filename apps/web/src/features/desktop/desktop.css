@@ -634,6 +634,9 @@ body:has(.desk:not(.desk--wp-aurora)) .aurora {
 .desk-tile--settings {
   --tile: var(--desk-app-settings);
 }
+.desk-tile--create {
+  --tile: #f59e0b;
+}
 .desk-tile--help {
   --tile: var(--desk-app-help);
 }
@@ -736,20 +739,95 @@ body:has(.desk:not(.desk--wp-aurora)) .aurora {
   padding: 0 5px;
   font-size: 10.5px;
 }
+/* Индикатор «раздел открыт» — светящаяся черта вместо точки */
 .dock-item__dot {
   position: absolute;
   left: 50%;
-  bottom: -6px;
-  width: 4px;
-  height: 4px;
-  margin-left: -2px;
-  border-radius: 50%;
+  bottom: -5px;
+  width: 6px;
+  height: 3px;
+  margin-left: -3px;
+  border-radius: 3px;
   background: var(--desk-dock-dot);
   opacity: 0;
-  transition: opacity var(--dur) var(--ease);
+  transition:
+    width var(--dur) var(--ease),
+    margin-left var(--dur) var(--ease),
+    opacity var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
 }
 .dock-item--running .dock-item__dot {
   opacity: 1;
+  width: 18px;
+  margin-left: -9px;
+  background: linear-gradient(90deg, #ffd84d, #ff9f1c);
+  box-shadow: 0 0 8px color-mix(in oklab, #ff9f1c 72%, transparent);
+}
+.dock-item--active .dock-item__dot {
+  width: 24px;
+  margin-left: -12px;
+}
+/* Иконка оживает при наведении и пока раздел открыт */
+.dock-item__btn:hover .dock-item__tile .desk-tile svg {
+  animation: dock-glyph-pop 0.45s var(--ease);
+}
+.dock-item--running .dock-item__tile .desk-tile svg {
+  animation: dock-glyph-idle 3.4s var(--ease) infinite;
+}
+@keyframes dock-glyph-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.18) rotate(-4deg);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes dock-glyph-idle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+/* Солнце — центральная кнопка публикации */
+.dock-sun {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+}
+.dock-sun .sunburst {
+  filter: drop-shadow(0 3px 10px rgba(255, 159, 28, 0.55));
+  z-index: 1;
+}
+.dock-sun::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 190, 70, 0.4), transparent 68%);
+  animation: sun-halo 3.6s var(--ease) infinite;
+  pointer-events: none;
+}
+.dock-item--sun .dock-item__btn:active .dock-sun {
+  filter: none;
+  transform: scale(0.92);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dock-item__btn:hover .dock-item__tile .desk-tile svg,
+  .dock-item--running .dock-item__tile .desk-tile svg,
+  .dock-sun::before {
+    animation: none !important;
+  }
 }
 .dock-item__tip {
   position: absolute;
