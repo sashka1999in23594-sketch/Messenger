@@ -1138,6 +1138,28 @@
   .bottom-tabs__item:active .bottom-tabs__icon {
     transform: scale(0.9);
   }
+  /* Солнце — центральная кнопка публикации на телефоне */
+  .bottom-tabs__sun {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    padding: 0 6px;
+  }
+  .bottom-tabs__sunwrap {
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 54px;
+    margin-top: -18px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 36%, #241607, #0d0a12);
+    box-shadow:
+      0 0 0 4px var(--bar-bg),
+      0 8px 22px -6px rgba(240, 98, 15, 0.65);
+    transition: transform var(--dur-fast) var(--ease-spring, var(--ease));
+  }
+  .bottom-tabs__sun:active .bottom-tabs__sunwrap {
+    transform: scale(0.9);
+  }
   .bottom-tabs__item--active,
   [data-theme='light'] .bottom-tabs__item--active {
     color: var(--accent-fg);

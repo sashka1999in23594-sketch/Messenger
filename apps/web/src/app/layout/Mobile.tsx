@@ -23,6 +23,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { mobileTabs, sectionFor, sections, type NavSection } from '../navigation';
+import { SunBurst } from '../../features/create/SunBurst';
 import { usePrefs } from '../../shared/stores/prefs';
 import { useSession } from '../../shared/stores/session';
 import { useUi } from '../../shared/stores/ui';
@@ -148,7 +149,15 @@ export function BottomTabs() {
   const inMore = section !== 'home' && !mobileTabs.includes(section as (typeof mobileTabs)[number]);
   return (
     <nav className="bottom-tabs" aria-label="Основные разделы">
-      {mobileTabs.map((id) => (
+      {mobileTabs.slice(0, 2).map((id) => (
+        <Tab key={id} id={id} />
+      ))}
+      <NavLink to="/create" className="bottom-tabs__item bottom-tabs__sun" aria-label="Опубликовать">
+        <span className="bottom-tabs__sunwrap">
+          <SunBurst size={34} spin />
+        </span>
+      </NavLink>
+      {mobileTabs.slice(2).map((id) => (
         <Tab key={id} id={id} />
       ))}
       <button
