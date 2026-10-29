@@ -339,8 +339,11 @@ function createWindow() {
 
 function loadSite() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
+  // Грузим сайт, всегда сверяя index.html с сервером (no-cache на запрос), чтобы
+  // приложение не показывало устаревшую версию после обновления сайта. Ассеты
+  // хэшированы и остаются в кэше — лишнего трафика нет.
   // Ошибку загрузки обрабатывает did-fail-load, здесь её только гасим.
-  mainWindow.loadURL(SITE_URL).catch(() => {});
+  mainWindow.loadURL(SITE_URL, { extraHeaders: 'Cache-Control: no-cache\n' }).catch(() => {});
 }
 
 // Связь пропала посреди работы: в окне — экран загрузки с закатом, пока сервер
