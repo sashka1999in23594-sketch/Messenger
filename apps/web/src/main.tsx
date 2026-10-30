@@ -20,8 +20,27 @@ createRoot(document.getElementById('root')!).render(
 // Service Worker — только в production-сборке (в разработке мешает горячей перезагрузке)
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
-      /* офлайн-режим недоступен — приложение работает и без него */
+    // updateViaCache: 'none' — сам sw.js никогда не берётся из HTTP-кэша, поэтому
+    // новая версия всегда замечается. Когда новый SW берёт управление — один раз
+    // перезагружаем страницу, чтобы свежая версия применилась сама, без очистки кэша.
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloaded || !hadController) return;
+      reloaded = true;
+      window.location.reload();
     });
+    navigator.serviceWorker
+      .register('/sw.js', { updateViaCache: 'none' })
+      .then((reg) => {
+        void reg.update().catch(() => undefined);
+        // Проверяем обновление при каждом возврате к окну
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') void reg.update().catch(() => undefined);
+        });
+      })
+      .catch(() => {
+        /* офлайн-режим недоступен — приложение работает и без него */
+      });
   });
 }

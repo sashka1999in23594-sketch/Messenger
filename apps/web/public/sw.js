@@ -3,7 +3,7 @@
  * Безопасность: ответы API и медиа НИКОГДА не кэшируются здесь — личные данные
  * не оседают в общем кэше устройства.
  */
-const VERSION = 'omni-v3';
+const VERSION = 'omni-v4';
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png', '/theme-init.js'];
 
 self.addEventListener('install', (event) => {
