@@ -14,7 +14,6 @@ import { DeskMenu, useDeskMenu, type DeskMenuEntry } from './DeskMenu';
 import { activate, bounce, closeWindows, dockEls, minimizeWindow, motionOn, openPath } from './fx';
 import { activeWin, useDesktop } from './store';
 import { SunBurst } from '../create/SunBurst';
-import { useCreator } from '../create/Creator';
 
 const MAX_SCALE = 1.62;
 
@@ -162,34 +161,16 @@ function DockMin({ id }: { id: string }) {
  * подхватывается окном и начинает загружаться в фоне.
  */
 function DockSun() {
-  const enqueue = useCreator((s) => s.enqueue);
-  const input = useRef<HTMLInputElement | null>(null);
   const tile = useRef<HTMLSpanElement | null>(null);
   const running = useDesktop((s) => s.wins.some((w) => w.path.startsWith('/create')));
-  const open = () => {
-    bounce(tile.current);
-    openPath('/create', { from: tile.current });
-  };
   return (
     <div className={cn('dock-item', 'dock-item--sun', running && 'dock-item--running')} data-mag>
-      <input
-        ref={input}
-        type="file"
-        accept="image/*,video/*"
-        multiple
-        hidden
-        onChange={(e) => {
-          if (e.target.files?.length) enqueue([...e.target.files]);
-          e.target.value = '';
-        }}
-      />
       <button
         type="button"
         className="dock-item__btn"
         onClick={() => {
-          open();
-          // Открыть проводник в том же жесте пользователя — файл подхватится окном
-          input.current?.click();
+          bounce(tile.current);
+          openPath('/create', { from: tile.current });
         }}
         aria-label="Опубликовать"
       >

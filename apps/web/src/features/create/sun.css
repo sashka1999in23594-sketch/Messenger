@@ -1,0 +1,61 @@
+/* Анимированное солнце (знак публикации): ядро с лучами, вращение и дыхание. */
+.sunburst {
+  display: inline-grid;
+  place-items: center;
+  width: var(--sun-size, 48px);
+  height: var(--sun-size, 48px);
+  line-height: 0;
+}
+.sunburst svg {
+  overflow: visible;
+}
+.sunburst__core {
+  transform-origin: 50% 50%;
+  filter: drop-shadow(0 2px 6px rgba(240, 98, 15, 0.45));
+  animation: sun-breathe 3.6s var(--ease, ease-in-out) infinite;
+}
+.sunburst__halo {
+  transform-origin: 50% 50%;
+  animation: sun-halo 3.6s var(--ease, ease-in-out) infinite;
+}
+.sunburst__rays {
+  transform-origin: 50% 50%;
+}
+.sunburst--spin .sunburst__rays {
+  animation: sun-spin 18s linear infinite;
+}
+.sunburst--spin .sunburst__core {
+  animation: sun-breathe 2.8s var(--ease, ease-in-out) infinite;
+}
+@keyframes sun-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes sun-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+@keyframes sun-halo {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.22);
+    opacity: 0.5;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sunburst__core,
+  .sunburst__halo,
+  .sunburst--spin .sunburst__rays {
+    animation: none !important;
+  }
+}

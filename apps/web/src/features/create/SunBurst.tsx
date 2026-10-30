@@ -6,6 +6,7 @@
  */
 import type { CSSProperties } from 'react';
 import { cn } from '../../shared/lib/format';
+import './sun.css';
 
 const RAYS = Array.from({ length: 12 }, (_, i) => i);
 
