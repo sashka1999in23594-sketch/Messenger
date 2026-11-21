@@ -40,6 +40,8 @@ const DiscoverChannels = lazyNamed(chats, 'DiscoverChannels');
 const OpenSaved = lazyNamed(chats, 'OpenSaved');
 const FoldersPage = lazyNamed(chats, 'FoldersPage');
 const JoinPage = lazyNamed(chats, 'JoinPage');
+const BridgeChatView = lazyNamed(chats, 'BridgeChatView');
+const BridgeConnectPage = lazyNamed(chats, 'BridgeConnectPage');
 const CallsPage = lazyNamed(calls, 'CallsPage');
 const NewCallPage = lazyNamed(calls, 'NewCallPage');
 const stats = () => import('../features/stats');
@@ -192,6 +194,9 @@ export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
           <Route path="discover" element={<DiscoverChannels only="group" />} />
           <Route path="folders" element={<FoldersPage />} />
           <Route path="new/:kind" element={<NewChatPage />} />
+          {/* Подключённые мессенджеры: переписка и подключение */}
+          <Route path="x/:bridgeId" element={<BridgeChatView />} />
+          <Route path="connect" element={<BridgeConnectPage />} />
           <Route path=":chatId" element={<ChatView />} />
         </Route>
 

@@ -32,7 +32,7 @@ export function ChatsLayout({ variant = 'chats' }: { variant?: 'chats' | 'channe
   const msgScale = usePrefs((s) => s.messageScale ?? 100);
   if (routeFolder && !channels) lastFolder = routeFolder;
   const folder = channels ? 'channels' : (routeFolder ?? (chatId ? lastFolder : pathname === '/chats' ? 'all' : lastFolder));
-  const hasDetail = !!chatId || /^\/chats\/(new|discover|saved|folders)/.test(pathname) || /^\/channels\/(new|discover)/.test(pathname);
+  const hasDetail = !!chatId || /^\/chats\/(new|discover|saved|folders|x|connect)/.test(pathname) || /^\/channels\/(new|discover)/.test(pathname);
   useBareLayout(true);
   useEffect(() => {
     if (!chatId) setInfo(false);

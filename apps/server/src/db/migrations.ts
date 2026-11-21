@@ -1067,4 +1067,34 @@ CREATE TABLE app_grants (
 CREATE INDEX app_grants_user ON app_grants(user_id, app_id);
 `,
   },
+  {
+    version: '019_messenger_bridges',
+    sql: `
+-- Подключённые мессенджеры: ключи сеанса хранятся только зашифрованными (AES-256-GCM от APP_SECRET).
+CREATE TABLE bridge_links (
+  id          TEXT PRIMARY KEY,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  service     TEXT NOT NULL CHECK (service IN ('telegram', 'whatsapp')),
+  account     TEXT NOT NULL,
+  secret_enc  TEXT NOT NULL,
+  ext_id      TEXT,
+  created_at  INTEGER NOT NULL,
+  UNIQUE (user_id, service)
+);
+CREATE INDEX bridge_links_ext ON bridge_links(service, ext_id);
+-- Сообщения WhatsApp Business приходят вебхуком — храним их, чтобы показать в общем списке.
+CREATE TABLE bridge_messages (
+  id          TEXT PRIMARY KEY,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  service     TEXT NOT NULL,
+  chat_id     TEXT NOT NULL,
+  chat_name   TEXT NOT NULL,
+  outgoing    INTEGER NOT NULL DEFAULT 0,
+  text        TEXT NOT NULL,
+  created_at  INTEGER NOT NULL,
+  read_at     INTEGER
+);
+CREATE INDEX bridge_messages_chat ON bridge_messages(user_id, service, chat_id, created_at);
+`,
+  },
 ];

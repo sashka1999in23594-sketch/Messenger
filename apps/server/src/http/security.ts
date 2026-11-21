@@ -71,6 +71,8 @@ export async function registerSecurity(app: FastifyInstance): Promise<void> {
   // CSRF для изменяющих запросов
   app.addHook('preHandler', async (req) => {
     if (SAFE_METHODS.has(req.method) || !req.url.startsWith('/api/')) return;
+    // Вебхук WhatsApp приходит с серверов Meta: вместо CSRF он проверяется подписью HMAC (bridge.routes)
+    if (req.url.split('?')[0] === '/api/v1/bridge/whatsapp/webhook') return;
     const origin = req.headers.origin ?? refererOrigin(req.headers.referer);
     if (!origin || !(config.allowedOrigins.has(origin) || isSameOrigin(origin, req))) {
       throw new AppError(403, ErrorCode.Csrf, 'Запрос с недоверенного источника');

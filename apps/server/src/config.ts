@@ -23,6 +23,11 @@ const envSchema = z.object({
   /** Каталог собранного веб-клиента — если задан, сервер отдаёт его сам */
   WEB_DIST: z.string().optional(),
   SESSION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+  /** Приложение Telegram (my.telegram.org → API development tools) — для подключения чатов */
+  TELEGRAM_API_ID: z.coerce.number().int().optional(),
+  TELEGRAM_API_HASH: z.string().optional(),
+  /** Токен проверки вебхука WhatsApp Business (придумайте и укажите его же в Meta for Developers) */
+  WHATSAPP_VERIFY_TOKEN: z.string().optional(),
   /** Ники владельцев платформы (через запятую): при старте получают роль admin */
   ADMIN_USERNAMES: z.string().default(''),
   /** Загрузить демо-данные при первом запуске (публичное демо, например на Render) */
@@ -188,6 +193,8 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
     // В production по умолчанию раздаём собранный клиент из apps/web/dist (один origin)
     webDist: env.WEB_DIST ? path.resolve(env.WEB_DIST) : isProd && existsSync(path.resolve('../web/dist')) ? path.resolve('../web/dist') : null,
     sessionTtlMs: env.SESSION_DAYS * 24 * 3600 * 1000,
+    telegram: env.TELEGRAM_API_ID && env.TELEGRAM_API_HASH ? { apiId: env.TELEGRAM_API_ID, apiHash: env.TELEGRAM_API_HASH } : null,
+    whatsappVerifyToken: env.WHATSAPP_VERIFY_TOKEN ?? null,
     adminUsernames: env.ADMIN_USERNAMES.split(',').map((u) => u.trim().toLowerCase().replace(/^@/, '')).filter(Boolean),
     /** Cookies с флагом Secure — в production всегда (нужен HTTPS) */
     secureCookies: isProd,

@@ -7,6 +7,7 @@
  * `planned` получает страницу-дорожную карту — только для того, что уже в работе.
  */
 import {
+  Link2,
   FileCode,
   GraduationCap,
   Wand2,
@@ -167,6 +168,7 @@ export const sections: NavSection[] = [
     badge: 'chats',
     description: 'Личные переписки, группы и секретные чаты',
     children: [
+      { id: 'messenger.connect', label: 'Telegram и WhatsApp', icon: Link2, path: '/chats/connect', keywords: ['подключить телеграм', 'ватсап', 'мессенджеры', 'объединить чаты'] },
       { id: 'messenger.all', label: 'Все чаты', icon: MessagesSquare, path: '/chats', keywords: ['сообщения', 'переписка'] },
       {
         id: 'messenger.folders',

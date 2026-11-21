@@ -1,34 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import {
-  Archive,
-  ArchiveRestore,
-  BarChart3,
-  Bell,
-  BellOff,
-  Bookmark,
-  Check,
-  CheckCheck,
-  Compass,
-  Ellipsis,
-  FolderPlus,
-  Image,
-  Lock,
-  Mic,
-  PanelLeftOpen,
-  Phone,
-  Pin,
-  PinOff,
-  Search,
-  SlidersHorizontal,
-  SquarePen,
-  Trash2,
-  Users,
-  UsersRound,
-  Video,
-  X,
-} from 'lucide-react';
+import { Archive, ArchiveRestore, BarChart3, Bell, BellOff, Bookmark, Check, CheckCheck, Compass, Ellipsis, FolderPlus, Image, Lock, Mic, PanelLeftOpen, Phone, Pin, PinOff, Search, SlidersHorizontal, SquarePen, Trash2, Users, UsersRound, Video, X, Link2 } from 'lucide-react';
 import type { ChatSummary } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { flatPages, qk, queryClient, useCursorList } from '../../shared/api/query';
@@ -41,6 +14,7 @@ import { Avatar, confirm, EmptyState, IconButton, ListSkeleton, LoadMore, Menu, 
 import { patchChat, forgetChat } from './cache';
 import { draftOf } from './Composer';
 import { AddToFolderDialog, useFolders } from './folders';
+import { BridgeChatItem, SourceBadge, useBridgeChats, useBridgeStatus, type BridgeChat } from './bridge';
 import { StoriesBar } from '../stories';
 
 export const FOLDERS: { id: string; label: string }[] = [
@@ -141,7 +115,7 @@ interface SwipeAction {
   run: () => void;
 }
 
-function ChatItem({ chat, active, myId, base }: { chat: ChatSummary; active: boolean; myId: string; base: string }) {
+function ChatItem({ chat, active, myId, base, badge }: { chat: ChatSummary; active: boolean; myId: string; base: string; badge?: boolean }) {
   const menu = useMenu();
   const navigate = useNavigate();
   const typing = useRealtime((s) => s.typing[chat.id]);
@@ -347,6 +321,7 @@ function ChatItem({ chat, active, myId, base }: { chat: ChatSummary; active: boo
       >
         <span className="chat-item__avatar">
           <ChatAvatar chat={chat} size={54} online={presence?.online} />
+          {badge && <SourceBadge service="sunnet" />}
         </span>
         <span className="chat-item__body">
           <span className="chat-item__top">
@@ -460,6 +435,21 @@ export function ChatList({
   }, [chats, q]);
   const unreadChats = chats.filter((c) => c.unreadCount > 0 || c.unreadMentions > 0);
 
+  // Подключённые мессенджеры (Telegram, WhatsApp) — в общем списке «Все» и «Непрочитанные»
+  const bridgeStatus = useBridgeStatus().data;
+  const bridged = !channels && !!(bridgeStatus?.telegram.connected || bridgeStatus?.whatsapp.connected);
+  const bridgeQ = useBridgeChats(bridged);
+  const [source, setSource] = useState<'all' | 'sunnet' | 'telegram' | 'whatsapp'>('all');
+  const merged = useMemo(() => {
+    if (!bridged || (folder !== 'all' && folder !== 'unread')) return null;
+    const s = q.trim().toLowerCase();
+    const ext = (bridgeQ.data?.chats ?? []).filter((c) => (!s || c.title.toLowerCase().includes(s)) && (folder !== 'unread' || c.unread > 0) && (source === 'all' || source === c.service));
+    const own = source === 'all' || source === 'sunnet' ? filtered : [];
+    type Row = { at: string; pinned: boolean; own?: ChatSummary; ext?: BridgeChat };
+    const rows: Row[] = [...own.map((c) => ({ at: c.lastMessage?.createdAt ?? c.updatedAt, pinned: c.pinned, own: c })), ...ext.map((c) => ({ at: c.lastAt ?? '', pinned: false, ext: c }))];
+    return rows.sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.at.localeCompare(a.at));
+  }, [bridged, folder, bridgeQ.data, filtered, q, source]);
+
   // Подписываемся на «в сети» собеседников из списка
   const peerIds = useMemo(
     () =>
@@ -568,6 +558,25 @@ export function ChatList({
       <div className="chats__scroll">
         {list.isLoading ? (
           <ListSkeleton rows={8} avatar={54} />
+        ) : merged ? (
+          <>
+            <div className="src-filter" role="group" aria-label="Источник">
+              {(['all', 'sunnet', 'telegram', 'whatsapp'] as const)
+                .filter((x) => x === 'all' || x === 'sunnet' || bridgeStatus?.[x].connected)
+                .map((x) => (
+                  <button key={x} type="button" className={source === x ? 'is-on' : ''} onClick={() => setSource(x)}>
+                    {x !== 'all' && <SourceBadge service={x} />}
+                    {{ all: 'Все', sunnet: 'Sunnet', telegram: 'Telegram', whatsapp: 'WhatsApp' }[x]}
+                  </button>
+                ))}
+            </div>
+            {(bridgeQ.data?.errors ?? []).map((er) => (
+              <div key={er.service} className="src-error">
+                {er.service === 'telegram' ? 'Telegram' : 'WhatsApp'}: {er.text}
+              </div>
+            ))}
+            {merged.map((r) => (r.own ? <ChatItem key={r.own.id} chat={r.own} active={r.own.id === activeId} myId={me.id} base={base} badge /> : <BridgeChatItem key={r.ext!.id} chat={r.ext!} active={false} />))}
+          </>
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={q ? <Search size={28} /> : channels ? <Compass size={28} /> : folder === 'archived' ? <Archive size={28} /> : <SquarePen size={28} />}
@@ -595,6 +604,7 @@ export function ChatList({
         onClose={headMenu.close}
         items={[
           { label: 'Прочитать все', icon: <CheckCheck size={18} />, hidden: unreadChats.length === 0, onClick: () => void readAll() },
+          { label: 'Подключить Telegram или WhatsApp', icon: <Link2 size={18} />, hidden: channels, onClick: () => navigate('/chats/connect') },
           { label: 'Поиск по Sunnet', icon: <Search size={18} />, onClick: () => setPalette(true) },
           { label: 'Новая группа', icon: <Users size={18} />, hidden: channels, onClick: () => navigate('/chats/new/group') },          { label: 'Избранное', icon: <Bookmark size={18} />, hidden: channels, onClick: () => navigate('/chats/saved') },
           { label: 'Открытые группы', icon: <Compass size={18} />, hidden: channels, onClick: () => navigate('/chats/discover') },
