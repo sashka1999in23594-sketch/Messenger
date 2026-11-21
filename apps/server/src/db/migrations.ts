@@ -992,4 +992,22 @@ ALTER TABLE sessions ADD COLUMN device_id TEXT;
 CREATE INDEX sessions_device ON sessions(device_id);
 `,
   },
+  {
+    version: '016_admin_console',
+    sql: `
+-- Консоль администратора: временная блокировка аккаунта и журнал аудита
+-- (каждая команда записывается: кто, что, над кем и с каким результатом).
+ALTER TABLE users ADD COLUMN blocked_until INTEGER;
+ALTER TABLE users ADD COLUMN blocked_reason TEXT;
+CREATE TABLE admin_audit (
+  id         TEXT PRIMARY KEY,
+  actor_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  command    TEXT NOT NULL,
+  target_id  TEXT,
+  result     TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX admin_audit_time ON admin_audit(created_at DESC);
+`,
+  },
 ];

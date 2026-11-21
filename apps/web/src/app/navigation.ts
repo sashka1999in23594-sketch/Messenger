@@ -7,6 +7,7 @@
  * `planned` получает страницу-дорожную карту — только для того, что уже в работе.
  */
 import {
+  SquareTerminal as Terminal,
   LayoutGrid as AppsGrid,
   Server as ServerIcon,
   Accessibility,
@@ -479,6 +480,7 @@ export const sections: NavSection[] = [
       { id: 'settings.accessibility', label: 'Специальные возможности', icon: Accessibility, path: '/settings/accessibility' },
       { id: 'settings.shortcuts', label: 'Горячие клавиши', icon: Keyboard, path: '/settings/shortcuts' },
       { id: 'settings.admin', label: 'Модерация', icon: Flag, path: '/admin/reports', adminOnly: true },
+      { id: 'settings.console', label: 'Консоль администратора', icon: Terminal, path: '/admin/console', adminOnly: true, keywords: ['админ', 'блокировка', 'галочка', 'команды'] },
       { id: 'settings.about', label: 'О приложении', icon: Info, path: '/settings/about' },
     ],
   },

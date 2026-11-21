@@ -52,8 +52,11 @@ export class SessionService {
   ) {}
 
   private pwPrint(userId: string): string | null {
-    const u = this.db.get<{ password_hash: string; deleted_at: number | null }>('SELECT password_hash, deleted_at FROM users WHERE id = :id', { id: userId });
-    if (!u || u.deleted_at) return null;
+    const u = this.db.get<{ password_hash: string; deleted_at: number | null; blocked_until: number | null }>(
+      'SELECT password_hash, deleted_at, blocked_until FROM users WHERE id = :id',
+      { id: userId },
+    );
+    if (!u || u.deleted_at || (u.blocked_until && u.blocked_until > Date.now())) return null;
     return sha256(u.password_hash ?? '').slice(0, 16);
   }
 
@@ -145,14 +148,16 @@ export class SessionService {
   /** Проверяет токен; продлевает сеанс (скользящее окно). */
   resolve(token: string, ip: string): ResolvedSession | null {
     if (!token || token.length > 256) return null;
-    const row = this.db.get<SessionRow & { role: ResolvedSession['role']; deleted_at: number | null }>(
-      `SELECT s.*, u.role, u.deleted_at FROM sessions s JOIN users u ON u.id = s.user_id
+    const row = this.db.get<SessionRow & { role: ResolvedSession['role']; deleted_at: number | null; blocked_until: number | null }>(
+      `SELECT s.*, u.role, u.deleted_at, u.blocked_until FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.token_hash = :hash`,
       { hash: sha256(token) },
     );
     const now = Date.now();
     if (!row) return this.revive(token, ip);
     if (row.revoked_at || row.expires_at < now || row.deleted_at) return null;
+    // Заблокирован администратором — сеанс не действует, пока блокировка не истечёт
+    if (row.blocked_until && row.blocked_until > now) return null;
     if (now - row.last_seen_at > TOUCH_INTERVAL_MS) {
       const expiresAt = now + this.ttlMs;
       this.db.run('UPDATE sessions SET last_seen_at = :now, ip = :ip, expires_at = :exp WHERE id = :id', {

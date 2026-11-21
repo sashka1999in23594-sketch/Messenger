@@ -23,6 +23,8 @@ const envSchema = z.object({
   /** Каталог собранного веб-клиента — если задан, сервер отдаёт его сам */
   WEB_DIST: z.string().optional(),
   SESSION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+  /** Ники владельцев платформы (через запятую): при старте получают роль admin */
+  ADMIN_USERNAMES: z.string().default(''),
   /** Загрузить демо-данные при первом запуске (публичное демо, например на Render) */
   DEMO_SEED: z.enum(['true', 'false', '1', '0', '']).default('false'),
   /** Адрес сервиса, который Render подставляет сам — используется, если PUBLIC_ORIGIN не задан */
@@ -186,6 +188,7 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
     // В production по умолчанию раздаём собранный клиент из apps/web/dist (один origin)
     webDist: env.WEB_DIST ? path.resolve(env.WEB_DIST) : isProd && existsSync(path.resolve('../web/dist')) ? path.resolve('../web/dist') : null,
     sessionTtlMs: env.SESSION_DAYS * 24 * 3600 * 1000,
+    adminUsernames: env.ADMIN_USERNAMES.split(',').map((u) => u.trim().toLowerCase().replace(/^@/, '')).filter(Boolean),
     /** Cookies с флагом Secure — в production всегда (нужен HTTPS) */
     secureCookies: isProd,
     demoSeed: env.DEMO_SEED === 'true' || env.DEMO_SEED === '1',

@@ -121,6 +121,7 @@ const AccessibilitySettings = lazyNamed(settings, 'AccessibilitySettings');
 const ShortcutsSettings = lazyNamed(settings, 'ShortcutsSettings');
 const AboutSettings = lazyNamed(settings, 'AboutSettings');
 const AdminReports = lazyNamed(settings, 'AdminReports');
+const AdminConsole = lazyNamed(() => import('../features/admin/Console'), 'AdminConsole');
 const SoundsSettings = lazyNamed(settings, 'SoundsSettings');
 const QuietSettings = lazyNamed(settings, 'QuietSettings');
 const FontSettings = lazyNamed(settings, 'FontSettings');
@@ -346,6 +347,7 @@ export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
         <Route path="settings/shortcuts" element={<ShortcutsSettings />} />
         <Route path="settings/about" element={<AboutSettings />} />
         <Route path="admin/reports" element={<AdminReports />} />
+        <Route path="admin/console" element={<AdminConsole />} />
 
         {/* Всё остальное: страница-дорожная карта для запланированных разделов или 404 */}
         <Route path="*" element={<ComingSoon />} />
