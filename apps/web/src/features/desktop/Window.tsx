@@ -23,6 +23,7 @@ import { DeskMenu, useDeskMenu, type DeskMenuEntry } from './DeskMenu';
 import { closeWindow, minimizeWindow, openPath, playOpen, playRestore, restoreOrigin, winEls, withGlide } from './fx';
 import { clampRect, MENUBAR_H, MIN_H, MIN_W, snapRect, useArea, type Rect, type Snap } from './geometry';
 import { AppTile } from './AppTile';
+import { FeatureFeed } from '../hub/FeatureFeed';
 import { fresh, useDesktop, visibleArea, type Win } from './store';
 
 type Kind = 'move' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
@@ -351,7 +352,9 @@ function WindowShell({ win, active, area, mac }: { win: Win; active: boolean; ar
   const canBack = history.index > 0 || !!up;
   const back = () => (history.index > 0 ? history.go(-1) : up && history.replace(up));
   const tree = hasTree(app.id);
-  const sideOpen = tree && (win.side ?? defaultSide(app.id, shown.w));
+  // Левая панель есть у каждого окна: подразделы (если есть) и бесконечная лента возможностей
+  const sideOpen = win.side ?? defaultSide(app.id, shown.w);
+  void tree;
   const sideOverlay = shown.w < SIDE_W + 520;
 
   const menuItems: DeskMenuEntry[] = [
@@ -416,13 +419,13 @@ function WindowShell({ win, active, area, mac }: { win: Win; active: boolean; ar
         >
           <span className="desk-win__lead">
             {mac && buttons}
-            {tree && (
+            {(
               <button
                 type="button"
                 className={cn('desk-win__tool', sideOpen && 'desk-win__tool--on')}
                 onClick={() => store.setSide(win.id, !sideOpen)}
                 aria-pressed={sideOpen}
-                aria-label="Подразделы"
+                aria-label="Разделы и возможности"
                 title={sideOpen ? 'Скрыть подразделы' : 'Показать подразделы'}
               >
                 <PanelLeft size={17} />
@@ -462,13 +465,12 @@ function WindowShell({ win, active, area, mac }: { win: Win; active: boolean; ar
 function WindowSidebar({ appId, overlay, onNavigate }: { appId: string; overlay: boolean; onNavigate: () => void }) {
   const [filter, setFilter] = useState('');
   const section = sections.find((x) => x.id === appId);
-  if (!section) return null;
   return (
-    <aside className={cn('desk-side', overlay && 'desk-side--overlay')} aria-label={`Подразделы: ${section.label}`}>
+    <aside className={cn('desk-side', overlay && 'desk-side--overlay')} aria-label={section ? `Подразделы: ${section.label}` : 'Возможности'}>
       <div className="desk-side__search">
         <div className="input-group">
           <Search size={15} className="input-group__icon" />
-          <input className="input" placeholder="Найти подраздел" value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Найти подраздел" />
+          <input className="input" placeholder="Найти раздел или функцию" value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Найти подраздел" />
           {filter && (
             <button type="button" className="icon-btn icon-btn--sm input-group__action" onClick={() => setFilter('')} aria-label="Очистить">
               <X size={15} />
@@ -477,7 +479,8 @@ function WindowSidebar({ appId, overlay, onNavigate }: { appId: string; overlay:
         </div>
       </div>
       <div className="desk-side__scroll">
-        <NavTreeView section={section} filter={filter} onNavigate={onNavigate} />
+        {section && <NavTreeView section={section} filter={filter} onNavigate={onNavigate} />}
+        <FeatureFeed filter={filter} />
       </div>
     </aside>
   );

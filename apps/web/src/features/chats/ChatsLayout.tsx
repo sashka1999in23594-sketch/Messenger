@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Compass, Megaphone, MessageCircle, Plus, Search, ShieldCheck, Users } from 'lucide-react';
 import type { ChatSummary } from '@omni/shared';
@@ -74,21 +74,29 @@ export function NoChannelSelected() {
 
 export function NoChatSelected() {
   return (
-    <EmptyState
-      icon={<MessageCircle size={30} />}
-      title="Выберите, кому написать"
-      text="Личные чаты и группы"
-      action={
-        <div className="row wrap center">
-          <ButtonLink to="/chats/new/direct" icon={<MessageCircle size={18} />}>
-            Новый чат
-          </ButtonLink>
-          <ButtonLink to="/chats/new/group" variant="secondary" icon={<Users size={18} />}>
-            Новая группа
-          </ButtonLink>
-        </div>
-      }
-    />
+    <div className="chat-hello">
+      <div className="chat-hello__orbit" aria-hidden>
+        <span className="chat-hello__sun" />
+        <span className="chat-hello__ring" />
+        <span className="chat-hello__bubble chat-hello__bubble--1">
+          <MessageCircle size={16} />
+        </span>
+        <span className="chat-hello__bubble chat-hello__bubble--2">
+          <Users size={15} />
+        </span>
+        <span className="chat-hello__bubble chat-hello__bubble--3">💬</span>
+      </div>
+      <div className="chat-hello__title">Выберите, кому написать</div>
+      <div className="chat-hello__text">Слева — все ваши личные чаты и группы</div>
+      <div className="chat-hello__actions">
+        <Link to="/chats/new/direct" className="chat-hello__chip">
+          <MessageCircle size={15} /> Новый чат
+        </Link>
+        <Link to="/chats/new/group" className="chat-hello__chip">
+          <Users size={15} /> Группа
+        </Link>
+      </div>
+    </div>
   );
 }
 

@@ -44,7 +44,7 @@ const RAY_FAN_2 = rayFan(73510944, 0.34);
  * Sunnet — встающее солнце с короной, живыми лучами-веерами, бликами объектива,
  * плывущими облаками, искрами света и прогрессом снизу. Ночью сцена лунная (Lynnet).
  */
-export function SunSplash({ label }: { label?: string }) {
+export function SunSplash({ label, steps, footer, stalled }: { label?: string; steps?: { label: string; state: 'done' | 'active' | 'wait' }[]; footer?: ReactNode; stalled?: boolean }) {
   const night = useBrand((s) => s.night);
   const [pct, setPct] = useState(6);
   useEffect(() => {
@@ -53,7 +53,7 @@ export function SunSplash({ label }: { label?: string }) {
     return () => clearInterval(t);
   }, []);
   return (
-    <div className={cn('sun-splash', night && 'sun-splash--night')} role="status" aria-live="polite">
+    <div className={cn('sun-splash', night && 'sun-splash--night', stalled && 'sun-splash--stalled')} role="status" aria-live="polite">
       <div className="sun-splash__sky" aria-hidden />
       <div className="sun-splash__rays sun-splash__rays--1" style={{ backgroundImage: RAY_FAN_1 } as CSSProperties} aria-hidden />
       <div className="sun-splash__rays sun-splash__rays--2" style={{ backgroundImage: RAY_FAN_2 } as CSSProperties} aria-hidden />
@@ -80,10 +80,25 @@ export function SunSplash({ label }: { label?: string }) {
       <div className="sun-splash__content">
         <div className="sun-splash__name">{brandName()}</div>
         {label && <div className="sun-splash__label">{label}</div>}
-        <div className="sun-splash__bar">
-          <span className="sun-splash__fill" style={{ width: `${pct}%` }} />
-        </div>
-        <div className="sun-splash__pct">{Math.round(pct)}%</div>
+        {steps && (
+          <ol className="sun-splash__steps">
+            {steps.map((st) => (
+              <li key={st.label} className={`sun-splash__step sun-splash__step--${st.state}`}>
+                <span className="sun-splash__dot" aria-hidden />
+                {st.label}
+              </li>
+            ))}
+          </ol>
+        )}
+        {!stalled && (
+          <>
+            <div className="sun-splash__bar">
+              <span className="sun-splash__fill" style={{ width: `${pct}%` }} />
+            </div>
+            <div className="sun-splash__pct">{Math.round(pct)}%</div>
+          </>
+        )}
+        {footer}
       </div>
     </div>
   );

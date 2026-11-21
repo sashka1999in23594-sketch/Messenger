@@ -3,7 +3,7 @@
  * отдельные страницы — «Помощь» и «Скачать приложение». Каждому окну
  * соответствует приложение по адресу, который в нём открыт.
  */
-import { Download, LifeBuoy, RadioTower, Sun, type LucideIcon } from 'lucide-react';
+import { Compass, Download, FolderOpen, Globe, LifeBuoy, RadioTower, Server, ShieldCheck, Sun, Terminal, Wand2, Wifi, type LucideIcon } from 'lucide-react';
 import { findByPath, sectionFor, sections, type NavSection } from '../../app/navigation';
 
 export interface DeskApp {
@@ -23,6 +23,14 @@ const EXTRA: DeskApp[] = [
   { id: 'create', label: 'Новая публикация', short: 'Создать', icon: Sun, path: '/create', description: 'Фото, видео, Reels или заметка — одним окном' },
   { id: 'studio', label: 'Студия эфира', short: 'Студия', icon: RadioTower, path: '/live/studio', description: 'Сцена, микшер и чат — как в OBS' },
   { id: 'help', label: 'Помощь', short: 'Помощь', icon: LifeBuoy, path: '/help', description: 'Ответы на вопросы и связь с командой' },
+  { id: 'orbit', label: 'Орбита', short: 'Орбита', icon: Compass, path: '/orbit', description: 'Приложения, сервисы и подписки' },
+  { id: 'sunstudio', label: 'Студия Sunnet', short: 'Студия', icon: Wand2, path: '/studio', description: 'Создание своих приложений' },
+  { id: 'browser', label: 'Браузер', short: 'Браузер', icon: Globe, path: '/browser', description: 'Вкладки, закладки и загрузки в облако' },
+  { id: 'servers', label: 'Серверы', short: 'Серверы', icon: Server, path: '/servers', description: 'Свои пространства для общения' },
+  { id: 'connect', label: 'Sunnet Connect', short: 'Connect', icon: Wifi, path: '/connect', description: 'Компьютер как сервер' },
+  { id: 'security', label: 'Безопасность', short: 'Защита', icon: ShieldCheck, path: '/security', description: 'Журнал, разрешения, корзина' },
+  { id: 'cloud', label: 'Облако', short: 'Облако', icon: FolderOpen, path: '/cloud', description: 'Файлы и папки' },
+  { id: 'adminconsole', label: 'Консоль администратора', short: 'Консоль', icon: Terminal, path: '/admin/console', description: 'Команды администратора' },
   { id: 'download', label: 'Скачать приложение', short: 'Скачать', icon: Download, path: '/download', description: 'Sunnet для телефона и компьютера' },
 ];
 
@@ -89,7 +97,7 @@ export function parentPath(path: string): string | null {
 }
 
 /** Разделы со своим списком слева — боковая панель по умолчанию скрыта. */
-const OWN_LIST = ['messenger', 'channels', 'reels', 'search', 'help', 'download', 'create', 'studio'];
+const OWN_LIST = ['messenger', 'channels', 'reels', 'search', 'help', 'download', 'create', 'studio', 'sunstudio', 'browser', 'adminconsole'];
 export const SIDE_W = 264;
 export function defaultSide(appId: string, width: number): boolean {
   return !OWN_LIST.includes(appId) && width >= 940;

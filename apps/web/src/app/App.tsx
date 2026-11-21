@@ -8,7 +8,8 @@ import { useSession } from '../shared/stores/session';
 import { Aurora, ConfirmHost, Loading, SunSplash, Toasts } from '../shared/ui';
 import { GuestApp } from '../features/auth/GuestApp';
 import { AppRoutes } from './routes';
-import { bootstrapSession } from './session';
+import { bootstrapSession, retryBootstrap } from './session';
+import { WakeScreen } from './WakeScreen';
 
 /** Внешний вид применяется к <html> при любом изменении настроек. */
 function PrefsSync() {
@@ -44,8 +45,8 @@ function Gate() {
   useEffect(() => {
     void bootstrapSession();
   }, []);
-  if (status === 'loading' || status === 'waking')
-    return <SunSplash label={status === 'waking' ? 'Сервер просыпается — это занимает до минуты…' : 'Загружаем…'} />;
+  if (status === 'loading') return <SunSplash label="Загружаем…" />;
+  if (status === 'waking' || status === 'offline') return <WakeScreen offline={status === 'offline'} onRetry={retryBootstrap} />;
   if (status === 'guest')
     return (
       <BrowserRouter>

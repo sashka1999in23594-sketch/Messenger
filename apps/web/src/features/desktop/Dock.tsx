@@ -14,8 +14,81 @@ import { DeskMenu, useDeskMenu, type DeskMenuEntry } from './DeskMenu';
 import { activate, bounce, closeWindows, dockEls, minimizeWindow, motionOn, openPath } from './fx';
 import { activeWin, useDesktop } from './store';
 import { SunBurst } from '../create/SunBurst';
+import { Plus, Pin, PinOff, ShieldCheck, FolderOpen } from 'lucide-react';
+import { useCloud } from '../hub/cloud';
+import { catalogById } from '../hub/catalog';
+import { AppGlyph } from '../hub/AppGlyph';
+import { openItem } from '../hub/DeskIcons';
+
+/** Кнопка «+» — Орбита: каталог приложений, создание своих, подписки. */
+function DockPlus() {
+  return (
+    <div className="dock-item dock-plus" data-mag>
+      <button type="button" className="dock-item__btn" onClick={() => openPath('/orbit')} aria-label="Орбита — добавить приложение">
+        <span className="dock-item__tile dock-plus__tile">
+          <Plus size={26} strokeWidth={2.6} />
+        </span>
+      </button>
+      <Tip>Орбита — добавить приложение</Tip>
+    </div>
+  );
+}
+
+/** Закреплённое пользователем приложение или проект. Открепить — вернётся на стол. */
+function DockPinned({ id }: { id: string }) {
+  const item = useCloud((s) => s.items.find((i) => i.id === id));
+  const menu = useDeskMenu();
+  if (!item) return null;
+  const app = item.appId ? catalogById.get(item.appId) : undefined;
+  return (
+    <div className="dock-item dock-pinned" data-mag>
+      <button
+        type="button"
+        className="dock-item__btn"
+        onClick={() => openItem(item)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          const r = e.currentTarget.getBoundingClientRect();
+          menu.open({ x: r.left + r.width / 2, y: r.top - 10, place: 'above', align: 'center' });
+        }}
+        aria-label={item.name}
+      >
+        <span className="dock-item__tile">
+          <AppGlyph app={app ?? { name: item.name, color: '#ff9f2e' }} size={48} />
+        </span>
+      </button>
+      {!menu.anchor && <Tip>{item.name}</Tip>}
+      <DeskMenu
+        anchor={menu.anchor}
+        onClose={menu.close}
+        label={item.name}
+        items={[
+          { title: item.name },
+          { label: 'Открыть', icon: <FolderOpen size={18} />, onClick: () => openItem(item) },
+          { label: 'Запустить от имени администратора', icon: <ShieldCheck size={18} />, onClick: () => openItem(item, true) },
+          'separator',
+          { label: 'Открепить от панели задач', icon: <PinOff size={18} />, onClick: () => useCloud.getState().unpin(item.id) },
+        ]}
+      />
+    </div>
+  );
+}
+void Pin;
 
 const MAX_SCALE = 1.62;
+
+function DockPinnedList() {
+  const pinned = useCloud((s) => s.pinned.join(','));
+  if (!pinned) return null;
+  return (
+    <>
+      <span className="dock__sep" aria-hidden />
+      {pinned.split(',').map((id) => (
+        <DockPinned key={id} id={id} />
+      ))}
+    </>
+  );
+}
 
 /** Регистрирует элемент значка для анимаций сворачивания и возврата. */
 function useDockEl(key: string) {
@@ -295,6 +368,8 @@ export function Dock() {
         {dockApps.slice(Math.ceil(dockApps.length / 2)).map((a) => (
           <DockApp key={a.id} app={a} />
         ))}
+        <DockPinnedList />
+        <DockPlus />
         <span className="dock__sep" aria-hidden />
         {minimized &&
           minimized.split(',').map((id) => (

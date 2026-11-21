@@ -8,17 +8,22 @@ import { brandName, useBrand } from '../../shared/lib/brand';
 import { usePrefs } from '../../shared/stores/prefs';
 import { MoonScene } from '../../shared/ui';
 import { AppUpdate } from '../../app/layout/AppUpdate';
-import { useEffect, useMemo, useRef, type ComponentProps, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentProps, type CSSProperties } from 'react';
 import { createPath, Router } from 'react-router';
 import { useShallow } from 'zustand/react/shallow';
-import { Eye, EyeOff, LayoutGrid, Settings, XSquare, ZoomIn, ZoomOut } from 'lucide-react';
+import { ArrowDownAZ, Boxes, ClipboardPaste, Compass, Eye, EyeOff, FolderPlus, LayoutGrid, RefreshCw, Server, Settings, ShieldCheck, Terminal, Trash2, XSquare, ZoomIn, ZoomOut } from 'lucide-react';
+import { DeskIcons } from '../hub/DeskIcons';
+import { SystemDialogs } from '../hub/PermissionPrompt';
+import { useCloud, type SortBy, type IconSize } from '../hub/cloud';
+import { trackSection } from '../hub/discover';
+import '../hub/hub.css';
 import { CommandPalette } from '../../app/layout/CommandPalette';
 import { LockScreen } from '../../app/layout/LockScreen';
 import { setRealtimeNavigate } from '../../app/realtime';
 import { CallScreen } from '../calls/CallScreen';
 import { RoomScreen } from '../calls/RoomScreen';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
-import { isAppPath, isMac, titleFor } from './apps';
+import { appFor, isAppPath, isMac, titleFor } from './apps';
 import { DeskMenu, useDeskMenu } from './DeskMenu';
 import { Dock } from './Dock';
 import { activate, closeWindow, closeWindows, minimizeWindow, openPath, withGlide } from './fx';
@@ -191,7 +196,10 @@ export function Desktop() {
       const a = activeWin(s.wins);
       const p = activeWin(prev.wins);
       if (a?.id !== p?.id || a?.path !== p?.path) syncLocation(a);
+      if (a && a.id !== p?.id) trackSection(appFor(a.path).id);
     });
+    // Только в разработке: доступ к столу для автоматических скриншотов (scripts/shots)
+    if (import.meta.env.DEV) (window as unknown as { __desk: typeof useDesktop }).__desk = useDesktop;
     // Уведомления и звонки открывают нужный раздел в его окне
     setRealtimeNavigate((to) => void openPath(to));
     return unsub;
@@ -204,6 +212,12 @@ export function Desktop() {
   };
   const count = ids.length;
   const st = useDesktop.getState;
+  const cloud = useCloud.getState;
+  const sort = useCloud((s) => s.sort);
+  const iconSize = useCloud((s) => s.iconSize);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const SORTS: [SortBy, string][] = [['name', 'По имени'], ['kind', 'По типу'], ['date', 'По дате изменения'], ['manual', 'Вручную']];
+  const SIZES: [IconSize, string][] = [['sm', 'Мелкие значки'], ['md', 'Обычные значки'], ['lg', 'Крупные значки']];
 
   return (
     <>
@@ -234,6 +248,7 @@ export function Desktop() {
         onPointerCancel={() => (panning.current = null)}
       >
         {moon ? <MoonScene className="wall wall--moon" still={reduceMotion} landX={0.74} earth={{ x: 0.18, y: 0.2, r: 0.09 }} /> : <Wallpaper kind={wallpaper} />}
+        <DeskIcons key={refreshKey} />
         {empty && <EmptyDesk />}
         <div
           className="desk__windows"
@@ -253,6 +268,23 @@ export function Desktop() {
           onClose={ctx.close}
           label="Рабочий стол"
           items={[
+            { label: 'Создать папку', icon: <FolderPlus size={18} />, onClick: () => cloud().setRenaming(cloud().create('folder').id) },
+            { label: 'Создать проект', icon: <Boxes size={18} />, onClick: () => cloud().create('project') },
+            { label: 'Создать сервер', icon: <Server size={18} />, onClick: () => openPath('/servers/new') },
+            { label: 'Вставить', icon: <ClipboardPaste size={18} />, hint: 'Ctrl+V', disabled: !cloud().clipboard, onClick: () => cloud().paste(null) },
+            { label: 'Обновить', icon: <RefreshCw size={18} />, onClick: () => setRefreshKey((k) => k + 1) },
+            'separator',
+            { title: 'Сортировка' },
+            ...SORTS.map(([id, label]) => ({ label, checked: sort === id, onClick: () => cloud().setSort(id) })),
+            { title: 'Вид' },
+            ...SIZES.map(([id, label]) => ({ label, checked: iconSize === id, onClick: () => cloud().setIconSize(id) })),
+            'separator',
+            { label: 'Орбита — добавить приложение', icon: <Compass size={18} />, onClick: () => openPath('/orbit') },
+            { label: 'Безопасность и разрешения', icon: <ShieldCheck size={18} />, onClick: () => openPath('/security') },
+            { label: 'Корзина', icon: <Trash2 size={18} />, onClick: () => openPath('/security?tab=trash') },
+            { label: 'Консоль администратора', icon: <Terminal size={18} />, onClick: () => openPath('/admin/console') },
+            'separator',
+            { title: 'Окна' },
             { label: 'Упорядочить окна', icon: <LayoutGrid size={18} />, disabled: !count, onClick: () => withGlide(() => st().arrange()) },
             empty && st().stash?.length
               ? { label: 'Показать окна', icon: <Eye size={18} />, onClick: () => st().showDesktop() }
@@ -275,6 +307,7 @@ export function Desktop() {
       <RoomScreen />
       <NotificationsPanel onOpen={(to) => void openPath(to)} />
       <AppUpdate />
+      <SystemDialogs />
       <LockScreen />
     </>
   );

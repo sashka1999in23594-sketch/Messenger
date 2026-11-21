@@ -51,28 +51,53 @@ function serverUnreachable(e: unknown): boolean {
   return s === 0 || s === 408 || s >= 500;
 }
 
+/** Сколько ждём пробуждения сервера, прежде чем честно сказать «недоступен». Render будит до ~60 с. */
+const WAKE_LIMIT_MS = 100_000;
+let booting = false;
+
 /**
  * Старт: пока бесплатный сервер просыпается, показываем экран загрузки и ждём,
  * а не выкидываем на вход. Как только сервер ответил — входим или показываем вход.
+ * Если сервер так и не ответил за WAKE_LIMIT_MS — экран «Сервер недоступен» с повтором
+ * (раньше цикл был бесконечным и человек навсегда застревал на загрузке).
  */
 export async function bootstrapSession(): Promise<void> {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      const { me } = await api.get<{ me: Me | null }>('/auth/session');
-      if (me) enterSession(me);
-      else useSession.getState().setMe(null);
-      return;
-    } catch (e) {
-      if (!serverUnreachable(e)) {
-        // Понятная ошибка (не «сервер спит») — показываем вход
-        useSession.getState().setMe(null);
+  if (booting) return;
+  booting = true;
+  const since = Date.now();
+  try {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const { me } = await api.get<{ me: Me | null }>('/auth/session');
+        if (me) enterSession(me);
+        else useSession.getState().setMe(null);
         return;
+      } catch (e) {
+        if (!serverUnreachable(e)) {
+          // Понятная ошибка (не «сервер спит») — показываем вход
+          useSession.getState().setMe(null);
+          return;
+        }
+        if (Date.now() - since > WAKE_LIMIT_MS) {
+          useSession.getState().setOffline();
+          return;
+        }
+        // Сервер просыпается — держим экран загрузки и пробуем снова (с нарастающей паузой)
+        useSession.getState().setWaking(true);
+        useSession.getState().setAttempt(attempt + 1, since);
+        await new Promise((r) => setTimeout(r, Math.min(1500 + attempt * 500, 4000)));
       }
-      // Сервер просыпается — держим экран загрузки и пробуем снова (с нарастающей паузой)
-      useSession.getState().setWaking(true);
-      await new Promise((r) => setTimeout(r, Math.min(1500 + attempt * 500, 4000)));
     }
+  } finally {
+    booting = false;
   }
+}
+
+/** Кнопка «Повторить» на экране «Сервер недоступен». */
+export function retryBootstrap(): void {
+  useSession.getState().setWaking(true);
+  useSession.getState().setAttempt(0, Date.now());
+  void bootstrapSession();
 }
 
 export async function logout(): Promise<void> {

@@ -25,6 +25,15 @@ const notifications = () => import('../features/notifications');
 const settings = () => import('../features/settings');
 const calls = () => import('../features/calls');
 const social = () => import('../features/social');
+const hub = () => import('../features/hub');
+const OrbitPage = lazyNamed(hub, 'OrbitPage');
+const SunStudioPage = lazyNamed(hub, 'StudioPage');
+const BrowserPage = lazyNamed(hub, 'BrowserPage');
+const ServerWizard = lazyNamed(hub, 'ServerWizard');
+const ConnectPage = lazyNamed(hub, 'ConnectPage');
+const SecurityPage = lazyNamed(hub, 'SecurityPage');
+const CloudPage = lazyNamed(hub, 'CloudPage');
+const AdminConsole = lazyNamed(hub, 'AdminConsole');
 const CreatePage = lazyNamed(() => import('../features/create/Creator'), 'CreatePage');
 
 const authPages = () => import('../features/auth/pages');
@@ -346,6 +355,15 @@ export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
         <Route path="settings/shortcuts" element={<ShortcutsSettings />} />
         <Route path="settings/about" element={<AboutSettings />} />
         <Route path="admin/reports" element={<AdminReports />} />
+        {/* Экосистема рабочего стола: Орбита, Студия, браузер, серверы, облако, безопасность */}
+        <Route path="orbit" element={<OrbitPage />} />
+        <Route path="studio" element={<SunStudioPage />} />
+        <Route path="browser" element={<BrowserPage />} />
+        <Route path="servers/new" element={<ServerWizard />} />
+        <Route path="connect" element={<ConnectPage />} />
+        <Route path="security" element={<SecurityPage />} />
+        <Route path="cloud" element={<CloudPage />} />
+        <Route path="admin/console" element={<AdminConsole />} />
 
         {/* Всё остальное: страница-дорожная карта для запланированных разделов или 404 */}
         <Route path="*" element={<ComingSoon />} />

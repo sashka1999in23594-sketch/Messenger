@@ -91,7 +91,7 @@ interface PrefsState {
 export const usePrefs = create<PrefsState>()(
   persist(
     (set) => ({
-      theme: 'dark',
+      theme: 'light',
       palette: 'aurora',
       accent: 'auto',
       glass: true,
@@ -129,7 +129,7 @@ export const usePrefs = create<PrefsState>()(
     }),
     {
       name: 'omni.prefs',
-      version: 3,
+      version: 4,
       // v1 → v2: появились палитры; старый акцент «teal» стал «cyan», тема по умолчанию — тёмная «Аврора»
       // v2 → v3: «Кометы» стали Reels
       migrate: (persisted, version) => {
@@ -142,6 +142,8 @@ export const usePrefs = create<PrefsState>()(
           p.aurora = 'animated';
         }
         if (version < 3 && p.startPage === '/comets') p.startPage = '/reels';
+        // v3 → v4: Sunnet — солнечный, светлая тема по умолчанию
+        if (version < 4) p.theme = 'light';
         return p as unknown as PrefsState;
       },
     },

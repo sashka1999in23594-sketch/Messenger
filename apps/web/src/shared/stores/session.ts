@@ -3,7 +3,11 @@ import type { Counters, Me } from '@omni/shared';
 
 interface SessionState {
   /** loading — первая проверка; waking — сервер просыпается, ждём и не выходим из аккаунта */
-  status: 'loading' | 'waking' | 'guest' | 'authenticated';
+  status: 'loading' | 'waking' | 'offline' | 'guest' | 'authenticated';
+  /** Когда началось ожидание сервера и сколько было попыток — для экрана пробуждения */
+  wake: { since: number; attempt: number } | null;
+  setOffline: () => void;
+  setAttempt: (attempt: number, since: number) => void;
   me: Me | null;
   setMe: (me: Me | null) => void;
   setWaking: (waking: boolean) => void;
@@ -14,7 +18,10 @@ interface SessionState {
 export const useSession = create<SessionState>((set) => ({
   status: 'loading',
   me: null,
-  setMe: (me) => set({ me, status: me ? 'authenticated' : 'guest' }),
+  wake: null,
+  setMe: (me) => set({ me, status: me ? 'authenticated' : 'guest', wake: null }),
+  setOffline: () => set((s) => (s.status === 'authenticated' ? s : { status: 'offline' })),
+  setAttempt: (attempt, since) => set({ wake: { attempt, since } }),
   // Пока сервер просыпается, остаёмся на экране загрузки, а не выкидываем на вход
   setWaking: (waking) => set((s) => (s.status === 'authenticated' ? s : { status: waking ? 'waking' : s.status })),
   patchMe: (patch) => set((s) => (s.me ? { me: { ...s.me, ...patch } } : s)),
