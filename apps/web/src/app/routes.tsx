@@ -85,6 +85,7 @@ const FollowListPage = lazyNamed(profile, 'FollowListPage');
 
 const SpacesHome = lazyNamed(spaces, 'SpacesHome');
 const AppsCatalog = lazyNamed(appsCatalog, 'AppsCatalog');
+const CloudPage = lazyNamed(() => import('../features/desktop/CloudPage'), 'CloudPage');
 const DiscoverSpaces = lazyNamed(spaces, 'DiscoverSpaces');
 const NewSpacePage = lazyNamed(spaces, 'NewSpacePage');
 const SpaceLayout = lazyNamed(spaces, 'SpaceLayout');
@@ -256,6 +257,8 @@ export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
 
         {/* Каталог приложений (кнопка «+» в доке) */}
         <Route path="apps" element={<AppsCatalog />} />
+        <Route path="cloud" element={<CloudPage />} />
+        <Route path="cloud/:folderId" element={<CloudPage />} />
 
         {/* Сообщества */}
         <Route path="communities" element={<SpacesHome kind="community" />} />

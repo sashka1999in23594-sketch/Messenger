@@ -7,6 +7,7 @@
  * `planned` получает страницу-дорожную карту — только для того, что уже в работе.
  */
 import {
+  Cloud,
   SquareTerminal as Terminal,
   LayoutGrid as AppsGrid,
   Server as ServerIcon,
@@ -301,6 +302,18 @@ export const sections: NavSection[] = [
     ],
   },
   {
+    id: 'cloud',
+    label: 'Облако',
+    short: 'Облако',
+    icon: Cloud,
+    path: '/cloud',
+    description: 'Файлы и папки рабочего стола — на любом устройстве',
+    children: [
+      { id: 'cloud.root', label: 'Мои файлы', icon: Cloud, path: '/cloud', keywords: ['файлы', 'папки', 'облако', 'рабочий стол'] },
+      { id: 'cloud.trash', label: 'Корзина', icon: Trash2, path: '/cloud/trash', keywords: ['удалённые', 'восстановить'] },
+    ],
+  },
+  {
     id: 'apps',
     label: 'Приложения',
     short: 'Добавить',
@@ -537,6 +550,7 @@ const SECTION_PREFIXES: [string, string][] = [
   ['/premieres', 'video'],
   ['/servers', 'servers'],
   ['/apps', 'apps'],
+  ['/cloud', 'cloud'],
   ['/communities', 'communities'],
   ['/companies', 'companies'],
   ['/s/', 'communities'],

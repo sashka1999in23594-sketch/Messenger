@@ -1010,4 +1010,27 @@ CREATE TABLE admin_audit (
 CREATE INDEX admin_audit_time ON admin_audit(created_at DESC);
 `,
   },
+  {
+    version: '017_desk_items',
+    sql: `
+-- Рабочий стол = облако: папки, файлы, проекты и ярлыки сервисов пользователя.
+-- Позиция значка (x, y — ячейки сетки) хранится на сервере, поэтому стол одинаков
+-- на любом устройстве. Удалённое лежит в корзине (trashed_at) и восстанавливается.
+CREATE TABLE desk_items (
+  id         TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  parent_id  TEXT REFERENCES desk_items(id) ON DELETE CASCADE,
+  kind       TEXT NOT NULL CHECK (kind IN ('folder', 'file', 'project', 'link')),
+  name       TEXT NOT NULL,
+  media_id   TEXT REFERENCES media(id) ON DELETE SET NULL,
+  url        TEXT,
+  x          INTEGER,
+  y          INTEGER,
+  trashed_at INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX desk_items_user ON desk_items(user_id, parent_id);
+`,
+  },
 ];

@@ -26,6 +26,7 @@ import { spacesRoutes } from './modules/spaces/spaces.routes.js';
 import { statsRoutes } from './modules/stats/stats.routes.js';
 import { liveRoutes } from './modules/live/live.routes.js';
 import { adminRoutes } from './modules/admin/admin.routes.js';
+import { deskRoutes } from './modules/desk/desk.routes.js';
 import { postsRoutes } from './modules/posts/posts.routes.js';
 import { RealtimeHub } from './modules/realtime/hub.js';
 import { wsRoutes } from './modules/realtime/ws.routes.js';
@@ -90,6 +91,7 @@ export async function buildApp(config: Config, opts: { db?: Db; storage?: S3Stor
       await api.register(statsRoutes);
       await api.register(liveRoutes);
       await api.register(adminRoutes);
+      await api.register(deskRoutes);
       await api.register(wsRoutes);
     },
     { prefix: API_PREFIX },

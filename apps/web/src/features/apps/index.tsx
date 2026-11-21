@@ -6,7 +6,9 @@
  * (Telegram — TDLib на сервере, WhatsApp — только Business Cloud API), она в работе.
  */
 import { useMemo, useState, type CSSProperties } from 'react';
-import { ExternalLink, Search, Sparkles } from 'lucide-react';
+import { ExternalLink, MonitorDown, Search, Sparkles } from 'lucide-react';
+import { createItem } from '../desktop/cloud';
+import { toast } from '../../shared/stores/ui';
 import { CATALOG, CATEGORIES, type CatalogApp } from './catalog';
 import './apps.css';
 
@@ -55,6 +57,18 @@ function AppRow({ a, i }: { a: CatalogApp; i: number }) {
         <span className="apps-row__desc">{a.desc}</span>
         <span className={`apps-row__how apps-row__how--${a.how}`}>{a.how === 'web' ? 'Официальная веб-версия' : a.how === 'api' ? 'Интеграция в работе' : 'Приложение Sunnet'}</span>
       </span>
+      <button
+        type="button"
+        className="apps-row__add"
+        onClick={async () => {
+          remember(a.id);
+          if (await createItem({ kind: 'link', name: a.name, url: a.url })) toast({ text: `${a.name} — на рабочем столе`, kind: 'success' });
+        }}
+        aria-label={`Добавить ${a.name} на рабочий стол`}
+        title="На рабочий стол"
+      >
+        <MonitorDown size={16} />
+      </button>
       <button type="button" className="apps-row__open" onClick={open} aria-label={`Открыть ${a.name}`}>
         Открыть <ExternalLink size={14} />
       </button>

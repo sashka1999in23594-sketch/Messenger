@@ -8,10 +8,10 @@ import { brandName, useBrand } from '../../shared/lib/brand';
 import { usePrefs } from '../../shared/stores/prefs';
 import { MoonScene } from '../../shared/ui';
 import { AppUpdate } from '../../app/layout/AppUpdate';
-import { useEffect, useMemo, useRef, type ComponentProps, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentProps, type CSSProperties } from 'react';
 import { createPath, Router } from 'react-router';
 import { useShallow } from 'zustand/react/shallow';
-import { Eye, EyeOff, LayoutGrid, Settings, XSquare, ZoomIn, ZoomOut } from 'lucide-react';
+import { Eye, EyeOff, LayoutGrid, Settings, XSquare, ZoomIn, ZoomOut, FolderPlus, Upload, Cloud } from 'lucide-react';
 import { CommandPalette } from '../../app/layout/CommandPalette';
 import { LockScreen } from '../../app/layout/LockScreen';
 import { setRealtimeNavigate } from '../../app/realtime';
@@ -20,6 +20,9 @@ import { RoomScreen } from '../calls/RoomScreen';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import { isAppPath, isMac, titleFor } from './apps';
 import { DeskMenu, useDeskMenu } from './DeskMenu';
+import { DeskIcons, cellAt } from './DeskIcons';
+import { createItem, uploadToDesk } from './cloud';
+import './cloud.css';
 import { Dock } from './Dock';
 import { activate, closeWindow, closeWindows, minimizeWindow, openPath, withGlide } from './fx';
 import { DOCK_ZONE, firstRunLayout, MENUBAR_H, useArea, type Snap } from './geometry';
@@ -198,10 +201,16 @@ export function Desktop() {
   }, []);
 
   const onContextMenu = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('.desk-win, .dock, .menubar')) return;
+    if ((e.target as HTMLElement).closest('.desk-win, .dock, .menubar, .dicon')) return;
     e.preventDefault();
+    menuAt.current = { x: e.clientX, y: e.clientY };
     ctx.open({ x: e.clientX, y: e.clientY });
   };
+  // Файлы из системы → в облако, в ту ячейку, куда их бросили
+  const menuAt = useRef({ x: 200, y: 200 });
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [dropping, setDropping] = useState(false);
+  const isFiles = (e: React.DragEvent) => [...e.dataTransfer.types].includes('Files');
   const count = ids.length;
   const st = useDesktop.getState;
 
@@ -209,7 +218,21 @@ export function Desktop() {
     <>
       <div
         ref={deskRef}
-        className={view.zoom !== 1 ? `desk desk--wp-${wallpaper} desk--zoomed` : `desk desk--wp-${wallpaper}`}
+        className={`desk desk--wp-${wallpaper}${view.zoom !== 1 ? ' desk--zoomed' : ''}${dropping ? ' desk--drop' : ''}`}
+        onDragOver={(e) => {
+          if (!isFiles(e) || (e.target as HTMLElement).closest('.desk-win')) return;
+          e.preventDefault();
+          if (!dropping) setDropping(true);
+        }}
+        onDragLeave={(e) => {
+          if (e.currentTarget === e.target) setDropping(false);
+        }}
+        onDrop={(e) => {
+          setDropping(false);
+          if (!isFiles(e) || (e.target as HTMLElement).closest('.desk-win')) return;
+          e.preventDefault();
+          void uploadToDesk([...e.dataTransfer.files], cellAt(e.clientX, e.clientY));
+        }}
         style={{ '--desk-menubar-h': `${MENUBAR_H}px`, '--desk-dock-zone': `${DOCK_ZONE}px` } as CSSProperties}
         onContextMenu={onContextMenu}
         onPointerDown={(e) => {
@@ -234,7 +257,9 @@ export function Desktop() {
         onPointerCancel={() => (panning.current = null)}
       >
         {moon ? <MoonScene className="wall wall--moon" still={reduceMotion} landX={0.74} earth={{ x: 0.18, y: 0.2, r: 0.09 }} /> : <Wallpaper kind={wallpaper} />}
+        <DeskIcons />
         {empty && <EmptyDesk />}
+        <input ref={fileInput} type="file" multiple hidden onChange={(e) => e.target.files && void uploadToDesk([...e.target.files], cellAt(menuAt.current.x, menuAt.current.y))} />
         <div
           className="desk__windows"
           style={view.zoom !== 1 || view.x || view.y ? { transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})` } : undefined}
@@ -253,6 +278,10 @@ export function Desktop() {
           onClose={ctx.close}
           label="Рабочий стол"
           items={[
+            { label: 'Создать папку', icon: <FolderPlus size={18} />, onClick: () => void createItem({ kind: 'folder', name: 'Новая папка', ...cellAt(menuAt.current.x, menuAt.current.y) }) },
+            { label: 'Загрузить файлы в облако…', icon: <Upload size={18} />, onClick: () => fileInput.current?.click() },
+            { label: 'Открыть облако и корзину', icon: <Cloud size={18} />, onClick: () => void openPath('/cloud') },
+            'separator',
             { label: 'Упорядочить окна', icon: <LayoutGrid size={18} />, disabled: !count, onClick: () => withGlide(() => st().arrange()) },
             empty && st().stash?.length
               ? { label: 'Показать окна', icon: <Eye size={18} />, onClick: () => st().showDesktop() }
