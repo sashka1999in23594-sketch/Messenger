@@ -7,6 +7,8 @@
  * `planned` получает страницу-дорожную карту — только для того, что уже в работе.
  */
 import {
+  LayoutGrid as AppsGrid,
+  Server as ServerIcon,
   Accessibility,
   House,
   BatteryCharging,
@@ -236,15 +238,6 @@ export const sections: NavSection[] = [
       { id: 'video.home', label: 'Все видео', icon: LayoutGrid, path: '/video' },
       { id: 'video.subscriptions', label: 'Подписки', icon: UserCheck, path: '/video/subscriptions' },
       { id: 'video.trending', label: 'В тренде', icon: TrendingUp, path: '/video/trending' },
-      {
-        id: 'video.live',
-        label: 'Прямые эфиры',
-        icon: Radio,
-        children: [
-          { id: 'video.live.now', label: 'Сейчас в эфире', icon: Radio, path: '/live', keywords: ['стрим', 'трансляция', 'эфир'] },
-          { id: 'video.live.start', label: 'Начать эфир', icon: RadioTower, path: '/live/new', keywords: ['стрим', 'запустить трансляцию', 'экран'] },
-        ],
-      },
       { id: 'video.premieres', label: 'Премьеры', icon: Clapperboard, path: '/premieres', keywords: ['премьера', 'смотреть вместе', 'отсчёт'] },
       {
         id: 'video.library',
@@ -293,6 +286,27 @@ export const sections: NavSection[] = [
       { id: 'companies.mine', label: 'Мои компании', icon: Briefcase, path: '/companies', keywords: ['работа', 'команда', 'приглашения'] },
       { id: 'companies.new', label: 'Создать компанию', icon: Plus, path: '/companies/new', keywords: ['руководитель', 'роли', 'сотрудники'] },
     ],
+  },
+  {
+    id: 'servers',
+    label: 'Серверы',
+    short: 'Серверы',
+    icon: ServerIcon,
+    path: '/servers',
+    description: 'Свои пространства общения: каналы, роли, приглашения',
+    children: [
+      { id: 'servers.mine', label: 'Мои серверы', icon: ServerIcon, path: '/servers', keywords: ['сервер', 'каналы', 'роли'] },
+      { id: 'servers.new', label: 'Создать сервер', icon: Plus, path: '/servers/new', keywords: ['новый сервер', 'пространство'] },
+    ],
+  },
+  {
+    id: 'apps',
+    label: 'Приложения',
+    short: 'Добавить',
+    icon: Plus,
+    path: '/apps',
+    description: 'Каталог сервисов и приложений для Sunnet',
+    children: [{ id: 'apps.catalog', label: 'Каталог', icon: AppsGrid, path: '/apps', keywords: ['магазин', 'добавить приложение', 'telegram', 'whatsapp', 'музыка', 'кино'] }],
   },
   {
     id: 'communities',
@@ -518,8 +532,9 @@ const SECTION_PREFIXES: [string, string][] = [
   ['/video', 'video'],
   ['/watch', 'video'],
   ['/playlist', 'video'],
-  ['/live', 'video'],
   ['/premieres', 'video'],
+  ['/servers', 'servers'],
+  ['/apps', 'apps'],
   ['/communities', 'communities'],
   ['/companies', 'companies'],
   ['/s/', 'communities'],

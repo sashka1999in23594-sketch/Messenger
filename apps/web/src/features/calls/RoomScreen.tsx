@@ -1130,10 +1130,6 @@ function RoomWindow() {
         <div className="room-win__center">
           <div className="room-win__stage" onPointerDown={() => menu && setMenu(null)}>
             <Stage layout={layout} pinned={pinned} setPinned={setPinned} />
-            <button type="button" className={cn('room-studio-btn', studioOpen && 'is-on')} onClick={toggleStudio} aria-label="Студия трансляции" title="Студия: текст, фото, видео, экран и фон">
-              {studioOpen ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-              <PencilLine size={18} />
-            </button>
             <div className="room-controls">
               <Ctrl label="Камера" onClick={() => void toggleRoomCamera()} off={cameraOff} locked={camLocked}>
                 {cameraOff ? <VideoOff size={20} /> : <Video size={20} />}
@@ -1161,9 +1157,6 @@ function RoomWindow() {
                     <button type="button" role="menuitem" onClick={() => (setTab('media'), setMenu(null))}>
                       <Music size={16} /> Показ и музыка на фон
                     </button>
-                    <button type="button" role="menuitem" onClick={() => (toggleStudio(), setMenu(null))}>
-                      <PencilLine size={16} /> Студия трансляции
-                    </button>
                     <button type="button" role="menuitem" onClick={() => (setMax((m) => !m), setMenu(null))}>
                       <Maximize2 size={16} /> {max ? 'Обычный размер окна' : 'Окно на весь экран'}
                     </button>
@@ -1173,7 +1166,7 @@ function RoomWindow() {
               <EndButton />
             </div>
           </div>
-          {studioOpen && <Studio />}
+          {/* Студия трансляции убрана вместе с прямыми эфирами */}
         </div>
         {tab && (
           <div className="room-win__side">

@@ -20,6 +20,7 @@ const shorts = () => import('../features/shorts');
 const stories = () => import('../features/stories');
 const profile = () => import('../features/profile');
 const spaces = () => import('../features/spaces');
+const appsCatalog = () => import('../features/apps');
 const explore = () => import('../features/explore');
 const notifications = () => import('../features/notifications');
 const settings = () => import('../features/settings');
@@ -43,9 +44,6 @@ const CallsPage = lazyNamed(calls, 'CallsPage');
 const NewCallPage = lazyNamed(calls, 'NewCallPage');
 const stats = () => import('../features/stats');
 const live = () => import('../features/live');
-const LiveHome = lazyNamed(live, 'LiveHome');
-const GoLivePage = lazyNamed(live, 'GoLivePage');
-const LiveRoom = lazyNamed(live, 'LiveRoom');
 const PremieresPage = lazyNamed(live, 'PremieresPage');
 const StatsPage = lazyNamed(stats, 'StatsPage');
 const ChannelsStatsPage = lazyNamed(stats, 'ChannelsStatsPage');
@@ -86,6 +84,7 @@ const ProfilePage = lazyNamed(profile, 'ProfilePage');
 const FollowListPage = lazyNamed(profile, 'FollowListPage');
 
 const SpacesHome = lazyNamed(spaces, 'SpacesHome');
+const AppsCatalog = lazyNamed(appsCatalog, 'AppsCatalog');
 const DiscoverSpaces = lazyNamed(spaces, 'DiscoverSpaces');
 const NewSpacePage = lazyNamed(spaces, 'NewSpacePage');
 const SpaceLayout = lazyNamed(spaces, 'SpaceLayout');
@@ -230,9 +229,8 @@ export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
         <Route path="video/studio/content" element={<StudioPage tab="content" />} />
         <Route path="video/upload" element={<UploadVideoPage />} />
         <Route path="watch/:id" element={<WatchPage />} />
-        <Route path="live" element={<LiveHome />} />
-        <Route path="live/new" element={<GoLivePage />} />
-        <Route path="live/:id" element={<LiveRoom />} />
+        {/* Прямые эфиры убраны: старые ссылки ведут в «Видео» */}
+        <Route path="live/*" element={<Navigate to="/video" replace />} />
         <Route path="premieres" element={<PremieresPage />} />
         <Route path="playlist/:id" element={<PlaylistPage />} />
 
@@ -250,6 +248,13 @@ export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
         <Route path="stories" element={<StoriesPage />} />
         <Route path="stories/new" element={<NewStoryPage />} />
         <Route path="stories/archive" element={<StoriesArchivePage />} />
+
+        {/* Серверы — пространства общения с каналами и ролями */}
+        <Route path="servers" element={<SpacesHome kind="community" title="Серверы" />} />
+        <Route path="servers/new" element={<NewSpacePage kind="community" />} />
+
+        {/* Каталог приложений (кнопка «+» в доке) */}
+        <Route path="apps" element={<AppsCatalog />} />
 
         {/* Сообщества */}
         <Route path="communities" element={<SpacesHome kind="community" />} />

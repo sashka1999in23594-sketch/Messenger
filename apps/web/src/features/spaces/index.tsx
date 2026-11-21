@@ -97,8 +97,8 @@ export function InviteCard({ inv, compact }: { inv: SpaceInvite; compact?: boole
   );
 }
 
-export function SpacesHome({ kind }: { kind: SpaceKind }) {
-  const t = TEXT[kind];
+export function SpacesHome({ kind, title }: { kind: SpaceKind; title?: string }) {
+  const t = title ? { ...TEXT[kind], title, create: 'Создать сервер' } : TEXT[kind];
   const list = useSpaces(kind);
   const invites = (useMyInvites().data?.items ?? []).filter((i) => i.space.kind === kind);
   const items = list.data?.items ?? [];

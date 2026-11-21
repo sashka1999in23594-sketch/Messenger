@@ -526,16 +526,6 @@ export function VideoChips({ active }: { active: ChipId }) {
   const chips: { id: ChipId; label: ReactNode; to: string }[] = [
     { id: 'all', label: 'Все', to: '/video' },
     { id: 'subscriptions', label: 'Подписки', to: '/video/subscriptions' },
-    {
-      id: 'live',
-      label: (
-        <>
-          {liveNow > 0 && <span className="vchip__live" aria-hidden />}В эфире
-          {liveNow ? ` · ${liveNow}` : ''}
-        </>
-      ),
-      to: '/live',
-    },
     { id: 'premieres', label: 'Премьеры', to: '/premieres' },
     { id: 'trending', label: 'В тренде', to: '/video/trending' },
     ...(tags.data?.items ?? [])

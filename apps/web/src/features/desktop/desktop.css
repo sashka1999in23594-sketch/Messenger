@@ -1089,3 +1089,22 @@ body:has(.desk:not(.desk--wp-aurora)) .aurora {
   width: 100%;
   height: 100%;
 }
+
+.desk-tile--servers {
+  --tile: var(--desk-app-servers);
+}
+/* «+» — каталог приложений: золотая кнопка с медленным солнечным ореолом */
+.desk-tile--apps {
+  --tile: var(--desk-app-apps);
+  animation: desk-plus-glow 3.6s ease-in-out infinite;
+}
+@keyframes desk-plus-glow {
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in oklab, var(--desk-app-apps) 22%, transparent), 0 0 22px color-mix(in oklab, var(--desk-app-apps) 55%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .desk-tile--apps {
+    animation: none;
+  }
+}
