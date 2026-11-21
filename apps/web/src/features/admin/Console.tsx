@@ -20,7 +20,9 @@ export function AdminConsole() {
   const [hist, setHist] = useState<string[]>([]);
   const [hi, setHi] = useState(-1);
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => end.current?.scrollIntoView({ block: 'end' }), [lines]);
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: 'end' });
+  }, [lines]);
 
   const hints = value.startsWith('/') ? (cmds.data?.commands ?? []).filter((c) => c.usage.startsWith(value.split('(')[0]!)).slice(0, 5) : [];
 
