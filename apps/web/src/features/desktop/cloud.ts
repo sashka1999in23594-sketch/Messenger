@@ -68,11 +68,16 @@ export async function renameItem(id: string, name: string) {
   await api.patch(`/desk/items/${id}`, { name: n }).catch((e) => toast({ text: errorMessage(e), kind: 'error' }));
 }
 
-export async function trashItem(item: DeskItem) {
+/** Значки из кэша (без запроса). */
+export const useDeskItemsCache = () => queryClient.getQueryData<DeskItem[]>(DESK_KEY) ?? [];
+
+/** В корзину; silent — ярлык переехал на панель задач: убираем совсем и без сообщения. */
+export async function trashItem(item: DeskItem, silent = false) {
   queryClient.setQueryData<DeskItem[]>(DESK_KEY, (list) => list?.filter((i) => i.id !== item.id));
   try {
     await api.del(`/desk/items/${item.id}`);
-    toast({ text: `«${item.name}» — в корзине`, action: { label: 'Вернуть', onClick: () => void restoreItem(item.id) } });
+    if (silent) await api.del(`/desk/items/${item.id}?forever=1`);
+    else toast({ text: `«${item.name}» — в корзине`, action: { label: 'Вернуть', onClick: () => void restoreItem(item.id) } });
   } catch (e) {
     toast({ text: errorMessage(e), kind: 'error' });
   }
@@ -109,6 +114,9 @@ export async function uploadToDesk(files: File[], at: { x: number; y: number }, 
 /** Открыть значок: папка — окно облака, файл — в новой вкладке, ярлык — сайт сервиса. */
 export function openItemUrl(item: DeskItem): string | null {
   if (item.kind === 'file') return item.media?.url ?? null;
-  if (item.kind === 'link') return item.url;
+  if (item.kind === 'link' && item.url?.startsWith('https://')) return item.url;
   return null;
 }
+
+/** Ярлык на раздел Sunnet («/servers») открывается окном, а не вкладкой. */
+export const isInternal = (item: DeskItem) => item.kind === 'link' && !!item.url?.startsWith('/');

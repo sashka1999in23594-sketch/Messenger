@@ -255,3 +255,43 @@
     transition: none;
   }
 }
+
+/* Размер значков */
+.dicons--s .dicon {
+  transform-origin: top left;
+  scale: 0.82;
+}
+.dicons--l .dicon {
+  transform-origin: top left;
+  scale: 1.2;
+}
+/* F11: остаётся только активное окно на весь экран */
+.desk--full .menubar,
+.desk--full .dock,
+.desk--full .dicons,
+.desk--full .desk__empty {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(var(--full-shift, 0));
+  transition: opacity 0.35s var(--ease), transform 0.35s var(--ease);
+}
+.desk--full .menubar {
+  --full-shift: -40px;
+}
+.desk--full .dock {
+  --full-shift: 90px;
+}
+.desk--full .desk-win--active {
+  inset: 0 !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+  z-index: 50;
+  transition: all 0.4s var(--ease-spring);
+}
+.desk--full .desk-win:not(.desk-win--active) {
+  opacity: 0;
+  pointer-events: none;
+}

@@ -118,6 +118,13 @@ export function openPath(path: string, opts: { newWindow?: boolean; from?: Eleme
   return id;
 }
 
+/** Рабочие инструменты (Студия) открываются сразу на весь экран. */
+export function openMaximized(path: string) {
+  const id = openPath(path, { newWindow: true });
+  useDesktop.getState().snapTo(id, 'max');
+  return id;
+}
+
 export const activeId = () => activeWin(useDesktop.getState().wins)?.id;
 
 /** Прыжок значка в доке при запуске — как в macOS. */

@@ -4,12 +4,13 @@
  * Увеличение считается напрямую в стилях элементов, без перерисовки React.
  */
 import { useCallback, useEffect, useRef } from 'react';
-import { AppWindow, EyeOff, SquarePlus, X } from 'lucide-react';
+import { AppWindow, EyeOff, PinOff, ShieldCheck, SquarePlus, X } from 'lucide-react';
 import { useBadge } from '../../app/layout/Rail';
 import { cn } from '../../shared/lib/format';
 import { AccountMenu, MeAvatar } from './Account';
 import { AppTile } from './AppTile';
-import { appFor, dockApps, titleFor, type DeskApp } from './apps';
+import { appById, appFor, titleFor, type DeskApp } from './apps';
+import { dockIds, runAsAdmin, unpinFromDock, useDeskPrefs } from './deskPrefs';
 import { DeskMenu, useDeskMenu, type DeskMenuEntry } from './DeskMenu';
 import { activate, bounce, closeWindows, dockEls, minimizeWindow, motionOn, openPath } from './fx';
 import { activeWin, useDesktop } from './store';
@@ -77,6 +78,8 @@ function DockApp({ app }: { app: DeskApp }) {
     }),
     running && 'separator',
     { label: 'Открыть новое окно', icon: <SquarePlus size={18} />, onClick: () => launch(true) },
+    { label: 'Запустить от имени администратора', icon: <ShieldCheck size={18} />, onClick: () => void runAsAdmin(app.path, app.label) },
+    app.id !== 'apps' && { label: 'Открепить — вернуть на рабочий стол', icon: <PinOff size={18} />, onClick: () => void unpinFromDock(app) },
     wins.some((w) => !w.min) && { label: 'Свернуть все окна', icon: <EyeOff size={18} />, onClick: () => wins.forEach((w) => !w.min && void minimizeWindow(w.id)) },
     running && { label: wins.length > 1 ? 'Закрыть все окна' : 'Закрыть окно', icon: <X size={18} />, danger: true, onClick: () => closeWindows(wins.map((w) => w.id)) },
   ];
@@ -175,6 +178,10 @@ function DockAccount() {
 }
 
 export function Dock() {
+  const dock = useDeskPrefs((s) => s.dock);
+  const pinned = dockIds(dock)
+    .map((id) => appById(id))
+    .filter((a): a is DeskApp => !!a);
   const navRef = useRef<HTMLElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const frame = useRef(0);
@@ -258,7 +265,7 @@ export function Dock() {
     <nav ref={navRef} className="dock" aria-label="Док: разделы и свёрнутые окна" onPointerMove={onMove} onPointerLeave={onLeave}>
       <div className="dock__bg" aria-hidden />
       <div ref={rowRef} className="dock__row">
-        {dockApps.map((a) => (
+        {pinned.map((a) => (
           <DockApp key={a.id} app={a} />
         ))}
         <span className="dock__sep" aria-hidden />

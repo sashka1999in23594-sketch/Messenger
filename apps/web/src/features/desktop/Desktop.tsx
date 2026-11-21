@@ -11,7 +11,7 @@ import { AppUpdate } from '../../app/layout/AppUpdate';
 import { useEffect, useMemo, useRef, useState, type ComponentProps, type CSSProperties } from 'react';
 import { createPath, Router } from 'react-router';
 import { useShallow } from 'zustand/react/shallow';
-import { Eye, EyeOff, LayoutGrid, Settings, XSquare, ZoomIn, ZoomOut, FolderPlus, Upload, Cloud } from 'lucide-react';
+import { Eye, EyeOff, LayoutGrid, Settings, XSquare, ZoomIn, ZoomOut, FolderPlus, Upload, Cloud, Sparkles, Maximize } from 'lucide-react';
 import { CommandPalette } from '../../app/layout/CommandPalette';
 import { LockScreen } from '../../app/layout/LockScreen';
 import { setRealtimeNavigate } from '../../app/realtime';
@@ -22,9 +22,10 @@ import { isAppPath, isMac, titleFor } from './apps';
 import { DeskMenu, useDeskMenu } from './DeskMenu';
 import { DeskIcons, cellAt } from './DeskIcons';
 import { createItem, uploadToDesk } from './cloud';
+import { arrangeIcons, useDeskPrefs, type SortBy } from './deskPrefs';
 import './cloud.css';
 import { Dock } from './Dock';
-import { activate, closeWindow, closeWindows, minimizeWindow, openPath, withGlide } from './fx';
+import { activate, closeWindow, closeWindows, minimizeWindow, openMaximized, openPath, withGlide } from './fx';
 import { DOCK_ZONE, firstRunLayout, MENUBAR_H, useArea, type Snap } from './geometry';
 import { MenuBar } from './MenuBar';
 import { activeWin, useDesktop, WALLPAPERS, ZOOM_MAX, ZOOM_MIN, type Win } from './store';
@@ -46,6 +47,56 @@ function Launcher() {
       <CommandPalette />
     </Router>
   );
+}
+
+/** Новый проект Студии на столе: «Проект №N», сразу открывается в Студии. */
+async function newProject(at: { x: number; y: number }) {
+  const { useDeskItemsCache } = await import('./cloud');
+  const n = useDeskItemsCache().filter((i) => i.kind === 'project').length + 1;
+  const item = await createItem({ kind: 'project', name: `Проект №${n}`, ...at });
+  if (item) void openMaximized(`/studio/${item.id}`);
+}
+
+/**
+ * F11: интерфейс Sunnet прячется, остаётся только активное окно на весь экран
+ * (и браузер уходит в полноэкранный режим). Повторное F11 возвращает всё как было.
+ */
+const fullListeners = new Set<() => void>();
+let fullOn = false;
+function toggleFull() {
+  fullOn = !fullOn;
+  fullListeners.forEach((f) => f());
+  try {
+    if (fullOn && !document.fullscreenElement) void document.documentElement.requestFullscreen?.().catch(() => undefined);
+    if (!fullOn && document.fullscreenElement) void document.exitFullscreen?.().catch(() => undefined);
+  } catch {
+    /* браузер не разрешил — режим всё равно работает внутри окна */
+  }
+}
+function useFullscreen() {
+  const [on, setOn] = useState(fullOn);
+  useEffect(() => {
+    const f = () => setOn(fullOn);
+    fullListeners.add(f);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'F11') {
+        e.preventDefault();
+        toggleFull();
+      }
+    };
+    // Вышли из полноэкранного режима браузера (Esc) — возвращаем интерфейс
+    const onFs = () => {
+      if (!document.fullscreenElement && fullOn) toggleFull();
+    };
+    window.addEventListener('keydown', onKey);
+    document.addEventListener('fullscreenchange', onFs);
+    return () => {
+      fullListeners.delete(f);
+      window.removeEventListener('keydown', onKey);
+      document.removeEventListener('fullscreenchange', onFs);
+    };
+  }, []);
+  return on;
 }
 
 /** Пустой стол: короткая подсказка над доком, где всё найти. */
@@ -176,6 +227,12 @@ export function Desktop() {
   const reduceMotion = usePrefs((s) => s.reduceMotion);
   const ctx = useDeskMenu();
   useShortcuts();
+  const sort = useDeskPrefs((s) => s.sort);
+  const iconSize = useDeskPrefs((s) => s.iconSize);
+  const full = useFullscreen();
+  useEffect(() => {
+    void useDeskPrefs.getState().load();
+  }, []);
 
   useEffect(() => {
     const st = useDesktop.getState();
@@ -218,7 +275,7 @@ export function Desktop() {
     <>
       <div
         ref={deskRef}
-        className={`desk desk--wp-${wallpaper}${view.zoom !== 1 ? ' desk--zoomed' : ''}${dropping ? ' desk--drop' : ''}`}
+        className={`desk desk--wp-${wallpaper}${full ? ' desk--full' : ''}${view.zoom !== 1 ? ' desk--zoomed' : ''}${dropping ? ' desk--drop' : ''}`}
         onDragOver={(e) => {
           if (!isFiles(e) || (e.target as HTMLElement).closest('.desk-win')) return;
           e.preventDefault();
@@ -279,6 +336,7 @@ export function Desktop() {
           label="Рабочий стол"
           items={[
             { label: 'Создать папку', icon: <FolderPlus size={18} />, onClick: () => void createItem({ kind: 'folder', name: 'Новая папка', ...cellAt(menuAt.current.x, menuAt.current.y) }) },
+            { label: 'Создать проект', icon: <Sparkles size={18} />, onClick: () => void newProject(cellAt(menuAt.current.x, menuAt.current.y)) },
             { label: 'Загрузить файлы в облако…', icon: <Upload size={18} />, onClick: () => fileInput.current?.click() },
             { label: 'Открыть облако и корзину', icon: <Cloud size={18} />, onClick: () => void openPath('/cloud') },
             'separator',
@@ -292,6 +350,15 @@ export function Desktop() {
             { label: 'Приблизить', icon: <ZoomIn size={18} />, disabled: view.zoom >= ZOOM_MAX, onClick: () => st().zoomTo(view.zoom + 0.1) },
             { label: 'Отдалить', icon: <ZoomOut size={18} />, disabled: view.zoom <= ZOOM_MIN, onClick: () => st().zoomTo(view.zoom - 0.1) },
             { label: 'Обычный масштаб', disabled: view.zoom === 1, onClick: () => st().zoomTo(1) },
+            'separator',
+            { title: 'Значки' },
+            ...(['manual', 'name', 'kind', 'date'] as SortBy[]).map((by) => ({
+              label: { manual: 'Как расставлены', name: 'По имени', kind: 'По типу', date: 'По дате изменения' }[by],
+              checked: sort === by,
+              onClick: () => arrangeIcons(by),
+            })),
+            ...(['s', 'm', 'l'] as const).map((sz) => ({ label: { s: 'Мелкие значки', m: 'Обычные значки', l: 'Крупные значки' }[sz], checked: iconSize === sz, onClick: () => useDeskPrefs.getState().set({ iconSize: sz }) })),
+            { label: 'Полноэкранный режим', icon: <Maximize size={18} />, hint: 'F11', onClick: () => toggleFull() },
             'separator',
             { title: 'Обои' },
             ...WALLPAPERS.map((w) => ({ label: w.label, checked: w.id === wallpaper, onClick: () => st().setWallpaper(w.id) })),

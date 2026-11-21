@@ -7,6 +7,9 @@
  * `planned` получает страницу-дорожную карту — только для того, что уже в работе.
  */
 import {
+  FileCode,
+  GraduationCap,
+  Wand2,
   Cloud,
   SquareTerminal as Terminal,
   LayoutGrid as AppsGrid,
@@ -302,6 +305,19 @@ export const sections: NavSection[] = [
     ],
   },
   {
+    id: 'studio',
+    label: 'Студия',
+    short: 'Студия',
+    icon: Wand2,
+    path: '/studio',
+    description: 'Создавайте свои приложения и публикуйте их',
+    children: [
+      { id: 'studio.home', label: 'Мои проекты', icon: Wand2, path: '/studio', keywords: ['создать приложение', 'проект', 'разработка'] },
+      { id: 'studio.academy', label: 'Академия', icon: GraduationCap, path: '/studio/academy', keywords: ['обучение', 'уроки', 'программирование', 'javascript'] },
+      { id: 'studio.docs', label: 'Документация API', icon: FileCode, path: '/studio/docs', keywords: ['api', 'sunnet', 'скрипты'] },
+    ],
+  },
+  {
     id: 'cloud',
     label: 'Облако',
     short: 'Облако',
@@ -551,6 +567,8 @@ const SECTION_PREFIXES: [string, string][] = [
   ['/servers', 'servers'],
   ['/apps', 'apps'],
   ['/cloud', 'cloud'],
+  ['/studio', 'studio'],
+  ['/app/', 'studio'],
   ['/communities', 'communities'],
   ['/companies', 'companies'],
   ['/s/', 'communities'],

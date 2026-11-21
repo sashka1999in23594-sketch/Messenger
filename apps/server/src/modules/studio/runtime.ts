@@ -79,7 +79,7 @@ export function buildHtml(p: Project): string {
         .map((e) => {
           const st = `left:${num(e.x)}px;top:${num(e.y)}px;width:${num(e.w, 100)}px;height:${num(e.h, 40)}px;${safeCss(e.color) ? `color:${safeCss(e.color)};` : ''}${safeCss(e.bg) ? `background:${safeCss(e.bg)};` : ''}border-radius:${num(e.radius)}px;font-size:${num(e.fontSize, 16)}px;font-weight:${num(e.weight, 500)};${e.anim && e.anim !== 'none' ? `animation:sn-${e.anim} 2.4s ease-in-out infinite;` : ''}`;
           const attrs = `class="sn-el sn-${e.type}" data-name="${esc(e.name)}" style="${st}"`;
-          if (e.type === 'image') return `<img ${attrs} src="${esc(safeSrc(e.src))}" alt="${esc(e.name)}">`;
+          if (e.type === 'image') return safeSrc(e.src) ? `<img ${attrs} src="${esc(safeSrc(e.src))}" alt="${esc(e.name)}">` : `<div ${attrs}></div>`;
           if (e.type === 'button') return `<button ${attrs}>${esc(e.text ?? '')}</button>`;
           if (e.type === 'input') return `<input ${attrs} placeholder="${esc(e.text ?? '')}">`;
           return `<div ${attrs}>${esc(e.text ?? '')}</div>`;

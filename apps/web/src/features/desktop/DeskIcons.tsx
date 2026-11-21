@@ -4,12 +4,12 @@
  * правый щелчок — меню, F2 — переименовать, Delete — в корзину.
  */
 import { useRef, useState, type CSSProperties } from 'react';
-import { FileArchive, FileText, Film, Folder, Globe, Image as ImageIcon, Music, PenLine, Sparkles, Trash2, ExternalLink, FolderOpen } from 'lucide-react';
+import { Pin, ShieldCheck, FileArchive, FileText, Film, Folder, Globe, Image as ImageIcon, Music, PenLine, Sparkles, Trash2, ExternalLink, FolderOpen } from 'lucide-react';
 import { DeskMenu, useDeskMenu } from './DeskMenu';
-import { openPath } from './fx';
+import { openMaximized, openPath } from './fx';
 import { MENUBAR_H } from './geometry';
-import { moveItem, openItemUrl, renameItem, trashItem, useDeskItems, type DeskItem } from './cloud';
-import { toast } from '../../shared/stores/ui';
+import { isInternal, moveItem, openItemUrl, renameItem, trashItem, useDeskItems, type DeskItem } from './cloud';
+import { pinToDock, runAsAdmin, useDeskPrefs } from './deskPrefs';
 
 export const CELL_W = 96;
 export const CELL_H = 106;
@@ -53,6 +53,7 @@ function layout(items: DeskItem[]) {
 
 export function DeskIcons() {
   const items = useDeskItems().data ?? [];
+  const size = useDeskPrefs((s) => s.iconSize);
   const root = items.filter((i) => !i.parentId);
   const pos = layout(root);
   const [sel, setSel] = useState<string | null>(null);
@@ -64,7 +65,8 @@ export function DeskIcons() {
 
   const open = (item: DeskItem) => {
     if (item.kind === 'folder') return void openPath(`/cloud/${item.id}`);
-    if (item.kind === 'project') return toast('Студия откроется в следующем обновлении — проект уже сохранён в облаке');
+    if (item.kind === 'project') return void openMaximized(`/studio/${item.id}`);
+    if (isInternal(item)) return void openPath(item.url!);
     const url = openItemUrl(item);
     if (url) window.open(url, '_blank', 'noopener,noreferrer');
   };
@@ -99,7 +101,7 @@ export function DeskIcons() {
   };
 
   return (
-    <div className="dicons" aria-label="Облако на рабочем столе">
+    <div className={`dicons dicons--${size}`} aria-label="Облако на рабочем столе">
       {root.map((item, i) => {
         const p = pos.get(item.id)!;
         const dragging = drag?.id === item.id;
@@ -166,6 +168,8 @@ export function DeskIcons() {
           menuFor
             ? [
                 { label: 'Открыть', icon: menuFor.kind === 'folder' ? <FolderOpen size={18} /> : <ExternalLink size={18} />, onClick: () => open(menuFor) },
+                menuFor.kind === 'link' && { label: 'Запустить от имени администратора', icon: <ShieldCheck size={18} />, onClick: () => void runAsAdmin(menuFor.url ?? '/', menuFor.name) },
+                isInternal(menuFor) && { label: 'Закрепить на панели задач', icon: <Pin size={18} />, onClick: () => void pinToDock(menuFor) },
                 'separator',
                 { label: 'Переименовать', icon: <PenLine size={18} />, hint: 'F2', onClick: () => setEditing(menuFor.id) },
                 { label: 'В корзину', icon: <Trash2 size={18} />, hint: 'Delete', danger: true, onClick: () => void trashItem(menuFor) },

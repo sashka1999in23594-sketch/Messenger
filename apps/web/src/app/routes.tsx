@@ -86,6 +86,12 @@ const FollowListPage = lazyNamed(profile, 'FollowListPage');
 const SpacesHome = lazyNamed(spaces, 'SpacesHome');
 const AppsCatalog = lazyNamed(appsCatalog, 'AppsCatalog');
 const CloudPage = lazyNamed(() => import('../features/desktop/CloudPage'), 'CloudPage');
+const studio = () => import('../features/studio');
+const StudioHome = lazyNamed(studio, 'StudioHome');
+const AppStudioPage = lazyNamed(studio, 'StudioPage');
+const AcademyPage = lazyNamed(studio, 'AcademyPage');
+const ApiDocsPage = lazyNamed(studio, 'ApiDocsPage');
+const AppRunPage = lazyNamed(studio, 'AppRunPage');
 const DiscoverSpaces = lazyNamed(spaces, 'DiscoverSpaces');
 const NewSpacePage = lazyNamed(spaces, 'NewSpacePage');
 const SpaceLayout = lazyNamed(spaces, 'SpaceLayout');
@@ -257,6 +263,12 @@ export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
 
         {/* Каталог приложений (кнопка «+» в доке) */}
         <Route path="apps" element={<AppsCatalog />} />
+        {/* Студия: проекты, Академия, документация; опубликованные приложения */}
+        <Route path="studio" element={<StudioHome />} />
+        <Route path="studio/academy" element={<AcademyPage />} />
+        <Route path="studio/docs" element={<ApiDocsPage />} />
+        <Route path="studio/:projectId" element={<AppStudioPage />} />
+        <Route path="app/:slug" element={<AppRunPage />} />
         <Route path="cloud" element={<CloudPage />} />
         <Route path="cloud/:folderId" element={<CloudPage />} />
 
