@@ -32,7 +32,8 @@ export async function registerSecurity(app: FastifyInstance): Promise<void> {
         workerSrc: ["'self'"],
         manifestSrc: ["'self'"],
         objectSrc: ["'none'"],
-        frameSrc: ["'none'"],
+        // Встраиваем только свои страницы: изолированный запуск приложений Студии
+        frameSrc: ["'self'"],
         frameAncestors: ["'none'"],
         baseUri: ["'none'"],
         formAction: ["'self'"],

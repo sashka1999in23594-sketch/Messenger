@@ -1033,4 +1033,38 @@ CREATE TABLE desk_items (
 CREATE INDEX desk_items_user ON desk_items(user_id, parent_id);
 `,
   },
+  {
+    version: '018_studio_and_desk_prefs',
+    sql: `
+-- Настройки рабочего стола (док, размер значков, сортировка) — общие для всех устройств.
+ALTER TABLE users ADD COLUMN desk_prefs TEXT;
+-- Проект Студии хранит своё содержимое (экраны, элементы, скрипты) прямо в значке.
+ALTER TABLE desk_items ADD COLUMN data TEXT;
+-- Опубликованные приложения Студии: уникальная ссылка, версия, разрешения, проверка.
+CREATE TABLE studio_apps (
+  id          TEXT PRIMARY KEY,
+  owner_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  project_id  TEXT REFERENCES desk_items(id) ON DELETE SET NULL,
+  slug        TEXT NOT NULL UNIQUE,
+  name        TEXT NOT NULL,
+  version     INTEGER NOT NULL DEFAULT 1,
+  data        TEXT NOT NULL,
+  permissions TEXT NOT NULL DEFAULT '[]',
+  review      TEXT NOT NULL DEFAULT 'none' CHECK (review IN ('none', 'pending', 'verified', 'rejected')),
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
+);
+CREATE INDEX studio_apps_owner ON studio_apps(owner_id);
+-- Разрешения приложений: каждое выдаётся отдельно и может быть отозвано; история хранится.
+CREATE TABLE app_grants (
+  id          TEXT PRIMARY KEY,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  app_id      TEXT NOT NULL REFERENCES studio_apps(id) ON DELETE CASCADE,
+  permission  TEXT NOT NULL,
+  granted_at  INTEGER NOT NULL,
+  revoked_at  INTEGER
+);
+CREATE INDEX app_grants_user ON app_grants(user_id, app_id);
+`,
+  },
 ];

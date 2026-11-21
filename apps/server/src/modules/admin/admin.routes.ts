@@ -62,6 +62,9 @@ const COMMANDS: { name: string; usage: string; role: Role[]; text: string }[] = 
   { name: 'badge.give', usage: '/badge.give("ник", "verified")', role: ['admin'], text: 'Выдать галочку' },
   { name: 'badge.take', usage: '/badge.take("ник", "verified")', role: ['admin'], text: 'Снять галочку' },
   { name: 'role.grant', usage: '/role.grant("ник", "moderator")', role: ['admin'], text: 'Роль: user, moderator, admin' },
+  { name: 'app.pending', usage: '/app.pending()', role: ['moderator', 'admin'], text: 'Приложения на проверке' },
+  { name: 'app.verify', usage: '/app.verify("ссылка")', role: ['admin'], text: 'Проверено: в каталог со значком' },
+  { name: 'app.reject', usage: '/app.reject("ссылка", reason: "…")', role: ['admin'], text: 'Отклонить проверку' },
   { name: 'audit.show', usage: '/audit.show()', role: ['admin'], text: 'Последние 20 команд' },
   { name: 'help.all', usage: '/help.all()', role: ['moderator', 'admin'], text: 'Список команд' },
 ];
@@ -116,6 +119,17 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         'SELECT a.command, a.result, a.created_at, u.username FROM admin_audit a JOIN users u ON u.id = a.actor_id ORDER BY a.created_at DESC LIMIT 20',
       );
       return done(true, rows.length ? rows.map((r) => `${new Date(r.created_at).toISOString().slice(0, 16).replace('T', ' ')} @${r.username}: ${r.command} → ${r.result}`) : ['Журнал пуст']);
+    }
+
+    if (cmd.name === 'app.pending') {
+      const rows = db.all<{ slug: string; name: string; version: number }>("SELECT slug, name, version FROM studio_apps WHERE review = 'pending' ORDER BY updated_at LIMIT 50");
+      return done(true, rows.length ? rows.map((r) => `${r.slug} · ${r.name} · v${r.version}`) : ['Очередь проверки пуста']);
+    }
+    if (cmd.name === 'app.verify' || cmd.name === 'app.reject') {
+      const appRow = db.get<{ id: string; name: string }>('SELECT id, name FROM studio_apps WHERE slug = :s', { s: cmd.pos[0] ?? '' });
+      if (!appRow) return done(false, [`Приложение «${cmd.pos[0] ?? ''}» не найдено`]);
+      db.run('UPDATE studio_apps SET review = :r WHERE id = :id', { r: cmd.name === 'app.verify' ? 'verified' : 'rejected', id: appRow.id });
+      return done(true, [`«${appRow.name}»: ${cmd.name === 'app.verify' ? 'проверено, в каталоге' : 'проверка отклонена'}`], appRow.id);
     }
 
     const u = findUser(cmd.pos[0]);

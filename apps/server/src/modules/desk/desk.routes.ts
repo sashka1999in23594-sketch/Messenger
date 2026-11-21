@@ -25,11 +25,17 @@ interface Row {
 }
 
 const name = z.string().trim().min(1).max(120);
+/** Ярлык: сайт по https или раздел самого Sunnet («/servers»), но не «//чужой-хост». */
 const httpsUrl = z
   .string()
   .max(500)
-  .url()
-  .refine((u) => u.startsWith('https://'), 'Только https-ссылки');
+  .refine((u) => (u.startsWith('https://') && z.string().url().safeParse(u).success) || /^\/(?!\/)[\w\-/?=&.%]*$/.test(u), 'Только https-ссылки или разделы Sunnet');
+const MAX_PROJECT_BYTES = 512 * 1024;
+const prefsSchema = z.object({
+  dock: z.array(z.string().max(40)).max(40).optional(),
+  iconSize: z.enum(['s', 'm', 'l']).optional(),
+  sort: z.enum(['manual', 'name', 'kind', 'date']).optional(),
+});
 const MAX_ITEMS = 5000;
 
 export async function deskRoutes(app: FastifyInstance): Promise<void> {
@@ -118,6 +124,43 @@ export async function deskRoutes(app: FastifyInstance): Promise<void> {
       db.run('DELETE FROM desk_items WHERE id = :id', { id: item.id });
     } else db.run('UPDATE desk_items SET trashed_at = :now, updated_at = :now WHERE id = :id', { now: Date.now(), id: item.id });
     return { ok: true };
+  });
+
+  /** Настройки стола (док, значки) — общие для всех устройств. */
+  app.get('/desk/prefs', async (req) => {
+    const { userId } = requireAuth(req);
+    const raw = db.get<{ desk_prefs: string | null }>('SELECT desk_prefs FROM users WHERE id = :id', { id: userId })?.desk_prefs;
+    try {
+      return { prefs: raw ? prefsSchema.parse(JSON.parse(raw)) : {} };
+    } catch {
+      return { prefs: {} };
+    }
+  });
+  app.put('/desk/prefs', limit, async (req) => {
+    const { userId } = requireAuth(req);
+    const prefs = parse(prefsSchema, req.body);
+    db.run('UPDATE users SET desk_prefs = :p WHERE id = :id', { p: JSON.stringify(prefs), id: userId });
+    return { prefs };
+  });
+
+  /** Содержимое проекта Студии (экраны, элементы, скрипты). */
+  app.get<{ Params: { id: string } }>('/desk/items/:id/data', async (req) => {
+    const { userId } = requireAuth(req);
+    const item = own(userId, req.params.id);
+    if (item.kind !== 'project') throw notFound();
+    const raw = db.get<{ data: string | null }>('SELECT data FROM desk_items WHERE id = :id', { id: item.id })?.data;
+    return { data: raw ? (JSON.parse(raw) as unknown) : null, updatedAt: new Date(item.updated_at).toISOString() };
+  });
+  app.put<{ Params: { id: string } }>('/desk/items/:id/data', { config: { rateLimit: { max: 240, timeWindow: '1 minute' } } }, async (req) => {
+    const { userId } = requireAuth(req);
+    const item = own(userId, req.params.id);
+    if (item.kind !== 'project') throw notFound();
+    const { data } = parse(z.object({ data: z.record(z.string(), z.unknown()) }), req.body);
+    const json = JSON.stringify(data);
+    if (json.length > MAX_PROJECT_BYTES) throw badRequest('Проект больше 512 КБ — вынесите картинки в ресурсы');
+    const now = Date.now();
+    db.run('UPDATE desk_items SET data = :d, updated_at = :now WHERE id = :id', { d: json, now, id: item.id });
+    return { ok: true, updatedAt: new Date(now).toISOString() };
   });
 
   app.post<{ Params: { id: string } }>('/desk/items/:id/restore', limit, async (req) => {
