@@ -10,6 +10,30 @@ import { openMaximized, openPath } from './fx';
 import { MENUBAR_H } from './geometry';
 import { isInternal, moveItem, openItemUrl, renameItem, trashItem, useDeskItems, type DeskItem } from './cloud';
 import { pinToDock, runAsAdmin, useDeskPrefs } from './deskPrefs';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../shared/api/client';
+import { Camera, Mic, Monitor } from 'lucide-react';
+
+/**
+ * Камера, микрофон и экран над значком приложения: перечёркнуто красным — доступа нет,
+ * зелёным — разрешено. Показываем для приложений, которые работают внутри Sunnet.
+ */
+function PermBadges({ slug }: { slug: string }) {
+  const q = useQuery({ queryKey: ['studio-app', slug], queryFn: () => api.get<{ granted: string[] }>(`/studio/apps/${slug}`), staleTime: 30_000, retry: false });
+  const g = q.data?.granted ?? [];
+  const item = (key: string, icon: React.ReactNode, label: string) => (
+    <i className={g.includes(key) ? 'is-on' : 'is-off'} title={`${label}: ${g.includes(key) ? 'разрешено' : 'нет доступа'}`}>
+      {icon}
+    </i>
+  );
+  return (
+    <span className="dperm" aria-label="Разрешения приложения">
+      {item('camera', <Camera size={9} />, 'Камера')}
+      {item('microphone', <Mic size={9} />, 'Микрофон')}
+      {item('screen', <Monitor size={9} />, 'Экран')}
+    </span>
+  );
+}
 
 export const CELL_W = 96;
 export const CELL_H = 106;
@@ -137,6 +161,7 @@ export function DeskIcons() {
             }}
             aria-label={item.name}
           >
+            {item.kind === 'link' && item.url?.startsWith('/app/') && <PermBadges slug={item.url.slice(5)} />}
             <span className="dicon__tile">{glyph(item)}</span>
             {editing === item.id ? (
               <input

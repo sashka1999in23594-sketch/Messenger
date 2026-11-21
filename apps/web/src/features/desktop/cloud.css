@@ -295,3 +295,54 @@
   opacity: 0;
   pointer-events: none;
 }
+
+/* Камера / микрофон / экран над значком приложения */
+.dperm {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 1;
+  display: flex;
+  gap: 3px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 6px rgba(5, 25, 60, 0.25);
+}
+.dperm i {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+}
+.dperm .is-off {
+  color: #9aa6b8;
+}
+.dperm .is-off::after {
+  content: '';
+  position: absolute;
+  width: 13px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: #e5484d;
+  rotate: -45deg;
+}
+.dperm .is-on {
+  color: #18a058;
+}
+.dperm .is-on::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: rgba(24, 160, 88, 0.18);
+  animation: dperm-live 1.6s ease-in-out infinite;
+}
+@keyframes dperm-live {
+  50% {
+    scale: 1.3;
+    opacity: 0.4;
+  }
+}

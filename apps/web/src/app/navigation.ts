@@ -465,6 +465,7 @@ export const sections: NavSection[] = [
           { id: 'settings.security.password', label: 'Пароль', icon: KeyRound, path: '/settings/security/password' },
           { id: 'settings.security.2fa', label: 'Двухфакторная защита', icon: ShieldCheck, path: '/settings/security/2fa', keywords: ['2fa', 'totp', 'код', 'почта'] },
           { id: 'settings.security.sessions', label: 'Устройства и сеансы', icon: Smartphone, path: '/settings/security/sessions' },
+          { id: 'settings.security.apps', label: 'Разрешения приложений', icon: ShieldCheck, path: '/settings/security/apps', keywords: ['камера', 'микрофон', 'экран', 'разрешения', 'отозвать'] },
           { id: 'settings.security.keys', label: 'Ключи шифрования', icon: Fingerprint, path: '/settings/security/keys', keywords: ['e2e'] },
           { id: 'settings.security.passcode', label: 'Код-пароль', icon: Lock, path: '/settings/security/passcode', keywords: ['pin', 'блокировка'] },
           { id: 'settings.security.log', label: 'Журнал безопасности', icon: ScrollText, path: '/settings/security/log' },

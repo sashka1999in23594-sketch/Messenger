@@ -357,3 +357,69 @@ export function ApiDocsPage() {
     </div>
   );
 }
+
+// ─── Безопасность: разрешения приложений и их история ───────────────────────
+
+interface GrantRow {
+  permission: string;
+  app: { slug: string; name: string };
+  grantedAt: string;
+  revokedAt: string | null;
+}
+
+export function AppPermissionsPage() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ['studio-grants'], queryFn: () => api.get<{ items: GrantRow[] }>('/studio/grants') });
+  const items = q.data?.items ?? [];
+  const active = items.filter((g) => !g.revokedAt);
+  const revoke = async (g: GrantRow) => {
+    try {
+      await api.post(`/studio/apps/${g.app.slug}/grants`, { permission: g.permission, grant: false });
+      await qc.invalidateQueries({ queryKey: ['studio-grants'] });
+      void qc.invalidateQueries({ queryKey: ['studio-app', g.app.slug] });
+      toast(`Разрешение отозвано: ${g.app.name} · ${PERMISSION_INFO[g.permission]?.label ?? g.permission}`);
+    } catch (e) {
+      toast({ text: errorMessage(e), kind: 'error' });
+    }
+  };
+  const when = (iso: string) => new Date(iso).toLocaleString('ru', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return (
+    <div className="scroll st-docs">
+      <h1>Разрешения приложений</h1>
+      <p className="st-hint">Камера, микрофон, экран, уведомления и файлы выдаются каждому приложению отдельно. Отозвать можно в любой момент — приложение перезапустится без доступа.</p>
+      <h2 className="st-home__h">Сейчас разрешено</h2>
+      {active.length === 0 && <p className="st-hint">Ни одному приложению ничего не разрешено.</p>}
+      {active.map((g) => (
+        <div key={`${g.app.slug}:${g.permission}`} className="st-perm is-on">
+          <span className="st-perm__icon">{PERM_ICON[g.permission] ?? <Check size={15} />}</span>
+          <span className="st-perm__text">
+            <b>
+              {g.app.name} · {PERMISSION_INFO[g.permission]?.label ?? g.permission}
+            </b>
+            <span>с {when(g.grantedAt)}</span>
+          </span>
+          <button type="button" className="sst__ghost" onClick={() => void revoke(g)}>
+            Отозвать
+          </button>
+        </div>
+      ))}
+      <h2 className="st-home__h">История</h2>
+      <ul className="st-applist">
+        {items.map((g, i) => (
+          <li key={i} className="st-history">
+            <span className={`st-perm__icon${g.revokedAt ? ' is-off' : ''}`}>{PERM_ICON[g.permission] ?? <Check size={15} />}</span>
+            <span>
+              <b>
+                {g.app.name}: {PERMISSION_INFO[g.permission]?.label ?? g.permission}
+              </b>
+              <span className="st-hint">
+                выдано {when(g.grantedAt)}
+                {g.revokedAt ? ` · отозвано ${when(g.revokedAt)}` : ' · действует'}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

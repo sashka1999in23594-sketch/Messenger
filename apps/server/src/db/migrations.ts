@@ -1097,4 +1097,27 @@ CREATE TABLE bridge_messages (
 CREATE INDEX bridge_messages_chat ON bridge_messages(user_id, service, chat_id, created_at);
 `,
   },
+  {
+    version: '020_hosted_servers',
+    sql: `
+-- Серверы пользователей: где размещён (свой компьютер через Sunnet Connect, Render, VPS),
+-- тип доступа, нужные компоненты и «сердцебиение» от Sunnet Connect для проверки связи.
+CREATE TABLE hosted_servers (
+  id             TEXT PRIMARY KEY,
+  owner_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  space_id       TEXT NOT NULL REFERENCES spaces(id) ON DELETE CASCADE,
+  name           TEXT NOT NULL,
+  hosting        TEXT NOT NULL CHECK (hosting IN ('connect', 'render', 'vps')),
+  access         TEXT NOT NULL CHECK (access IN ('open', 'closed', 'invite', 'link', 'request')),
+  endpoint       TEXT,
+  needs          TEXT NOT NULL DEFAULT '{}',
+  mail_enc       TEXT,
+  connect_hash   TEXT NOT NULL UNIQUE,
+  heartbeat_at   INTEGER,
+  heartbeat      TEXT,
+  created_at     INTEGER NOT NULL
+);
+CREATE INDEX hosted_servers_owner ON hosted_servers(owner_id);
+`,
+  },
 ];
