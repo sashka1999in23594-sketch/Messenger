@@ -1,5 +1,5 @@
 /** Страницы Reels вне ленты: загрузка нового ролика и сетка «Мои Reels». */
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { ChevronLeft, Clapperboard, Hash, ImageIcon, MessageCircleOff, Play, Plus, Smartphone, Timer } from 'lucide-react';
 import type { Post } from '@omni/shared';
@@ -40,11 +40,12 @@ export function CreateShortPage() {
           <aside className="rl-up__tips" aria-labelledby="rl-up-tips">
             <h2 id="rl-up-tips">Перед публикацией</h2>
             <ul>
-              {TIPS.map(({ icon: Icon, title, text }) => (
-                <li key={title}>
-                  <span className="rl-up__tip-icon">
-                    <Icon size={18} />
-                  </span>
+              {TIPS.map(({ title, text }, i) => (
+                <li key={title} style={{ '--i': i } as CSSProperties}>
+                  <svg className="rl-up__check" viewBox="0 0 24 24" width="24" height="24" aria-hidden>
+                    <circle cx="12" cy="12" r="10.5" />
+                    <path d="M7.5 12.4l3 3 6-6.6" />
+                  </svg>
                   <span className="rl-up__tip-text">
                     <b>{title}</b>
                     <span>{text}</span>

@@ -3483,3 +3483,217 @@
     grid-template-areas: 'cover' 'title' 'meta' 'buttons';
   }
 }
+
+/* ══ Загрузка видео: веер кадров вместо пунктирной рамки ══ */
+.vup-drop {
+  position: relative;
+  overflow: hidden;
+  min-height: 440px;
+  gap: 10px;
+  border: 0;
+  border-radius: var(--radius-2xl);
+  background:
+    radial-gradient(60% 55% at 50% 38%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 70%),
+    var(--panel);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--text) 7%, transparent);
+  transition: box-shadow var(--dur) var(--ease), background var(--dur);
+}
+.vup-drop:hover,
+.vup-drop--over {
+  border: 0;
+  background:
+    radial-gradient(60% 55% at 50% 38%, color-mix(in oklab, var(--ray-gold) 26%, transparent), transparent 70%),
+    var(--panel);
+}
+.vup-drop--over {
+  box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--ray-gold) 75%, transparent), 0 0 60px -10px color-mix(in oklab, var(--ray-gold) 60%, transparent);
+}
+.vup-fan {
+  position: relative;
+  width: 260px;
+  height: 230px;
+  margin-bottom: 18px;
+}
+.vup-fan__card {
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  width: 124px;
+  height: 214px;
+  margin-left: -62px;
+  border-radius: 22px;
+  box-shadow: 0 18px 40px -14px rgba(10, 30, 80, 0.55), inset 0 0 0 3px rgba(255, 255, 255, 0.6);
+  transition: transform 0.6s var(--ease-spring);
+}
+.vup-fan--wide .vup-fan__card {
+  width: 190px;
+  height: 120px;
+  margin-left: -95px;
+  top: 50px;
+}
+.vup-fan__card--l {
+  background: linear-gradient(170deg, #ffd6a5, #ff8a65);
+  transform: translateX(-66px) rotate(-12deg);
+  animation: vup-sway-l 5s ease-in-out infinite;
+}
+.vup-fan__card--r {
+  background: linear-gradient(170deg, #a5d8ff, #4b8feb);
+  transform: translateX(66px) rotate(12deg);
+  animation: vup-sway-r 5s ease-in-out infinite;
+}
+.vup-fan__card--c {
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(170deg, #b9f0d6, #2fb37a);
+  animation: vup-bob 3.4s ease-in-out infinite;
+}
+.vup-fan__orb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  color: #1d6a45;
+  background: radial-gradient(circle at 40% 35%, #fff, #effff6);
+  box-shadow: 0 10px 24px -8px rgba(10, 60, 40, 0.5);
+}
+.vup-fan__orb::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  animation: vup-ping 2.2s ease-out infinite;
+}
+.vup-fan__spark {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ray-gold);
+  box-shadow: 0 0 12px var(--ray-gold);
+  animation: vup-spark 3.2s ease-in-out infinite;
+}
+.vup-fan__spark--1 {
+  left: 18px;
+  top: 40px;
+}
+.vup-fan__spark--2 {
+  right: 10px;
+  top: 16px;
+  animation-delay: 1s;
+  background: #ff8ab8;
+  box-shadow: 0 0 12px #ff8ab8;
+}
+.vup-fan__spark--3 {
+  right: 34px;
+  bottom: 18px;
+  animation-delay: 2s;
+}
+.vup-drop:hover .vup-fan__card--l,
+.vup-drop--over .vup-fan__card--l {
+  animation: none;
+  transform: translateX(-92px) rotate(-18deg) translateY(4px);
+}
+.vup-drop:hover .vup-fan__card--r,
+.vup-drop--over .vup-fan__card--r {
+  animation: none;
+  transform: translateX(92px) rotate(18deg) translateY(4px);
+}
+.vup-drop--over .vup-fan__card--c {
+  animation: none;
+  transform: translateY(-10px) scale(1.06);
+}
+@keyframes vup-sway-l {
+  50% {
+    transform: translateX(-74px) rotate(-15deg) translateY(-4px);
+  }
+}
+@keyframes vup-sway-r {
+  50% {
+    transform: translateX(74px) rotate(15deg) translateY(-4px);
+  }
+}
+@keyframes vup-bob {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes vup-ping {
+  from {
+    opacity: 1;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+@keyframes vup-spark {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4) translateY(6px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) translateY(-8px);
+  }
+}
+.vup-drop__title {
+  font: 700 var(--fs-xl) / 1.2 var(--font-display);
+  letter-spacing: -0.01em;
+}
+.vup-drop__hint {
+  font-size: var(--fs-sm);
+}
+/* Кнопка-солнце: золотая капсула с бегущим по краю лучом света */
+.vup-drop__btn {
+  position: relative;
+  margin-top: 16px;
+  height: 48px;
+  padding: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: #3a2200;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: 0 14px 32px -12px color-mix(in oklab, var(--ray-amber) 85%, transparent);
+  transition: transform var(--dur) var(--ease-spring), box-shadow var(--dur);
+}
+.vup-drop__btn-ring {
+  position: absolute;
+  inset: -60%;
+  z-index: -2;
+  background: conic-gradient(from 0deg, var(--ray-amber), var(--ray-gold), #fff6cf, var(--ray-gold), var(--ray-amber));
+  animation: vup-spin 3s linear infinite;
+}
+.vup-drop__btn-label {
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  margin: 2px;
+  padding: 0 28px;
+  border-radius: var(--radius-full);
+  font: 700 var(--fs-md) var(--font-sans);
+  background: linear-gradient(120deg, var(--ray-amber), var(--ray-gold) 60%, var(--ray-core));
+}
+.vup-drop:hover .vup-drop__btn {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 18px 38px -12px color-mix(in oklab, var(--ray-amber) 95%, transparent);
+}
+@keyframes vup-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vup-fan__card,
+  .vup-fan__orb::after,
+  .vup-fan__spark,
+  .vup-drop__btn-ring {
+    animation: none !important;
+  }
+}

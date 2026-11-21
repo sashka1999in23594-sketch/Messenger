@@ -1892,3 +1892,99 @@
     opacity: 0.35;
   }
 }
+
+/* ══ Звонок 1.7: живой фон, дыхание говорящего, парящая панель ══ */
+.room-win {
+  border-radius: 20px;
+  animation: room-pop 0.55s var(--ease-spring) both;
+}
+@keyframes room-pop {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.94);
+    filter: blur(6px);
+  }
+}
+.room-win__stage {
+  background:
+    radial-gradient(60% 70% at 15% 10%, color-mix(in oklab, var(--room-accent) 22%, transparent), transparent 70%),
+    radial-gradient(55% 60% at 90% 100%, color-mix(in oklab, var(--ray-gold) 16%, transparent), transparent 70%);
+  background-size: 140% 140%;
+  animation: room-aurora 18s ease-in-out infinite alternate;
+}
+@keyframes room-aurora {
+  to {
+    background-position: 100% 60%;
+  }
+}
+.room-tile {
+  border-radius: 18px;
+  background: radial-gradient(80% 90% at 50% 25%, color-mix(in oklab, var(--room-panel-3) 85%, white 6%), var(--room-panel-2));
+  transition: outline-color var(--dur) var(--ease), transform var(--dur) var(--ease-spring);
+}
+.room-tile.is-speaking {
+  outline-width: 2.5px;
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--room-speaking) 16%, transparent), 0 0 40px -6px color-mix(in oklab, var(--room-speaking) 60%, transparent);
+  animation: room-talk 1.6s ease-in-out infinite;
+}
+@keyframes room-talk {
+  50% {
+    box-shadow: 0 0 0 10px color-mix(in oklab, var(--room-speaking) 8%, transparent), 0 0 56px -4px color-mix(in oklab, var(--room-speaking) 70%, transparent);
+  }
+}
+.room-tile.is-speaking .room-tile__avatar > * {
+  animation: room-voice 1.2s ease-in-out infinite;
+}
+@keyframes room-voice {
+  50% {
+    transform: scale(1.06);
+  }
+}
+.room-controls {
+  bottom: 16px;
+  gap: 8px;
+  padding: 10px 14px 8px;
+  border-radius: 26px;
+  box-shadow: 0 20px 44px -14px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  animation: room-dock-in 0.6s 0.15s var(--ease-spring) both;
+}
+@keyframes room-dock-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px) scale(0.9);
+  }
+}
+.room-ctrl__btn {
+  width: 50px;
+  height: 50px;
+  transition:
+    background var(--dur) var(--ease),
+    transform var(--dur) var(--ease-spring),
+    box-shadow var(--dur);
+}
+.room-ctrl:hover .room-ctrl__btn {
+  transform: translateY(-3px) scale(1.06);
+  box-shadow: 0 10px 22px -10px rgba(0, 0, 0, 0.7);
+}
+.room-ctrl.is-on .room-ctrl__btn {
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--room-accent) 25%, transparent), 0 10px 24px -10px var(--room-accent);
+}
+.room-ctrl--danger .room-ctrl__btn {
+  width: 64px;
+  border-radius: 25px;
+  background: linear-gradient(120deg, #ff4d5e, #ff7a59);
+  box-shadow: 0 12px 28px -10px rgba(255, 77, 94, 0.8);
+}
+.room-ctrl--danger:hover .room-ctrl__btn {
+  background: linear-gradient(120deg, #ff3b4e, #ff6a49);
+  transform: translateY(-3px) scale(1.06) rotate(-8deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .room-win,
+  .room-win__stage,
+  .room-tile.is-speaking,
+  .room-tile.is-speaking .room-tile__avatar > *,
+  .room-controls {
+    animation: none;
+  }
+}

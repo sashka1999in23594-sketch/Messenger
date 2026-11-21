@@ -154,16 +154,29 @@ export function UploadVideoForm({
         tabIndex={0}
         aria-label="Выбрать видеофайл"
       >
-        <span className="vup-drop__circle">
-          <UploadCloud size={56} strokeWidth={1.5} />
+        {/* Веер из трёх кадров: при наведении файла раскрывается и загорается */}
+        <span className={cn('vup-fan', isVideo && 'vup-fan--wide')} aria-hidden>
+          <span className="vup-fan__card vup-fan__card--l" />
+          <span className="vup-fan__card vup-fan__card--r" />
+          <span className="vup-fan__card vup-fan__card--c">
+            <span className="vup-fan__orb">
+              <UploadCloud size={26} strokeWidth={2} />
+            </span>
+          </span>
+          <span className="vup-fan__spark vup-fan__spark--1" />
+          <span className="vup-fan__spark vup-fan__spark--2" />
+          <span className="vup-fan__spark vup-fan__spark--3" />
         </span>
-        <b className="vup-drop__title">Перетащите видеофайл сюда</b>
+        <b className="vup-drop__title">{over ? 'Отпускайте — загрузим' : 'Перетащите видео сюда'}</b>
         <span className="vup-drop__hint">
           {isVideo
             ? 'MP4, WebM или MOV · обложка и длительность определятся автоматически'
             : 'Вертикальное видео до 3 минут · обложка создаётся автоматически'}
         </span>
-        <span className="vup-drop__btn">Выбрать файл</span>
+        <span className="vup-drop__btn">
+          <span className="vup-drop__btn-ring" aria-hidden />
+          <span className="vup-drop__btn-label">Выбрать видео</span>
+        </span>
         <input
           ref={input}
           type="file"
