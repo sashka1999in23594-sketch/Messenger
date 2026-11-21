@@ -23,30 +23,62 @@ function get() {
     ({ autoUpdater: updater } = require('electron-updater'));
     updater.autoDownload = false;
     updater.autoInstallOnAppQuit = true;
-    updater.logger = null;
+    // Раньше журнал был выключен (logger = null), и сбои обновления невозможно было
+    // разобрать. Теперь всё пишется в <userData>/updater.log (последние ~200 КБ).
+    updater.logger = fileLogger();
     // Ошибки сети не должны валить приложение — их обрабатывают вызовы ниже
-    updater.on('error', () => {});
+    updater.on('error', (e) => updater.logger.error(`error: ${e?.stack || e}`));
   } catch {
     updater = null;
   }
   return updater;
 }
 
+function fileLogger() {
+  const file = path.join(app.getPath('userData'), 'updater.log');
+  const write = (level) => (msg) => {
+    try {
+      const st = fs.statSync(file, { throwIfNoEntry: false });
+      if (st && st.size > 200_000) fs.renameSync(file, `${file}.old`);
+      fs.appendFileSync(file, `${new Date().toISOString()} ${level} ${typeof msg === 'string' ? msg : JSON.stringify(msg)}\n`);
+    } catch {
+      // журнал не важнее обновления
+    }
+  };
+  return { info: write('INFO'), warn: write('WARN'), error: write('ERROR'), debug: () => {} };
+}
+
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const withTimeout = (promise, ms) => Promise.race([promise, delay(ms).then(() => Promise.reject(new Error('timeout')))]);
 
-/** Новая версия (сведения о ней) или null: нет обновления, нет связи, не дождались. */
+/**
+ * Новая версия (сведения о ней) или null: нет обновления, нет связи, не дождались.
+ * Две попытки: первая проверка после запуска иногда упирается в медленный ответ GitHub.
+ */
 async function findUpdate(timeoutMs = 8000) {
   const u = get();
   if (!u) return null;
-  try {
-    const result = await withTimeout(u.checkForUpdates(), timeoutMs);
-    if (!result?.updateInfo) return null;
-    const available = result.isUpdateAvailable ?? result.updateInfo.version !== app.getVersion();
-    return available ? result.updateInfo : null;
-  } catch {
-    return null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const result = await withTimeout(u.checkForUpdates(), timeoutMs);
+      if (!result?.updateInfo) return null;
+      const available = result.isUpdateAvailable ?? isNewer(result.updateInfo.version, app.getVersion());
+      u.logger.info(`check: current ${app.getVersion()}, latest ${result.updateInfo.version}, update ${available}`);
+      return available ? result.updateInfo : null;
+    } catch (e) {
+      u.logger.warn(`check failed (attempt ${attempt + 1}): ${e?.message || e}`);
+      if (attempt === 0) await delay(2000);
+    }
   }
+  return null;
+}
+
+/** 1.10.0 > 1.9.3 — сравнение по числам, а не строкой. */
+function isNewer(a, b) {
+  const pa = String(a).split('.').map(Number);
+  const pb = String(b).split('.').map(Number);
+  for (let i = 0; i < 3; i++) if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0);
+  return false;
 }
 
 /** Скачать найденное обновление; onProgress получает проценты, байты и скорость. */

@@ -129,7 +129,7 @@ function closeLauncher() {
 async function launch() {
   openLauncher();
   setLauncher({ phase: 'checking' });
-  const info = await updates.findUpdate(8000);
+  const info = await updates.findUpdate(15_000);
   if (info && launcher) {
     try {
       setLauncher({ phase: 'downloading', version: info.version, percent: 0 });
