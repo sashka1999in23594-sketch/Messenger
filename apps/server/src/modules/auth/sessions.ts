@@ -5,6 +5,7 @@
 import type { SessionInfo } from '@omni/shared';
 import type { Db } from '../../db/index.js';
 import { iso } from '../../db/index.js';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { randomToken, sha256 } from '../../lib/crypto.js';
 import { newId } from '../../lib/ids.js';
 import type { RequestMeta } from '../../http/types.js';
@@ -32,16 +33,71 @@ export interface ResolvedSession {
 /** Как часто обновлять last_seen (чтобы не писать в базу на каждый запрос). */
 const TOUCH_INTERVAL_MS = 60_000;
 
+/**
+ * Формат токена v2: «s2.<id сеанса>.<id пользователя>.<случайная часть>.<подпись>».
+ * Подпись — HMAC(APP_SECRET) от всего остального и «отпечатка» пароля пользователя.
+ * Зачем: на бесплатном Render диск временный, и при засыпании/перезапуске сервера база
+ * могла откатиться к резервной копии без свежих сеансов — людей выкидывало из аккаунта
+ * после короткого простоя. Теперь живой подписанный токен восстанавливает строку сеанса.
+ * Безопасность: подделать подпись без APP_SECRET нельзя; смена пароля меняет отпечаток
+ * и обнуляет все старые токены; удалённый аккаунт не восстанавливается.
+ */
+const V2 = 's2';
+
 export class SessionService {
   constructor(
     private readonly db: Db,
     private readonly ttlMs: number,
+    private readonly secret: string = '',
   ) {}
 
+  private pwPrint(userId: string): string | null {
+    const u = this.db.get<{ password_hash: string; deleted_at: number | null }>('SELECT password_hash, deleted_at FROM users WHERE id = :id', { id: userId });
+    if (!u || u.deleted_at) return null;
+    return sha256(u.password_hash ?? '').slice(0, 16);
+  }
+
+  private sign(body: string, print: string): string {
+    return createHmac('sha256', this.secret).update(`${body}|${print}`).digest('base64url');
+  }
+
+  private issueToken(sessionId: string, userId: string): string {
+    const print = this.secret ? this.pwPrint(userId) : null;
+    const rnd = randomToken(24);
+    if (print === null) return randomToken(32);
+    const body = `${V2}.${sessionId}.${userId}.${rnd}`;
+    return `${body}.${this.sign(body, print)}`;
+  }
+
+  /** Восстанавливает сеанс по подписанному токену, если строки в базе нет (база откатилась). */
+  private revive(token: string, ip: string): ResolvedSession | null {
+    if (!this.secret || !token.startsWith(`${V2}.`)) return null;
+    const parts = token.split('.');
+    if (parts.length !== 5) return null;
+    const [, sid, uid, , sig] = parts;
+    if (!sid || !uid || !sig) return null;
+    const print = this.pwPrint(uid);
+    if (print === null) return null;
+    const want = Buffer.from(this.sign(parts.slice(0, 4).join('.'), print));
+    const got = Buffer.from(sig);
+    if (want.length !== got.length || !timingSafeEqual(want, got)) return null;
+    // Сеанс с таким id уже есть, но с другим токеном или отозван — не воскрешаем
+    if (this.db.get('SELECT 1 FROM sessions WHERE id = :id', { id: sid })) return null;
+    const now = Date.now();
+    const expiresAt = now + this.ttlMs;
+    this.db.run(
+      `INSERT INTO sessions (id, user_id, token_hash, device_name, user_agent, ip, created_at, last_seen_at, expires_at, device_id)
+       VALUES (:id, :userId, :hash, :device, '', :ip, :now, :now, :exp, NULL)`,
+      { id: sid, userId: uid, hash: sha256(token), device: 'Восстановленный сеанс', ip, now, exp: expiresAt },
+    );
+    const role = this.db.get<{ role: ResolvedSession['role'] }>('SELECT role FROM users WHERE id = :id', { id: uid })?.role ?? 'user';
+    return { sessionId: sid, userId: uid, role, expiresAt };
+  }
+
   create(userId: string, meta: RequestMeta): { token: string; sessionId: string; expiresAt: number } {
-    const token = randomToken(32);
     const now = Date.now();
     const id = newId(now);
+    const token = this.issueToken(id, userId);
     const expiresAt = now + this.ttlMs;
     this.db.run(
       `INSERT INTO sessions (id, user_id, token_hash, device_name, user_agent, ip, created_at, last_seen_at, expires_at, device_id)
@@ -88,14 +144,15 @@ export class SessionService {
 
   /** Проверяет токен; продлевает сеанс (скользящее окно). */
   resolve(token: string, ip: string): ResolvedSession | null {
-    if (!token || token.length > 128) return null;
+    if (!token || token.length > 256) return null;
     const row = this.db.get<SessionRow & { role: ResolvedSession['role']; deleted_at: number | null }>(
       `SELECT s.*, u.role, u.deleted_at FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.token_hash = :hash`,
       { hash: sha256(token) },
     );
     const now = Date.now();
-    if (!row || row.revoked_at || row.expires_at < now || row.deleted_at) return null;
+    if (!row) return this.revive(token, ip);
+    if (row.revoked_at || row.expires_at < now || row.deleted_at) return null;
     if (now - row.last_seen_at > TOUCH_INTERVAL_MS) {
       const expiresAt = now + this.ttlMs;
       this.db.run('UPDATE sessions SET last_seen_at = :now, ip = :ip, expires_at = :exp WHERE id = :id', {

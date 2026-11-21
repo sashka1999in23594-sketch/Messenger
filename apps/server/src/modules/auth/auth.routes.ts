@@ -50,6 +50,11 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.get('/auth/session', async (req, reply) => {
     noStore(reply);
     app.issueCsrf(reply, req.auth?.sessionId ?? null);
+    // Продлеваем и cookie, а не только запись в базе: иначе через SESSION_DAYS браузер её выбросит
+    const token = req.cookies[SESSION_COOKIE];
+    if (req.auth && token) {
+      reply.setCookie(SESSION_COOKIE, token, { path: '/', httpOnly: true, sameSite: 'strict', secure: config.secureCookies, maxAge: Math.floor(config.sessionTtlMs / 1000) });
+    }
     // У каждого есть служебный чат Sunnet (у старых аккаунтов он появится при первом заходе)
     if (req.auth) services.system.chatId(req.auth.userId);
     return { me: req.auth ? services.users.me(req.auth.userId) : null };

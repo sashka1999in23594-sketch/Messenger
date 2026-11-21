@@ -8,7 +8,8 @@ import { useSession } from '../shared/stores/session';
 import { Aurora, ConfirmHost, Loading, SunSplash, Toasts } from '../shared/ui';
 import { GuestApp } from '../features/auth/GuestApp';
 import { AppRoutes } from './routes';
-import { bootstrapSession } from './session';
+import { bootstrapSession, retryBootstrap } from './session';
+import { useEffect as useTick, useState } from 'react';
 
 /** Внешний вид применяется к <html> при любом изменении настроек. */
 function PrefsSync() {
@@ -34,7 +35,53 @@ function PrefsSync() {
   return null;
 }
 
-const Desktop = lazy(() => import('../features/desktop/Desktop').then((m) => ({ default: m.Desktop })));
+/**
+ * Ленивая загрузка с повтором: после выхода новой версии старые файлы сборки исчезают,
+ * и импорт падал — рабочий стол не открывался («белый экран»). Пробуем трижды,
+ * затем один раз перезагружаем страницу, чтобы получить свежую сборку.
+ */
+function lazyRetry<T>(load: () => Promise<T>): Promise<T> {
+  return load()
+    .catch(() => new Promise<T>((ok, fail) => setTimeout(() => load().then(ok, fail), 1200)))
+    .catch(() => new Promise<T>((ok, fail) => setTimeout(() => load().then(ok, fail), 3000)))
+    .catch((e: unknown) => {
+      try {
+        if (!sessionStorage.getItem('sunnet-chunk-reload')) {
+          sessionStorage.setItem('sunnet-chunk-reload', '1');
+          location.reload();
+        }
+      } catch {
+        /* хранилище недоступно */
+      }
+      throw e;
+    });
+}
+
+const Desktop = lazy(() => lazyRetry(() => import('../features/desktop/Desktop')).then((m) => ({ default: m.Desktop })));
+
+/** Экран пробуждения: этапы и таймер, чтобы было видно, что идёт работа. */
+function WakeSplash() {
+  const since = useSession((s) => s.wakingSince);
+  const seen = useSession((s) => s.serverSeen);
+  const [now, setNow] = useState(Date.now());
+  useTick(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const sec = since ? (now - since) / 1000 : 0;
+  return (
+    <SunSplash
+      label="Сервер отдыхал после простоя и сейчас просыпается. Обычно это до минуты — вход сохранён."
+      elapsed={sec}
+      stages={[
+        { label: 'Интернет', state: 'done' },
+        { label: 'Сервер найден', state: seen || sec > 6 ? 'done' : 'now' },
+        { label: 'Запуск', state: seen || sec > 6 ? 'now' : 'wait' },
+        { label: 'Ваш сеанс', state: 'wait' },
+      ]}
+    />
+  );
+}
 
 function Gate() {
   const status = useSession((s) => s.status);
@@ -44,8 +91,20 @@ function Gate() {
   useEffect(() => {
     void bootstrapSession();
   }, []);
-  if (status === 'loading' || status === 'waking')
-    return <SunSplash label={status === 'waking' ? 'Сервер просыпается — это занимает до минуты…' : 'Загружаем…'} />;
+  if (status === 'loading') return <SunSplash label="Загружаем…" />;
+  if (status === 'waking') return <WakeSplash />;
+  if (status === 'offline')
+    return (
+      <SunSplash
+        offline={{
+          title: 'Сервер Sunnet не отвечает',
+          text: navigator.onLine
+            ? 'Мы ждали 2,5 минуты. Сервер остановлен или перегружен. Ваш вход сохранён — ничего не потеряно.'
+            : 'Нет подключения к интернету. Проверьте сеть — вход сохранён.',
+        }}
+        onRetry={retryBootstrap}
+      />
+    );
   if (status === 'guest')
     return (
       <BrowserRouter>

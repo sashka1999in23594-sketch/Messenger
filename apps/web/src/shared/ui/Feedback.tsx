@@ -44,7 +44,28 @@ const RAY_FAN_2 = rayFan(73510944, 0.34);
  * Sunnet — встающее солнце с короной, живыми лучами-веерами, бликами объектива,
  * плывущими облаками, искрами света и прогрессом снизу. Ночью сцена лунная (Lynnet).
  */
-export function SunSplash({ label }: { label?: string }) {
+export interface SplashStage {
+  label: string;
+  state: 'done' | 'now' | 'wait';
+}
+
+/**
+ * Экран загрузки с реалистичным солнцем. Для пробуждения сервера показывает этапы
+ * и время ожидания; для недоступного сервера — причину и кнопку «Повторить».
+ */
+export function SunSplash({
+  label,
+  stages,
+  elapsed,
+  offline,
+  onRetry,
+}: {
+  label?: string;
+  stages?: SplashStage[];
+  elapsed?: number;
+  offline?: { title: string; text: string };
+  onRetry?: () => void;
+}) {
   const night = useBrand((s) => s.night);
   const [pct, setPct] = useState(6);
   useEffect(() => {
@@ -53,7 +74,7 @@ export function SunSplash({ label }: { label?: string }) {
     return () => clearInterval(t);
   }, []);
   return (
-    <div className={cn('sun-splash', night && 'sun-splash--night')} role="status" aria-live="polite">
+    <div className={cn('sun-splash', night && 'sun-splash--night', offline && 'sun-splash--offline')} role="status" aria-live="polite">
       <div className="sun-splash__sky" aria-hidden />
       <div className="sun-splash__rays sun-splash__rays--1" style={{ backgroundImage: RAY_FAN_1 } as CSSProperties} aria-hidden />
       <div className="sun-splash__rays sun-splash__rays--2" style={{ backgroundImage: RAY_FAN_2 } as CSSProperties} aria-hidden />
@@ -79,11 +100,38 @@ export function SunSplash({ label }: { label?: string }) {
       </div>
       <div className="sun-splash__content">
         <div className="sun-splash__name">{brandName()}</div>
-        {label && <div className="sun-splash__label">{label}</div>}
-        <div className="sun-splash__bar">
-          <span className="sun-splash__fill" style={{ width: `${pct}%` }} />
-        </div>
-        <div className="sun-splash__pct">{Math.round(pct)}%</div>
+        {offline ? (
+          <div className="sun-splash__offline" role="alert">
+            <div className="sun-splash__offline-title">{offline.title}</div>
+            <div className="sun-splash__label">{offline.text}</div>
+            {onRetry && (
+              <button type="button" className="sun-splash__retry" onClick={onRetry}>
+                <span className="sun-splash__retry-glow" aria-hidden />
+                Повторить подключение
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {label && <div className="sun-splash__label">{label}</div>}
+            <div className="sun-splash__bar">
+              <span className="sun-splash__fill" style={{ width: `${pct}%` }} />
+            </div>
+            <div className="sun-splash__pct">
+              {Math.round(pct)}%{elapsed !== undefined && elapsed > 2 ? ` · ${Math.floor(elapsed / 60)}:${String(Math.floor(elapsed % 60)).padStart(2, '0')}` : ''}
+            </div>
+            {stages && (
+              <ol className="sun-splash__stages">
+                {stages.map((st) => (
+                  <li key={st.label} className={`sun-splash__stage sun-splash__stage--${st.state}`}>
+                    <span className="sun-splash__dot" aria-hidden />
+                    {st.label}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

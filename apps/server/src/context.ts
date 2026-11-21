@@ -52,7 +52,7 @@ export function createServices(db: Db, config: Config, hub: RealtimeHub, storage
   const media = new MediaService(db, config, storage);
   const usersRepo = new UsersRepo(db, media);
   const policy = new Policy(db);
-  const sessions = new SessionService(db, config.sessionTtlMs);
+  const sessions = new SessionService(db, config.sessionTtlMs, config.secret);
   const securityLog = new SecurityLog(db);
   const notifications = new NotificationService(db, usersRepo, hub);
   const users = new UsersService(db, usersRepo, policy, media, notifications, hub);
