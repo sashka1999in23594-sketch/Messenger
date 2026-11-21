@@ -105,7 +105,9 @@ export function AppRunPage() {
             type="button"
             className="sst__ghost"
             onClick={async () => {
-              if (await createItem({ kind: 'link', name: app.name, url: `/app/${app.slug}` })) toast({ text: `${app.name} — на рабочем столе`, kind: 'success' });
+              const { openInstaller } = await import('../apps/Installer');
+              if (await openInstaller({ name: app.name, url: `/app/${app.slug}`, publisher: app.owner ? `@${app.owner.username}` : 'неизвестный автор', verified: verified, kind: 'studio', permissions: app.permissions }))
+                toast({ text: `${app.name} — на рабочем столе`, kind: 'success' });
             }}
           >
             <MonitorDown size={16} /> На рабочий стол

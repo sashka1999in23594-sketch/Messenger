@@ -8,7 +8,7 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { BookOpen, Briefcase, Code2, ExternalLink, Film, Gamepad2, Link2, MessageCircle, MonitorDown, Music, Search, Sparkles, Users, Wrench } from 'lucide-react';
 import { openPath } from '../desktop/fx';
-import { createItem } from '../desktop/cloud';
+import { installHistory, openInstaller } from './Installer';
 import { toast } from '../../shared/stores/ui';
 import { CATALOG, CATEGORIES, type CatalogApp } from './catalog';
 import './apps.css';
@@ -76,7 +76,7 @@ function AppRow({ a, i }: { a: CatalogApp; i: number }) {
         className="apps-row__add"
         onClick={async () => {
           remember(a.id);
-          if (await createItem({ kind: 'link', name: a.name, url: a.url })) toast({ text: `${a.name} — на рабочем столе`, kind: 'success' });
+          if (await openInstaller({ name: a.name, url: a.url, publisher: new URL(a.url).hostname, verified: true, kind: 'web' })) toast({ text: `${a.name} — на рабочем столе`, kind: 'success' });
         }}
         aria-label={`Добавить ${a.name} на рабочий стол`}
         title="На рабочий стол"
@@ -151,6 +151,20 @@ export function AppsCatalog() {
             <p className="apps-empty">Ничего не нашлось. Попробуйте другое название.</p>
           )}
         </section>
+        {installHistory().length > 0 && !q && cat === 'all' && (
+          <section className="apps-sec">
+            <h2 className="apps-sec__title">История установок</h2>
+            <ul className="apps-history">
+              {installHistory()
+                .slice(0, 10)
+                .map((h) => (
+                  <li key={h.at}>
+                    <b>{h.name}</b> · {h.publisher} · {new Date(h.at).toLocaleString('ru', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </li>
+                ))}
+            </ul>
+          </section>
+        )}
         <p className="apps-note">
           Сервисы открываются своей официальной веб-версией — Sunnet не получает ваши пароли и не копирует защищённый контент. Объединение чатов Telegram и WhatsApp в общий список Sunnet требует серверной интеграции через их официальные API и появится отдельным обновлением.
         </p>
