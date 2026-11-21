@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Compass, Megaphone, MessageCircle, Plus, Search, ShieldCheck, Users } from 'lucide-react';
+import { Compass, Megaphone, MessageCircle, Plus, Search, ShieldCheck, Users, Link2 } from 'lucide-react';
 import type { ChatSummary } from '@omni/shared';
 import { api, errorMessage } from '../../shared/api/client';
 import { qk, queryClient } from '../../shared/api/query';
@@ -72,23 +72,38 @@ export function NoChannelSelected() {
   );
 }
 
+/**
+ * Пустая правая часть чатов: вместо крупных кнопок — тихая иллюстрация (солнце
+ * с орбитой сообщений) и компактные действия с подсказками клавиш.
+ */
 export function NoChatSelected() {
   return (
-    <EmptyState
-      icon={<MessageCircle size={30} />}
-      title="Выберите, кому написать"
-      text="Личные чаты и группы"
-      action={
-        <div className="row wrap center">
-          <ButtonLink to="/chats/new/direct" icon={<MessageCircle size={18} />}>
-            Новый чат
-          </ButtonLink>
-          <ButtonLink to="/chats/new/group" variant="secondary" icon={<Users size={18} />}>
-            Новая группа
-          </ButtonLink>
-        </div>
-      }
-    />
+    <div className="nochat">
+      <div className="nochat__art" aria-hidden>
+        <span className="nochat__sun" />
+        <span className="nochat__orbit">
+          <i />
+          <i />
+          <i />
+        </span>
+      </div>
+      <h2 className="nochat__title">Выберите чат слева</h2>
+      <p className="nochat__text">Здесь откроется переписка — из Sunnet, Telegram или WhatsApp</p>
+      <nav className="nochat__actions" aria-label="Быстрые действия">
+        <Link to="/chats/new/direct">
+          <MessageCircle size={16} /> Новый чат
+        </Link>
+        <Link to="/chats/new/group">
+          <Users size={16} /> Группа
+        </Link>
+        <Link to="/chats/connect">
+          <Link2 size={16} /> Подключить мессенджер
+        </Link>
+      </nav>
+      <p className="nochat__keys">
+        <kbd>Ctrl</kbd> <kbd>K</kbd> — поиск по всему Sunnet
+      </p>
+    </div>
   );
 }
 

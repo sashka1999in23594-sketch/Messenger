@@ -91,7 +91,8 @@ interface PrefsState {
 export const usePrefs = create<PrefsState>()(
   persist(
     (set) => ({
-      theme: 'dark',
+      // «Дневной свет» — основная тема; ночная включается в настройках
+      theme: 'light',
       palette: 'aurora',
       accent: 'auto',
       glass: true,

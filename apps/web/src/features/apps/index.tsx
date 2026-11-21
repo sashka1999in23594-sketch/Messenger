@@ -6,13 +6,27 @@
  * (Telegram — TDLib на сервере, WhatsApp — только Business Cloud API), она в работе.
  */
 import { useMemo, useState, type CSSProperties } from 'react';
-import { ExternalLink, MonitorDown, Search, Sparkles } from 'lucide-react';
+import { BookOpen, Briefcase, Code2, ExternalLink, Film, Gamepad2, Link2, MessageCircle, MonitorDown, Music, Search, Sparkles, Users, Wrench } from 'lucide-react';
+import { openPath } from '../desktop/fx';
 import { createItem } from '../desktop/cloud';
 import { toast } from '../../shared/stores/ui';
 import { CATALOG, CATEGORIES, type CatalogApp } from './catalog';
 import './apps.css';
 
 const KEY = 'sunnet-apps-opened';
+
+/** Значок категории вместо буквы: свои логотипы сервисов мы не копируем. */
+const CAT_ICON: Record<string, React.ReactNode> = {
+  chat: <MessageCircle size={22} />,
+  social: <Users size={22} />,
+  music: <Music size={22} />,
+  video: <Film size={22} />,
+  work: <Briefcase size={22} />,
+  dev: <Code2 size={22} />,
+  learn: <BookOpen size={22} />,
+  games: <Gamepad2 size={22} />,
+  tools: <Wrench size={22} />,
+};
 
 function readOpened(): Record<string, number> {
   try {
@@ -50,12 +64,12 @@ function AppRow({ a, i }: { a: CatalogApp; i: number }) {
   return (
     <li className="apps-row" style={{ '--i': i } as CSSProperties}>
       <span className="apps-row__icon" style={{ '--c1': a.color[0], '--c2': a.color[1] } as CSSProperties} aria-hidden>
-        {a.name.slice(0, 1)}
+        {CAT_ICON[a.cat] ?? a.name.slice(0, 1)}
       </span>
       <span className="apps-row__text">
         <span className="apps-row__name">{a.name}</span>
         <span className="apps-row__desc">{a.desc}</span>
-        <span className={`apps-row__how apps-row__how--${a.how}`}>{a.how === 'web' ? 'Официальная веб-версия' : a.how === 'api' ? 'Интеграция в работе' : 'Приложение Sunnet'}</span>
+        <span className={`apps-row__how apps-row__how--${a.how}`}>{a.how === 'web' ? 'Официальная веб-версия' : a.how === 'api' ? 'Чаты — в общем списке Sunnet' : 'Приложение Sunnet'}</span>
       </span>
       <button
         type="button"
@@ -69,6 +83,11 @@ function AppRow({ a, i }: { a: CatalogApp; i: number }) {
       >
         <MonitorDown size={16} />
       </button>
+      {a.how === 'api' && (
+        <button type="button" className="apps-row__open" onClick={() => void openPath('/chats/connect')} aria-label={`Подключить ${a.name} к чатам Sunnet`}>
+          <Link2 size={14} /> К чатам
+        </button>
+      )}
       <button type="button" className="apps-row__open" onClick={open} aria-label={`Открыть ${a.name}`}>
         Открыть <ExternalLink size={14} />
       </button>

@@ -168,7 +168,7 @@
   margin-top: 1px;
 }
 .apps-row__how--api {
-  color: #d98400;
+  color: #18a058;
   opacity: 1;
 }
 .apps-row__open {
@@ -239,4 +239,16 @@
 .apps-row__add:focus-visible {
   outline: 2px solid var(--accent, #2f7cf6);
   outline-offset: 2px;
+}
+/* На телефоне кнопки уходят под название, чтобы текст не сжимался */
+@media (max-width: 600px) {
+  .apps-row {
+    flex-wrap: wrap;
+  }
+  .apps-row__text {
+    flex: 1 1 calc(100% - 66px);
+  }
+  .apps-row__add {
+    margin-left: 62px;
+  }
 }
