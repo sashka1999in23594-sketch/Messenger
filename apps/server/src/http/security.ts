@@ -33,7 +33,8 @@ export async function registerSecurity(app: FastifyInstance): Promise<void> {
         manifestSrc: ["'self'"],
         objectSrc: ["'none'"],
         // Встраиваем только свои страницы: изолированный запуск приложений Студии
-        frameSrc: ["'self'"],
+        // Свои страницы (приложения Студии) и сайты во вкладках браузера Sunnet — только https
+        frameSrc: ["'self'", 'https:'],
         frameAncestors: ["'none'"],
         baseUri: ["'none'"],
         formAction: ["'self'"],

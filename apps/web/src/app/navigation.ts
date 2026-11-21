@@ -7,6 +7,7 @@
  * `planned` получает страницу-дорожную карту — только для того, что уже в работе.
  */
 import {
+  Globe,
   Link2,
   FileCode,
   GraduationCap,
@@ -332,6 +333,15 @@ export const sections: NavSection[] = [
     ],
   },
   {
+    id: 'browser',
+    label: 'Браузер',
+    short: 'Браузер',
+    icon: Globe,
+    path: '/browser',
+    description: 'Поиск и сайты с вкладками, закладками и загрузками в облако',
+    children: [{ id: 'browser.home', label: 'Новая вкладка', icon: Globe, path: '/browser', keywords: ['интернет', 'сайт', 'поиск в интернете', 'google', 'яндекс'] }],
+  },
+  {
     id: 'apps',
     label: 'Приложения',
     short: 'Добавить',
@@ -569,6 +579,7 @@ const SECTION_PREFIXES: [string, string][] = [
   ['/premieres', 'video'],
   ['/servers', 'servers'],
   ['/apps', 'apps'],
+  ['/browser', 'browser'],
   ['/cloud', 'cloud'],
   ['/studio', 'studio'],
   ['/app/', 'studio'],

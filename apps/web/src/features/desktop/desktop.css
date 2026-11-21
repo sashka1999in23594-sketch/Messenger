@@ -1108,3 +1108,7 @@ body:has(.desk:not(.desk--wp-aurora)) .aurora {
     animation: none;
   }
 }
+
+.desk-tile--browser {
+  --tile: var(--desk-app-browser);
+}
