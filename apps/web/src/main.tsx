@@ -7,6 +7,8 @@ import './styles/layout.css';
 import './styles/theme.css';
 import './styles/polish.css';
 import './styles/sunburst.css';
+// Счётчики сторонних приложений из приложения для компьютера
+import './features/apps/appBadges';
 import { App } from './app/App';
 import { startBrandClock } from './shared/lib/brand';
 

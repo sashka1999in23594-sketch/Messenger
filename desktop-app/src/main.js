@@ -63,6 +63,11 @@ async function start() {
     appOrigin: APP_ORIGIN,
     siteSession: ses,
     icon: process.platform === 'linux' ? path.join(__dirname, '..', 'build', 'icons', '256x256.png') : undefined,
+    onBadge: (badge) => {
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+      const js = `window.__sunnetAppBadge && window.__sunnetAppBadge(${JSON.stringify(badge)})`;
+      mainWindow.webContents.executeJavaScript(js).catch(() => {});
+    },
     onSearch: (q) => {
       showMainWindow();
       mainWindow?.webContents.loadURL(new URL(`/browser?q=${encodeURIComponent(q)}`, SITE_URL).href).catch(() => {});

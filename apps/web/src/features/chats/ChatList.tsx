@@ -14,6 +14,7 @@ import { Avatar, confirm, EmptyState, IconButton, ListSkeleton, LoadMore, Menu, 
 import { patchChat, forgetChat } from './cache';
 import { draftOf } from './Composer';
 import { AddToFolderDialog, useFolders } from './folders';
+import { AppInboxes } from '../apps/appBadges';
 import { BridgeChatItem, SourceBadge, useBridgeChats, useBridgeStatus, type BridgeChat } from './bridge';
 import { StoriesBar } from '../stories';
 
@@ -556,6 +557,7 @@ export function ChatList({
         )}
       </div>
       <div className="chats__scroll">
+        {!channels && <AppInboxes />}
         {list.isLoading ? (
           <ListSkeleton rows={8} avatar={54} />
         ) : merged ? (

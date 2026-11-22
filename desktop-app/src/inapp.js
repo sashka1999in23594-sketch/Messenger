@@ -189,6 +189,7 @@ function openInApp(rawUrl, profile = 'web', title = '') {
   win.on('resize', () => layout(w));
   win.on('closed', () => {
     windows.delete(key);
+    if (key !== 'web') ctx.onBadge?.({ id: key.slice(4), name: title || key.slice(4), count: 0, closed: true });
     if (!site.webContents.isDestroyed()) site.webContents.close();
     if (!bar.webContents.isDestroyed()) bar.webContents.close();
   });
@@ -205,7 +206,14 @@ function openInApp(rawUrl, profile = 'web', title = '') {
   });
   wc.on('will-attach-webview', (event) => event.preventDefault());
   for (const ev of ['did-navigate', 'did-navigate-in-page', 'page-title-updated', 'did-start-loading', 'did-stop-loading']) wc.on(ev, () => pushState(w));
-  wc.on('page-title-updated', (_e, t) => win.setTitle(title ? `${title} — Sunnet` : `${t} — Sunnet`));
+  wc.on('page-title-updated', (_e, t) => {
+    win.setTitle(title ? `${title} — Sunnet` : `${t} — Sunnet`);
+    // Непрочитанные приложения («(3) WhatsApp», «Telegram (5)») — в общий список чатов Sunnet
+    if (key !== 'web') {
+      const m = /\((\d{1,5})\)/.exec(t);
+      ctx.onBadge?.({ id: key.slice(4), name: title || key.slice(4), count: m ? Number(m[1]) : 0 });
+    }
+  });
 
   bar.webContents.loadFile(path.join(__dirname, 'inapp-toolbar.html')).catch(() => {});
   bar.webContents.once('did-finish-load', () => {
