@@ -6,7 +6,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { CornerDownLeft, Hash, MessageCircle, Moon, PenLine, Search, Sun, UserRound } from 'lucide-react';
+import { queryClient } from '../../shared/api/query';
+import { CATALOG } from '../../features/apps/catalog';
+import { CornerDownLeft, Hash, MessageCircle, Moon, PenLine, Search, Sun, UserRound, Sparkles, Folder, FileText, Server, LayoutGrid } from 'lucide-react';
 import type { SearchResults } from '@omni/shared';
 import { flatNodes, sections, type FlatNode } from '../navigation';
 import { api } from '../../shared/api/client';
@@ -84,6 +86,11 @@ export function CommandPalette() {
     staleTime: 30_000,
   });
 
+  // Поиск по всему Sunnet: облако и проекты, серверы, приложения каталога, чаты подключённых мессенджеров
+  const desk = useQuery({ queryKey: ['desk-items'], queryFn: () => api.get<{ items: { id: string; kind: string; name: string; url: string | null; media: { url: string } | null }[] }>('/desk/items').then((r) => r.items), enabled: open, staleTime: 15_000 });
+  const servers = useQuery({ queryKey: ['servers'], queryFn: () => api.get<{ items: { id: string; name: string; online: boolean }[] }>('/servers/mine'), enabled: open, staleTime: 30_000 });
+  const bridged = queryClient.getQueryData<{ chats: { id: string; title: string; service: string; lastText: string }[] }>(['bridge-chats'])?.chats ?? [];
+
   const items = useMemo<Item[]>(() => {
     const go = (path: string, id?: string) => () => {
       if (id) prefs.pushRecent(id);
@@ -136,6 +143,27 @@ export function CommandPalette() {
       .slice(0, 8);
     out.push(...nodes.map(({ f }) => nodeItem(f, 'Разделы')));
     out.push(...actions.filter((a) => a.label.toLowerCase().includes(query)));
+    const has = (t: string) => t.toLowerCase().includes(query);
+    for (const d of (desk.data ?? []).filter((d) => has(d.name)).slice(0, 6)) {
+      out.push({
+        key: `d-${d.id}`,
+        group: d.kind === 'project' ? 'Проекты Студии' : 'Облако',
+        label: d.name,
+        hint: { folder: 'папка', file: 'файл', project: 'проект', link: 'ярлык' }[d.kind],
+        icon: d.kind === 'project' ? <Sparkles size={18} /> : d.kind === 'folder' ? <Folder size={18} /> : <FileText size={18} />,
+        run: d.kind === 'project' ? go(`/studio/${d.id}`) : d.kind === 'folder' ? go(`/cloud/${d.id}`) : d.kind === 'link' && d.url?.startsWith('/') ? go(d.url) : () => {
+          const u = d.kind === 'file' ? d.media?.url : d.url;
+          if (u) window.open(u, '_blank', 'noopener,noreferrer');
+          setOpen(false);
+        },
+      });
+    }
+    for (const sv of (servers.data?.items ?? []).filter((x) => has(x.name)).slice(0, 4))
+      out.push({ key: `sv-${sv.id}`, group: 'Серверы', label: sv.name, hint: sv.online ? 'на связи' : 'не на связи', icon: <Server size={18} />, run: go(`/servers/${sv.id}`) });
+    for (const c of bridged.filter((x) => has(x.title) || has(x.lastText)).slice(0, 5))
+      out.push({ key: `b-${c.id}`, group: 'Сообщения', label: c.title, hint: `${c.service === 'telegram' ? 'Telegram' : 'WhatsApp'} · ${c.lastText.slice(0, 60)}`, icon: <MessageCircle size={18} />, run: go(`/chats/x/${encodeURIComponent(c.id)}`) });
+    for (const a of CATALOG.filter((x) => has(x.name) || has(x.tags)).slice(0, 4))
+      out.push({ key: `app-${a.id}`, group: 'Приложения', label: a.name, hint: a.desc, icon: <LayoutGrid size={18} />, run: go(`/apps?q=${encodeURIComponent(a.name)}`) });
     const r = remote.data;
     if (r) {
       out.push(
@@ -153,7 +181,7 @@ export function CommandPalette() {
     }
     out.push({ key: 'search-all', group: 'Поиск', label: `Искать «${q.trim()}» везде`, icon: <Search size={18} />, run: go(`/search?q=${encodeURIComponent(q.trim())}`) });
     return out;
-  }, [q, remote.data, prefs, navigate, setOpen]);
+  }, [q, remote.data, prefs, navigate, setOpen, desk.data, servers.data, bridged]);
 
   useEffect(() => setSel(0), [q]);
   if (!open) return null;

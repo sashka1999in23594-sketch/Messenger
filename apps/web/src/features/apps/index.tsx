@@ -6,6 +6,7 @@
  * (Telegram — TDLib на сервере, WhatsApp — только Business Cloud API), она в работе.
  */
 import { useMemo, useState, type CSSProperties } from 'react';
+import { useSearchParams } from 'react-router';
 import { BookOpen, Briefcase, Code2, ExternalLink, Film, Gamepad2, Link2, MessageCircle, MonitorDown, Music, Search, Sparkles, Users, Wrench } from 'lucide-react';
 import { openPath } from '../desktop/fx';
 import { installHistory, openInstaller } from './Installer';
@@ -96,7 +97,8 @@ function AppRow({ a, i }: { a: CatalogApp; i: number }) {
 }
 
 export function AppsCatalog() {
-  const [q, setQ] = useState('');
+  const [params] = useSearchParams();
+  const [q, setQ] = useState(() => params.get('q') ?? '');
   const [cat, setCat] = useState<string>('all');
   const opened = useMemo(readOpened, []);
   const forYou = useMemo(() => recommend(opened), [opened]);
