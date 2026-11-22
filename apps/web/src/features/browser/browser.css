@@ -233,6 +233,7 @@
   position: relative;
   display: grid;
   place-items: center;
+  flex: none; /* на телефоне колонка не должна сплющивать солнце */
   width: 190px;
   height: 190px;
   border-radius: 50%;
@@ -501,5 +502,18 @@
   .brw-home__orbit,
   .brw-home__spark {
     animation: none !important;
+  }
+}
+
+/* Телефон: адресная строка во всю ширину, кнопки — строкой ниже */
+@media (max-width: 560px) {
+  .brw__bar {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    row-gap: 6px;
+  }
+  .brw__bar .brw__address {
+    order: -1;
+    flex: 1 0 100%;
   }
 }
