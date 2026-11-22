@@ -60,3 +60,18 @@ services:
         sync: false
       - key: S3_SECRET_ACCESS_KEY
         sync: false
+      # Ник владельца платформы (через запятую можно несколько): при старте получает роль администратора
+      # и доступ к консоли /user.block("ник", duration: 7d) и др.
+      - key: ADMIN_USERNAMES
+        sync: false
+      # Telegram в общем списке чатов: my.telegram.org → API development tools → App api_id и App api_hash
+      - key: TELEGRAM_API_ID
+        sync: false
+      - key: TELEGRAM_API_HASH
+        sync: false
+      # WhatsApp Business (Meta for Developers → WhatsApp): токен проверки вебхука (придумайте сами)
+      # и App Secret приложения — им проверяется подпись входящих сообщений
+      - key: WHATSAPP_VERIFY_TOKEN
+        sync: false
+      - key: WHATSAPP_APP_SECRET
+        sync: false
