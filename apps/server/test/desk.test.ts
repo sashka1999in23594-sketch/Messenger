@@ -48,3 +48,28 @@ describe('рабочий стол = облако', () => {
     expect((await client.post('/desk/items', { kind: 'link', name: 'Telegram', url: 'https://web.telegram.org' })).status).toBe(201);
   });
 });
+
+describe('резервная копия облака', () => {
+  it('восстанавливает удалённые папки и проекты со всем содержимым', async () => {
+    const { client } = await registerUser(app);
+    const folder = (await client.post('/desk/items', { kind: 'folder', name: 'Учёба' })).body;
+    const proj = (await client.post('/desk/items', { kind: 'project', name: 'Проект №1', parentId: folder.id })).body;
+    await client.put(`/desk/items/${proj.id}/data`, { data: { screens: [{ id: 's', name: 'Главная', elements: [] }], scripts: [] } });
+    const backup = (await client.get('/desk/backup')).body;
+    expect(backup.items).toHaveLength(2);
+    for (const id of [proj.id, folder.id]) {
+      await client.del(`/desk/items/${id}`);
+      await client.del(`/desk/items/${id}?forever=1`);
+    }
+    expect((await client.get('/desk/items')).body.items).toHaveLength(0);
+    const r = await client.post('/desk/restore', { items: backup.items });
+    expect(r.body).toEqual({ restored: 2, skipped: 0 });
+    const items = (await client.get('/desk/items')).body.items;
+    const p = items.find((i: { kind: string }) => i.kind === 'project');
+    const f = items.find((i: { kind: string }) => i.kind === 'folder');
+    expect(p.parentId).toBe(f.id);
+    expect((await client.get(`/desk/items/${p.id}/data`)).body.data.screens[0].name).toBe('Главная');
+    // Повторное восстановление ничего не дублирует
+    expect((await client.post('/desk/restore', { items: (await client.get('/desk/backup')).body.items })).body.restored).toBe(0);
+  });
+});

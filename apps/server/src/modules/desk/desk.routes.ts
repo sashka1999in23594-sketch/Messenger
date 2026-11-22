@@ -126,6 +126,71 @@ export async function deskRoutes(app: FastifyInstance): Promise<void> {
     return { ok: true };
   });
 
+  /**
+   * Резервная копия облака: структура папок, ярлыки и проекты Студии с содержимым.
+   * Файлы в копии — ссылки на ваши же загрузки; восстановятся, если ещё есть в хранилище.
+   */
+  app.get('/desk/backup', async (req) => {
+    const { userId } = requireAuth(req);
+    const rows = db.all<Row & { data: string | null }>('SELECT * FROM desk_items WHERE user_id = :u AND trashed_at IS NULL', { u: userId });
+    return { version: 1, createdAt: new Date().toISOString(), items: rows.map((r) => ({ id: r.id, parentId: r.parent_id, kind: r.kind, name: r.name, mediaId: r.media_id, url: r.url, x: r.x, y: r.y, data: r.data ? (JSON.parse(r.data) as unknown) : null })) };
+  });
+
+  /** Восстановление из копии: создаёт недостающие элементы, ничего существующего не удаляет. */
+  app.post('/desk/restore', { config: { rateLimit: { max: 5, timeWindow: '10 minutes' } }, bodyLimit: 8 * 1024 * 1024 }, async (req) => {
+    const { userId } = requireAuth(req);
+    const b = parse(
+      z.object({
+        items: z
+          .array(
+            z.object({
+              id: z.string().max(40),
+              parentId: z.string().max(40).nullable(),
+              kind: z.enum(['folder', 'file', 'project', 'link']),
+              name,
+              mediaId: z.string().max(40).nullable(),
+              url: httpsUrl.nullable(),
+              x: z.number().int().min(0).max(200).nullable(),
+              y: z.number().int().min(0).max(200).nullable(),
+              data: z.record(z.string(), z.unknown()).nullable(),
+            }),
+          )
+          .max(MAX_ITEMS),
+      }),
+      req.body,
+    );
+    const now = Date.now();
+    const idMap = new Map<string, string>();
+    let restored = 0;
+    let skipped = 0;
+    // Сначала папки (родители раньше детей), затем остальное
+    const order = [...b.items].sort((a, c) => Number(c.kind === 'folder') - Number(a.kind === 'folder'));
+    for (const it of order) {
+      if (db.get('SELECT 1 FROM desk_items WHERE id = :id AND user_id = :u', { id: it.id, u: userId })) {
+        idMap.set(it.id, it.id);
+        continue;
+      }
+      if (it.kind === 'file' && (!it.mediaId || !db.get('SELECT 1 FROM media WHERE id = :id AND owner_id = :u AND deleted_at IS NULL', { id: it.mediaId, u: userId }))) {
+        skipped++;
+        continue;
+      }
+      const data = it.data ? JSON.stringify(it.data) : null;
+      if (data && data.length > MAX_PROJECT_BYTES) {
+        skipped++;
+        continue;
+      }
+      const id = newId(now);
+      idMap.set(it.id, id);
+      db.run(
+        `INSERT INTO desk_items (id, user_id, parent_id, kind, name, media_id, url, x, y, data, created_at, updated_at)
+         VALUES (:id, :u, :p, :k, :n, :m, :url, :x, :y, :d, :now, :now)`,
+        { id, u: userId, p: it.parentId ? (idMap.get(it.parentId) ?? null) : null, k: it.kind, n: it.name, m: it.kind === 'file' ? it.mediaId : null, url: it.kind === 'link' ? it.url : null, x: it.x, y: it.y, d: it.kind === 'project' ? data : null, now },
+      );
+      restored++;
+    }
+    return { restored, skipped };
+  });
+
   /** Настройки стола (док, значки) — общие для всех устройств. */
   app.get('/desk/prefs', async (req) => {
     const { userId } = requireAuth(req);

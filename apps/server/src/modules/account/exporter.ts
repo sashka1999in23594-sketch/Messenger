@@ -32,6 +32,13 @@ export class AccountExporter {
         ),
       ),
       bookmarks: this.db.all('SELECT post_id AS postId FROM bookmarks WHERE user_id = :u', { u: userId }),
+      // Рабочий стол = облако: папки, файлы, ярлыки и проекты Студии (с содержимым)
+      desk: ts(this.db.all('SELECT id, parent_id, kind, name, media_id, url, x, y, data, trashed_at, created_at, updated_at FROM desk_items WHERE user_id = :u', { u: userId })),
+      studioApps: ts(this.db.all('SELECT slug, name, version, review, permissions, created_at, updated_at FROM studio_apps WHERE owner_id = :u', { u: userId })),
+      servers: ts(this.db.all('SELECT id, name, hosting, access, needs, created_at FROM hosted_servers WHERE owner_id = :u', { u: userId })),
+      subscriptions: this.db.all('SELECT name, price_cents, currency, period, next_payment, manage_url FROM subscriptions WHERE user_id = :u', { u: userId }),
+      // Ключи подключённых мессенджеров не выгружаются — только сам факт подключения
+      connectedMessengers: this.db.all('SELECT service, account FROM bridge_links WHERE user_id = :u', { u: userId }),
       securityEvents: ts(this.db.all('SELECT type, ip, user_agent, created_at FROM security_events WHERE user_id = :u ORDER BY created_at DESC LIMIT 1000', { u: userId })),
     };
   }

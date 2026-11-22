@@ -1,7 +1,10 @@
 /** Окно облака: содержимое папки или корзина (восстановить / удалить навсегда). */
 import { useRef } from 'react';
 import { useParams } from 'react-router';
-import { FolderPlus, RotateCcw, Trash2, Upload } from 'lucide-react';
+import { ArchiveRestore, DownloadCloud, FolderPlus, RotateCcw, Trash2, Upload } from 'lucide-react';
+import { api, errorMessage } from '../../shared/api/client';
+import { queryClient } from '../../shared/api/query';
+import { toast } from '../../shared/stores/ui';
 import { confirm } from '../../shared/ui/Modal';
 import { createItem, deleteForever, openItemUrl, restoreItem, trashItem, uploadToDesk, useDeskItems, useTrash, type DeskItem } from './cloud';
 import { openPath } from './fx';
@@ -48,12 +51,42 @@ function Row({ item, trash }: { item: DeskItem; trash?: boolean }) {
   );
 }
 
+/** Копия облака в файл на компьютере (файлы — ссылками на ваши загрузки, проекты — целиком). */
+async function saveBackup() {
+  try {
+    const data = await api.get('/desk/backup');
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `sunnet-oblako-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    toast({ text: 'Копия облака сохранена', kind: 'success' });
+  } catch (e) {
+    toast({ text: errorMessage(e), kind: 'error' });
+  }
+}
+
+/** Восстановление: недостающее создаётся заново, существующее не трогается. */
+async function restoreBackup(file: File) {
+  try {
+    const json = JSON.parse(await file.text()) as { items?: unknown[] };
+    if (!Array.isArray(json.items)) throw new Error('Это не файл копии Sunnet');
+    const r = await api.post<{ restored: number; skipped: number }>('/desk/restore', { items: json.items });
+    await queryClient.invalidateQueries({ queryKey: ['desk-items'] });
+    toast({ text: `Восстановлено: ${r.restored}${r.skipped ? ` · пропущено: ${r.skipped} (файлов уже нет в хранилище)` : ''}`, kind: 'success' });
+  } catch (e) {
+    toast({ text: e instanceof SyntaxError ? 'Файл повреждён' : errorMessage(e), kind: 'error' });
+  }
+}
+
 export function CloudPage() {
   const { folderId } = useParams();
   const isTrash = folderId === 'trash';
   const all = useDeskItems().data ?? [];
   const trash = useTrash(isTrash).data ?? [];
   const input = useRef<HTMLInputElement>(null);
+  const restoreInput = useRef<HTMLInputElement>(null);
   const parent = isTrash ? null : (folderId ?? null);
   const list = isTrash ? trash : all.filter((i) => i.parentId === parent);
   const folder = all.find((i) => i.id === folderId);
@@ -82,6 +115,27 @@ export function CloudPage() {
             <button type="button" onClick={() => void openPath('/cloud/trash')}>
               <Trash2 size={16} /> Корзина
             </button>
+            {!parent && (
+              <>
+                <button type="button" onClick={() => void saveBackup()} title="Скачать копию папок, ярлыков и проектов">
+                  <DownloadCloud size={16} /> Копия
+                </button>
+                <button type="button" onClick={() => restoreInput.current?.click()} title="Восстановить из файла копии">
+                  <ArchiveRestore size={16} /> Восстановить
+                </button>
+                <input
+                  ref={restoreInput}
+                  type="file"
+                  accept="application/json,.json"
+                  hidden
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void restoreBackup(f);
+                    e.target.value = '';
+                  }}
+                />
+              </>
+            )}
             <input ref={input} type="file" multiple hidden onChange={(e) => e.target.files && void uploadToDesk([...e.target.files], { x: 0, y: 0 }, parent)} />
           </div>
         )}
