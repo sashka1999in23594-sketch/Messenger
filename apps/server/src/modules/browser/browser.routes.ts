@@ -7,8 +7,10 @@
  *   размера; тип файла определяет сервис медиа по содержимому (программы не принимаются).
  */
 import { lookup } from 'node:dns/promises';
+import { lookup as lookupCb, type LookupAddress } from 'node:dns';
+import { request as httpsRequest } from 'node:https';
+import type { IncomingMessage } from 'node:http';
 import { isIP } from 'node:net';
-import { Readable } from 'node:stream';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { badRequest, parse } from '../../lib/errors.js';
@@ -42,6 +44,38 @@ export async function assertPublicUrl(raw: string): Promise<URL> {
   if (!addrs.length) throw badRequest('Сайт не найден');
   if (addrs.some((a) => isPrivateAddress(a.address))) throw badRequest('Эта ссылка ведёт во внутреннюю сеть — скачивание запрещено');
   return url;
+}
+
+/**
+ * GET по https, где IP проверяется в момент соединения (через lookup сокета), — так
+ * сайт не сможет подменить адрес между проверкой и скачиванием (DNS rebinding).
+ */
+export function safeGet(url: URL): Promise<IncomingMessage> {
+  return new Promise((resolve, reject) => {
+    const req = httpsRequest(
+      url,
+      {
+        method: 'GET',
+        headers: { 'User-Agent': 'SunnetBrowser/1.0' },
+        timeout: 30_000,
+        lookup: (host, opts, cb) =>
+          lookupCb(host, { ...opts, all: true }, (err, addrs) => {
+            if (err) return cb(err, '', 4);
+            const list = addrs as unknown as LookupAddress[];
+            const bad = list.find((a) => isPrivateAddress(a.address));
+            if (bad || !list.length) return cb(new Error('PRIVATE_ADDRESS'), '', 4);
+            const first = list[0]!;
+            // Node просит либо один адрес, либо список — отдаём в том виде, в каком спросили
+            if ((opts as { all?: boolean }).all) (cb as unknown as (e: null, a: LookupAddress[]) => void)(null, list);
+            else cb(null, first.address, first.family);
+          }),
+      },
+      resolve,
+    );
+    req.on('timeout', () => req.destroy(new Error('TIMEOUT')));
+    req.on('error', reject);
+    req.end();
+  });
 }
 
 export async function browserRoutes(app: FastifyInstance): Promise<void> {
@@ -79,25 +113,34 @@ export async function browserRoutes(app: FastifyInstance): Promise<void> {
     const { userId } = requireAuth(req);
     const b = parse(z.object({ url: z.string().max(2000) }), req.body);
     let url = await assertPublicUrl(b.url);
-    let res: Response | null = null;
+    let res: IncomingMessage | null = null;
     for (let hop = 0; hop < 4; hop++) {
-      res = await fetch(url, { redirect: 'manual', headers: { 'User-Agent': 'SunnetBrowser/1.0' }, signal: AbortSignal.timeout(30_000) }).catch(() => null);
-      if (!res) throw badRequest('Сайт не ответил');
-      if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
+      res = await safeGet(url).catch((e: Error) => {
+        throw badRequest(e.message === 'PRIVATE_ADDRESS' ? 'Эта ссылка ведёт во внутреннюю сеть — скачивание запрещено' : 'Сайт не ответил');
+      });
+      const loc = res.headers.location;
+      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && loc) {
+        res.resume();
         if (hop === 3) throw badRequest('Слишком много перенаправлений');
-        url = await assertPublicUrl(new URL(res.headers.get('location')!, url).toString());
+        url = await assertPublicUrl(new URL(loc, url).toString());
         continue;
       }
       break;
     }
-    if (!res?.ok || !res.body) throw badRequest(`Сайт вернул ошибку ${res?.status ?? ''}`.trim());
-    const len = Number(res.headers.get('content-length') ?? 0);
-    if (len > MAX_BYTES) throw badRequest('Файл больше 50 МБ');
-    // Поток с ограничением размера: обрываем, если сайт прислал больше заявленного
+    if (!res || !res.statusCode || res.statusCode >= 400) {
+      res?.resume();
+      throw badRequest(`Сайт вернул ошибку ${res?.statusCode ?? ''}`.trim());
+    }
+    const len = Number(res.headers['content-length'] ?? 0);
+    if (len > MAX_BYTES) {
+      res.destroy();
+      throw badRequest('Файл больше 50 МБ');
+    }
+    // Ограничение размера: обрываем, если сайт прислал больше заявленного
     let seen = 0;
-    const limited = Readable.fromWeb(res.body as never).on('data', (c: Buffer) => {
+    const limited = res.on('data', (c: Buffer) => {
       seen += c.length;
-      if (seen > MAX_BYTES) limited.destroy(new Error('Файл больше 50 МБ'));
+      if (seen > MAX_BYTES) res!.destroy(new Error('Файл больше 50 МБ'));
     });
     const name = decodeURIComponent(url.pathname.split('/').pop() || 'файл').slice(0, 120);
     try {

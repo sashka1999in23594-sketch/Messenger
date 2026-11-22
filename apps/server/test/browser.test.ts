@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { isPrivateAddress } from '../src/modules/browser/browser.routes.js';
+import { isPrivateAddress, safeGet } from '../src/modules/browser/browser.routes.js';
 import { Client, createTestApp, registerUser } from './helpers.js';
 
 let app: FastifyInstance;
@@ -15,6 +15,10 @@ describe('браузер: защита загрузок от SSRF', () => {
   it('распознаёт внутренние адреса', () => {
     for (const ip of ['127.0.0.1', '10.1.2.3', '192.168.0.10', '172.20.1.1', '169.254.169.254', '100.64.0.1', '::1', 'fd00::1', 'fe80::1', '::ffff:127.0.0.1', '0.0.0.0']) expect(isPrivateAddress(ip)).toBe(true);
     for (const ip of ['8.8.8.8', '93.184.216.34', '2a00:1450:4010::64']) expect(isPrivateAddress(ip)).toBe(false);
+  });
+
+  it('проверяет адрес в момент соединения (защита от DNS rebinding)', async () => {
+    await expect(safeGet(new URL('https://localhost/secret'))).rejects.toThrow('PRIVATE_ADDRESS');
   });
 
   it('не скачивает по http, во внутреннюю сеть, с паролем в ссылке и на чужой порт', async () => {
