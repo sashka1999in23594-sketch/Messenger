@@ -31,7 +31,7 @@ import { queryClient } from '../../shared/api/query';
 import { useMe, useSession } from '../../shared/stores/session';
 import { toast } from '../../shared/stores/ui';
 import { cn, compactNumber, fullDate, plural } from '../../shared/lib/format';
-import { Avatar, confirm, ReportDialog, RichText, Verified } from '../../shared/ui';
+import { Avatar, confirm, ReportDialog, RichText, AdminMark, Verified } from '../../shared/ui';
 import { copyLink, ShareSheet, shortAgo, useOptions } from '../misc/kit';
 import { removePostEverywhere, usePostActions } from './actions';
 import { useHiddenPosts } from './hidden';
@@ -88,6 +88,7 @@ export function PostEmbed({ post }: { post: Post }) {
           <Avatar src={post.author.avatarUrl} name={post.author.displayName} id={post.author.id} size={20} />
           <b className="ellipsis">{post.author.displayName}</b>
           {post.author.verified && <Verified size={13} />}
+{post.author.admin && <AdminMark size={13} />}
           <span className="pc-quote__meta">· {shortAgo(post.createdAt)}</span>
         </div>
         {post.title && <div className="bold clamp-2">{post.title}</div>}
@@ -301,6 +302,7 @@ export const PostCard = memo(function PostCard({ post, detail, onComment }: { po
               {author.displayName}
             </Link>
             {author.verified && <Verified size={15} />}
+{author.admin && <AdminMark size={15} />}
             <span className="pc-head__time" title={fullDate(shown.createdAt)}>
               {shortAgo(shown.createdAt)}
             </span>

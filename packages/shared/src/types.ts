@@ -31,6 +31,8 @@ export interface UserSummary {
   verified: boolean;
   /** Служебный аккаунт Sunnet */
   system?: boolean;
+  /** Администратор Sunnet — у имени показывается отдельный значок */
+  admin?: boolean;
 }
 
 export interface Relationship {

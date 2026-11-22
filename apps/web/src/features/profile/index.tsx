@@ -38,7 +38,7 @@ import { getIdentity, registerDevice } from '../../shared/crypto/e2e';
 import { useMe } from '../../shared/stores/session';
 import { toast, useCrumb } from '../../shared/stores/ui';
 import { cn, compactNumber, lastSeen, plural } from '../../shared/lib/format';
-import { Avatar, Button, confirm, EmptyState, ErrorState, ListSkeleton, LoadMore, ReportDialog, Spinner, UserName, Verified } from '../../shared/ui';
+import { Avatar, Button, confirm, EmptyState, ErrorState, ListSkeleton, LoadMore, ReportDialog, Spinner, UserName, AdminMark, Verified } from '../../shared/ui';
 import { ExpandableText, PostCard, PostSkeleton } from '../posts/PostCard';
 import { ComposeSheet } from '../posts/PostComposer';
 import { GridSkeleton, PhotoGrid } from './PhotoGrid';
@@ -279,6 +279,7 @@ export function ProfilePage() {
               <h1 className="pf-name">
                 <span className="ellipsis">{p.displayName}</span>
                 {p.verified && <Verified size={20} />}
+{p.admin && <AdminMark size={20} />}
                 {p.isPrivate && <Lock size={16} className="faint" aria-label="Закрытый профиль" />}
               </h1>
               <div className="pf-handle">

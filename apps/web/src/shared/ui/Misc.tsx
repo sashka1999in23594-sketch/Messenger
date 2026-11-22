@@ -6,7 +6,7 @@ import { api, errorMessage } from '../api/client';
 import { useInfiniteScroll } from '../hooks';
 import { cn } from '../lib/format';
 import { toast } from '../stores/ui';
-import { Avatar, Verified } from './Avatar';
+import { AdminMark, Avatar, Verified } from './Avatar';
 import { Button } from './Button';
 import { Spinner } from './Feedback';
 import { Modal } from './Modal';
@@ -16,6 +16,7 @@ export function UserName({ user, className }: { user: UserSummary; className?: s
     <span className={cn('row gap-1', className)} style={{ display: 'inline-flex' }}>
       <span className="bold ellipsis">{user.displayName}</span>
       {user.verified && <Verified size={15} />}
+{user.admin && <AdminMark size={15} />}
     </span>
   );
 }

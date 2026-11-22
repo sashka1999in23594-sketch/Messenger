@@ -544,3 +544,4 @@
     animation: none;
   }
 }
+.admin-mark { color: #e0a100; flex: none; vertical-align: -2px; filter: drop-shadow(0 0 4px rgba(255, 190, 60, 0.45)); }

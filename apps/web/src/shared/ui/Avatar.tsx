@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BadgeCheck } from 'lucide-react';
+import { BadgeCheck, ShieldCheck } from 'lucide-react';
 import { SYSTEM_USER_ID } from '@omni/shared';
 import { cn, hueFor, initials } from '../lib/format';
 import { Logo } from './Brand';
@@ -40,6 +40,11 @@ export function Avatar({ src, name, id, size = 40, online, ring, className }: Av
       {online && <span className="avatar__online" aria-label="в сети" />}
     </span>
   );
+}
+
+/** Значок администратора Sunnet: золотой щит рядом с именем. */
+export function AdminMark({ size = 16 }: { size?: number }) {
+  return <ShieldCheck className="admin-mark" size={size} aria-label="Администратор Sunnet" />;
 }
 
 export function Verified({ size = 16 }: { size?: number }) {
