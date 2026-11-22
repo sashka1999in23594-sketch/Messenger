@@ -180,7 +180,7 @@ export function BrowserPage() {
         <button type="button" aria-label={marked ? 'Убрать из закладок' : 'В закладки'} disabled={!tab.url} onClick={toggleMark} className={marked ? 'is-on' : ''}>
           {marked ? <BookmarkCheck size={17} /> : <Bookmark size={17} />}
         </button>
-        <button type="button" aria-label="Скачать в облако" title="Скачать файл по этой ссылке в облако" disabled={!tab.url} onClick={() => tab.url && void download(tab.url)}>
+        <button type="button" aria-label="Скачать на рабочий стол" title="Скачать файл по этой ссылке на рабочий стол" disabled={!tab.url} onClick={() => tab.url && void download(tab.url)}>
           <CloudDownload size={17} />
         </button>
         <button type="button" aria-label="История" onClick={() => setPanel(panel === 'history' ? 'none' : 'history')}>
@@ -252,21 +252,8 @@ function VisitList({ items, onOpen, searchable }: { items: Visit[]; onOpen: (u: 
   );
 }
 
-/** Быстрые сайты на стартовой странице (цветные круглые значки, без логотипов-картинок). */
-const QUICK: { name: string; url: string; c: [string, string] }[] = [
-  { name: 'YouTube', url: 'https://www.youtube.com', c: ['#ff6b6b', '#e02424'] },
-  { name: 'Википедия', url: 'https://ru.wikipedia.org', c: ['#9aa4b8', '#5b6478'] },
-  { name: 'Telegram', url: 'https://web.telegram.org', c: ['#5ab8ff', '#2a8cf0'] },
-  { name: 'ВКонтакте', url: 'https://vk.com', c: ['#5a8dff', '#2f5fe0'] },
-  { name: 'GitHub', url: 'https://github.com', c: ['#7b8494', '#2b313c'] },
-  { name: 'Twitch', url: 'https://www.twitch.tv', c: ['#b28bff', '#7c3aed'] },
-  { name: 'Яндекс', url: 'https://ya.ru', c: ['#ffcf4d', '#ff8a1e'] },
-  { name: 'Instagram', url: 'https://www.instagram.com', c: ['#ff9ac1', '#e23a7a'] },
-];
-
-function Home({ onSearch, priv, bookmarks, onOpen }: { onSearch: (q: string) => void; priv: boolean; bookmarks: Visit[]; onOpen: (u: string) => void }) {
+function Home({ onSearch, priv }: { onSearch: (q: string) => void; priv: boolean; bookmarks?: Visit[]; onOpen?: (u: string) => void }) {
   const [q, setQ] = useState('');
-  const tiles = [...bookmarks.slice(0, 4).map((b) => ({ name: b.title, url: b.url, c: ['#ffb341', '#2f8cff'] as [string, string] })), ...QUICK].slice(0, 10);
   return (
     <div className="brw-home">
       {/* Вместо надписи — живое солнце: лучи вращаются, вокруг плывут орбиты и искры */}
@@ -298,14 +285,6 @@ function Home({ onSearch, priv, bookmarks, onOpen }: { onSearch: (q: string) => 
           </button>
         </label>
       </form>
-      <div className="brw-home__quick">
-        {tiles.map((t, i) => (
-          <button key={t.url} type="button" onClick={() => onOpen(t.url)} style={{ '--c1': t.c[0], '--c2': t.c[1], '--i': i } as React.CSSProperties}>
-            <span>{t.name.slice(0, 1).toUpperCase()}</span>
-            {t.name}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

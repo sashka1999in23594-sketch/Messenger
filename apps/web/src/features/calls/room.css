@@ -2127,3 +2127,89 @@
     animation: none;
   }
 }
+
+/* ─── «Поделиться»: круглые светящиеся кнопки вместо карточек ─── */
+.room-sec:empty {
+  display: none;
+}
+.room-orbs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px 8px;
+  padding: 6px 0 2px;
+}
+.room-orb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  animation: room-orb-in 0.5s calc(var(--n, 0) * 50ms) var(--ease-spring) both;
+}
+.room-orb:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+@keyframes room-orb-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6) translateY(10px);
+  }
+}
+.room-orb__ball {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(140deg, var(--o1), var(--o2));
+  box-shadow: 0 10px 24px -10px var(--o2), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition:
+    transform 0.35s var(--ease-spring),
+    box-shadow 0.3s var(--ease);
+}
+.room-orb__ball::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--o1);
+  opacity: 0;
+  transform: scale(0.85);
+  transition:
+    opacity 0.3s,
+    transform 0.35s var(--ease-spring);
+}
+.room-orb:hover:not(:disabled) .room-orb__ball {
+  transform: translateY(-3px) scale(1.06);
+  box-shadow: 0 16px 30px -12px var(--o2), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.room-orb:hover:not(:disabled) .room-orb__ball::after {
+  opacity: 0.6;
+  transform: scale(1);
+}
+.room-orb:active:not(:disabled) .room-orb__ball {
+  transform: scale(0.92);
+}
+.room-orb__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+.room-orb--0 { --o1: #5ab8ff; --o2: #2a6ff0; --n: 0; }
+.room-orb--1 { --o1: #b9a2ff; --o2: #7c4dff; --n: 1; }
+.room-orb--2 { --o1: #6ee7a8; --o2: #16a34a; --n: 2; }
+.room-orb--3 { --o1: #ff9ac1; --o2: #e23a7a; --n: 3; }
+.room-orb--music { --o1: #c4a8ff; --o2: #8b5cf6; --n: 4; }
+.room-orb--scene { --o1: #ffd166; --o2: #ff8a1e; --n: 5; }
+@media (prefers-reduced-motion: reduce) {
+  .room-orb {
+    animation: none;
+  }
+}

@@ -59,6 +59,7 @@ export class UsersService {
     return {
       ...this.repo.toSummary(u),
       role: u.role,
+      ...((u as { owner?: number }).owner ? { owner: true } : {}),
       bio: u.bio,
       website: u.website,
       location: u.location,

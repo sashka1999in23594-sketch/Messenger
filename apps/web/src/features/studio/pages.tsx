@@ -216,7 +216,7 @@ export function StudioHome() {
           ))}
         </ul>
       ) : (
-        <p className="st-hint">Проектов пока нет. Создайте первый — он появится на рабочем столе и сохранится в облаке.</p>
+        <p className="st-hint">Проектов пока нет. Создайте первый — он появится на рабочем столе.</p>
       )}
       <h2 className="st-home__h">Опубликованные</h2>
       <AppList items={mine.data?.items ?? []} empty="Вы ещё ничего не публиковали" />

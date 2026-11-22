@@ -138,7 +138,7 @@ export function StudioPage() {
     setSel(null);
   };
 
-  const saveLabel = { idle: 'Сохранено в облаке', saving: 'Сохраняем…', saved: 'Сохранено в облаке', error: 'Не сохранилось — повторим', offline: 'Нет сети — сохраним позже' }[save];
+  const saveLabel = { idle: 'Сохранено', saving: 'Сохраняем…', saved: 'Сохранено', error: 'Не сохранилось — повторим', offline: 'Нет сети — сохраним позже' }[save];
 
   return (
     <div className="sst">

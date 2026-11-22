@@ -1,3 +1,4 @@
+import { lazyRetry } from '../shared/lib/lazyRetry';
 import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter } from 'react-router';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -41,23 +42,6 @@ function PrefsSync() {
  * и импорт падал — рабочий стол не открывался («белый экран»). Пробуем трижды,
  * затем один раз перезагружаем страницу, чтобы получить свежую сборку.
  */
-function lazyRetry<T>(load: () => Promise<T>): Promise<T> {
-  return load()
-    .catch(() => new Promise<T>((ok, fail) => setTimeout(() => load().then(ok, fail), 1200)))
-    .catch(() => new Promise<T>((ok, fail) => setTimeout(() => load().then(ok, fail), 3000)))
-    .catch((e: unknown) => {
-      try {
-        if (!sessionStorage.getItem('sunnet-chunk-reload')) {
-          sessionStorage.setItem('sunnet-chunk-reload', '1');
-          location.reload();
-        }
-      } catch {
-        /* хранилище недоступно */
-      }
-      throw e;
-    });
-}
-
 const Desktop = lazy(() => lazyRetry(() => import('../features/desktop/Desktop')).then((m) => ({ default: m.Desktop })));
 
 /** Экран пробуждения: этапы и таймер, чтобы было видно, что идёт работа. */

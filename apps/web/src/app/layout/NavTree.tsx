@@ -30,6 +30,7 @@ function TreeRow({ node, depth, filter, onNavigate }: { node: NavNode; depth: nu
   const favorites = usePrefs((s) => s.favorites);
   const toggleFavorite = usePrefs((s) => s.toggleFavorite);
   const role = useSession((s) => s.me?.role);
+  const owner = useSession((s) => !!s.me?.owner);
   const badge = useBadge(node.badge);
   const hasChildren = !!node.children?.length;
   const best = findByPath(pathname);
@@ -39,6 +40,7 @@ function TreeRow({ node, depth, filter, onNavigate }: { node: NavNode; depth: nu
   const isFav = favorites.includes(node.id);
   // Пункты модерации видны только модераторам (сервер всё равно проверяет роль)
   if (node.adminOnly && role === 'user') return null;
+  if (node.ownerOnly && !owner) return null;
 
   const content = (
     <>

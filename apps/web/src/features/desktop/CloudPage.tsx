@@ -94,7 +94,7 @@ export function CloudPage() {
   const parent = isTrash ? null : (folderId ?? null);
   const list = isTrash ? trash : all.filter((i) => i.parentId === parent);
   const folder = all.find((i) => i.id === folderId);
-  const title = isTrash ? 'Корзина' : (folder?.name ?? 'Облако');
+  const title = isTrash ? 'Корзина' : (folder?.name ?? 'Файлы рабочего стола');
 
   return (
     <div

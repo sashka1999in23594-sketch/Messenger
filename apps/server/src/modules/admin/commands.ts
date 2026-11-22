@@ -590,21 +590,34 @@ export const COMMANDS: Command[] = [
 ];
 
 /**
- * Владелец платформы. Если среди настоящих пользователей (не демо @example.com и
- * не служебный аккаунт) ещё нет администратора — им становится самый первый
- * зарегистрированный. Так первый человек на новом сервере сразу получает консоль.
+ * Владелец платформы — единственный, у кого есть консоль администратора.
+ * 1) Если задан ADMIN_USERNAMES — владелец ровно эти ники (и никто больше).
+ * 2) Иначе, если владельца ещё нет, — первый зарегистрированный настоящий пользователь
+ *    (демо-аккаунты @example.com и служебный аккаунт не считаются).
+ * Роль admin консоль не даёт: выдать её кому-то командой нельзя.
  */
-export function ensureOwner(ctx: Pick<AppContext, 'db'>): string | null {
+export function ensureOwner(ctx: Pick<AppContext, 'db'>, configured: string[] = []): string | null {
+  const { db } = ctx;
+  if (configured.length) {
+    const ids = db.all<{ id: string; username: string; owner: number }>(
+      `SELECT id, username, owner FROM users WHERE deleted_at IS NULL AND lower(username) IN (${configured.map((_, i) => `:u${i}`).join(', ')})`,
+      Object.fromEntries(configured.map((u, i) => [`u${i}`, u.toLowerCase()])),
+    );
+    if (!ids.length) return null;
+    db.run(`UPDATE users SET owner = 0 WHERE owner = 1 AND id NOT IN (${ids.map((_, i) => `:i${i}`).join(', ')})`, Object.fromEntries(ids.map((u, i) => [`i${i}`, u.id])));
+    for (const u of ids) db.run("UPDATE users SET owner = 1, role = 'admin' WHERE id = :id", { id: u.id });
+    return ids.filter((u) => !u.owner).map((u) => u.username).join(', ') || null;
+  }
+  if (db.get('SELECT 1 FROM users WHERE owner = 1 AND deleted_at IS NULL')) return null;
   const real = "deleted_at IS NULL AND username NOT IN ('sunnet', 'sunnet_official') AND (email IS NULL OR email NOT LIKE '%@example.com')";
-  if (ctx.db.get(`SELECT 1 FROM users WHERE role = 'admin' AND ${real}`)) return null;
-  const first = ctx.db.get<{ id: string; username: string }>(`SELECT id, username FROM users WHERE ${real} ORDER BY created_at LIMIT 1`);
+  const first = db.get<{ id: string; username: string }>(`SELECT id, username FROM users WHERE ${real} ORDER BY created_at LIMIT 1`);
   if (!first) return null;
-  ctx.db.run("UPDATE users SET role = 'admin' WHERE id = :id", { id: first.id });
-  ctx.db.run('INSERT INTO admin_audit (id, actor_id, command, target_id, result, created_at) VALUES (:id, :a, :c, :a, :r, :now)', {
+  db.run("UPDATE users SET owner = 1, role = 'admin' WHERE id = :id", { id: first.id });
+  db.run('INSERT INTO admin_audit (id, actor_id, command, target_id, result, created_at) VALUES (:id, :a, :c, :a, :r, :now)', {
     id: newId(),
     a: first.id,
     c: 'system.owner',
-    r: 'ok: первый пользователь назначен администратором',
+    r: 'ok: первый пользователь назначен владельцем',
     now: Date.now(),
   });
   return first.username;

@@ -106,6 +106,8 @@ export interface NavNode {
   keywords?: string[];
   badge?: 'chats' | 'channels' | 'notifications' | 'requests';
   adminOnly?: boolean;
+  /** Только владелец платформы (консоль администратора) */
+  ownerOnly?: boolean;
 }
 
 export interface NavSection extends NavNode {
@@ -323,13 +325,13 @@ export const sections: NavSection[] = [
   },
   {
     id: 'cloud',
-    label: 'Облако',
-    short: 'Облако',
+    label: 'Рабочий стол',
+    short: 'Стол',
     icon: Cloud,
     path: '/cloud',
-    description: 'Файлы и папки рабочего стола — на любом устройстве',
+    description: 'Файлы и папки рабочего стола — одинаковые на любом устройстве',
     children: [
-      { id: 'cloud.root', label: 'Мои файлы', icon: Cloud, path: '/cloud', keywords: ['файлы', 'папки', 'облако', 'рабочий стол'] },
+      { id: 'cloud.root', label: 'Файлы и папки', icon: Cloud, path: '/cloud', keywords: ['файлы', 'папки', 'облако', 'рабочий стол'] },
       { id: 'cloud.trash', label: 'Корзина', icon: Trash2, path: '/cloud/trash', keywords: ['удалённые', 'восстановить'] },
     ],
   },
@@ -526,7 +528,7 @@ export const sections: NavSection[] = [
       { id: 'settings.accessibility', label: 'Специальные возможности', icon: Accessibility, path: '/settings/accessibility' },
       { id: 'settings.shortcuts', label: 'Горячие клавиши', icon: Keyboard, path: '/settings/shortcuts' },
       { id: 'settings.admin', label: 'Модерация', icon: Flag, path: '/admin/reports', adminOnly: true },
-      { id: 'settings.console', label: 'Консоль администратора', icon: Terminal, path: '/admin/console', adminOnly: true, keywords: ['админ', 'блокировка', 'галочка', 'команды'] },
+      { id: 'settings.console', label: 'Консоль администратора', icon: Terminal, path: '/admin/console', adminOnly: true, ownerOnly: true, keywords: ['админ', 'блокировка', 'галочка', 'команды'] },
       { id: 'settings.about', label: 'О приложении', icon: Info, path: '/settings/about' },
     ],
   },

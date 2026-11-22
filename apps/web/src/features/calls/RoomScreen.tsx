@@ -477,7 +477,7 @@ function MediaPanel({ onStudio }: { onStudio: () => void }) {
   return (
     <div className="room-panel__body">
       <section className="room-sec">
-        <h3 className="room-sec__title">Показать участникам</h3>
+        <h3 className="room-sec__title">Поделиться</h3>
         {share ? (
           <div className="room-now">
             <span className="room-now__dot" />
@@ -490,14 +490,27 @@ function MediaPanel({ onStudio }: { onStudio: () => void }) {
             </button>
           </div>
         ) : (
-          <div className="room-grid2">
-            {shareOptions.map((o) => (
-              <button key={o.label} type="button" className="room-card" onClick={o.run} disabled={!allowed} title={allowed ? o.hint : 'Организатор запретил участникам показывать экран'}>
-                {o.icon}
-                <b>{o.label}</b>
-                <span>{o.hint}</span>
+          <div className="room-orbs">
+            {shareOptions.map((o, i) => (
+              <button key={o.label} type="button" className={`room-orb room-orb--${i}`} onClick={o.run} disabled={!allowed} title={allowed ? o.hint : 'Организатор запретил участникам показывать экран'}>
+                <span className="room-orb__ball">{o.icon}</span>
+                <span className="room-orb__label">{o.label}</span>
               </button>
             ))}
+            {!music && (
+              <button type="button" className="room-orb room-orb--music" onClick={() => void pick('audio/*').then((f) => f && setMusic(f))} title="Музыка поверх вашего голоса — её услышат все">
+                <span className="room-orb__ball">
+                  <Music size={20} />
+                </span>
+                <span className="room-orb__label">Музыка</span>
+              </button>
+            )}
+            <button type="button" className="room-orb room-orb--scene" onClick={onStudio} title="Текст, фото, видео и фоны — участники видят сцену вместо камеры">
+              <span className="room-orb__ball">
+                <Sparkles size={20} />
+              </span>
+              <span className="room-orb__label">Сцена</span>
+            </button>
           </div>
         )}
         {share && mod && (
@@ -513,7 +526,6 @@ function MediaPanel({ onStudio }: { onStudio: () => void }) {
       </section>
 
       <section className="room-sec">
-        <h3 className="room-sec__title">Музыка на фон</h3>
         {music ? (
           <div className="room-music">
             <span className="room-music__icon">
@@ -539,27 +551,10 @@ function MediaPanel({ onStudio }: { onStudio: () => void }) {
               aria-label="Громкость музыки"
             />
           </div>
-        ) : (
-          <button type="button" className="room-card room-card--row" onClick={() => void pick('audio/*').then((f) => f && setMusic(f))}>
-            <Music size={20} />
-            <span>
-              <b>Выбрать музыку</b>
-              <span>Её услышат все — поверх вашего голоса</span>
-            </span>
-          </button>
-        )}
+        ) : null}
       </section>
 
-      <section className="room-sec">
-        <h3 className="room-sec__title">Студия</h3>
-        <button type="button" className="room-card room-card--row" onClick={onStudio}>
-          <Sparkles size={20} />
-          <span>
-            <b>Сцена</b>
-            <span>Текст, фото, видео и фоны — участники видят сцену вместо камеры</span>
-          </span>
-        </button>
-      </section>
+
       <p className="room-hint">Файлы не загружаются на сервер — их видят только участники звонка.</p>
     </div>
   );
@@ -1177,7 +1172,7 @@ function RoomWindow() {
                       <PictureInPicture2 size={16} /> Картинка в картинке
                     </button>
                     <button type="button" role="menuitem" onClick={() => (void snapshotToCloud(), setMenu(null))}>
-                      <Camera size={16} /> Снимок звонка в облако
+                      <Camera size={16} /> Снимок звонка на рабочий стол
                     </button>
                     <button type="button" role="menuitem" onClick={() => (setMax((m) => !m), setMenu(null))}>
                       <Maximize2 size={16} /> {max ? 'Обычный размер окна' : 'Окно на весь экран'}

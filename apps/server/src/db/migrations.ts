@@ -1138,4 +1138,39 @@ CREATE TABLE subscriptions (
 CREATE INDEX subscriptions_user ON subscriptions(user_id);
 `,
   },
+  {
+    version: '022_owner_storage_payments',
+    sql: `
+-- Владелец платформы: только у него консоль администратора (роль admin её не даёт)
+ALTER TABLE users ADD COLUMN owner INTEGER NOT NULL DEFAULT 0;
+
+-- Хранилище приложений Студии: у каждого приложения своё, отдельно для каждого пользователя
+CREATE TABLE studio_kv (
+  app_id      TEXT NOT NULL REFERENCES studio_apps(id) ON DELETE CASCADE,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  key         TEXT NOT NULL,
+  value       TEXT NOT NULL,
+  updated_at  INTEGER NOT NULL,
+  PRIMARY KEY (app_id, user_id, key)
+);
+
+-- Платежи в приложениях Студии (СБП и карты). Данные карты сюда не попадают никогда:
+-- оплата проходит на странице платёжного сервиса, здесь — только сумма и статус.
+CREATE TABLE studio_payments (
+  id               TEXT PRIMARY KEY,
+  app_id           TEXT NOT NULL REFERENCES studio_apps(id) ON DELETE CASCADE,
+  payer_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  amount_kop       INTEGER NOT NULL CHECK (amount_kop > 0),
+  description      TEXT NOT NULL,
+  method           TEXT NOT NULL CHECK (method IN ('sbp', 'card')),
+  provider         TEXT NOT NULL,
+  provider_id      TEXT,
+  status           TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'succeeded', 'canceled')),
+  created_at       INTEGER NOT NULL,
+  paid_at          INTEGER
+);
+CREATE INDEX studio_payments_app ON studio_payments(app_id, created_at);
+CREATE INDEX studio_payments_payer ON studio_payments(payer_id, created_at);
+`,
+  },
 ];

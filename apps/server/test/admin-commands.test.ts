@@ -30,7 +30,7 @@ describe('владелец платформы', () => {
 describe('команды консоли', () => {
   it('сводка, поиск команд, подробности о пользователе и массовое скрытие постов', async () => {
     const admin = await registerUser(app);
-    app.ctx.db.run("UPDATE users SET role = 'admin' WHERE id = :id", { id: admin.user.id });
+    app.ctx.db.run("UPDATE users SET role = 'admin', owner = 1 WHERE id = :id", { id: admin.user.id });
     const spammer = await registerUser(app);
     await spammer.client.post('/posts', { kind: 'note', text: 'спам 1' });
     await spammer.client.post('/posts', { kind: 'note', text: 'спам 2' });
@@ -47,7 +47,7 @@ describe('команды консоли', () => {
 
   it('личные переписки закрыты даже для администратора', async () => {
     const admin = await registerUser(app);
-    app.ctx.db.run("UPDATE users SET role = 'admin' WHERE id = :id", { id: admin.user.id });
+    app.ctx.db.run("UPDATE users SET role = 'admin', owner = 1 WHERE id = :id", { id: admin.user.id });
     const bob = await registerUser(app);
     const chat = await admin.client.post('/chats/direct', { userId: bob.user.id });
     const id = chat.body?.id ?? chat.body?.chat?.id;
@@ -57,10 +57,18 @@ describe('команды консоли', () => {
     expect(res.lines[0]).toContain('закрыты');
   });
 
-  it('модератору недоступны команды администратора', async () => {
+  it('модератору консоль недоступна', async () => {
     const mod = await registerUser(app);
     app.ctx.db.run("UPDATE users SET role = 'moderator' WHERE id = :id", { id: mod.user.id });
-    const res = (await mod.client.post('/admin/console', { command: '/system.announce("привет")' })).body;
-    expect(res.ok).toBe(false);
+    expect((await mod.client.post('/admin/console', { command: '/system.announce("привет")' })).status).toBe(404);
+  });
+
+  it('ADMIN_USERNAMES делает владельцем только указанный ник', async () => {
+    const { ensureOwner } = await import('../src/modules/admin/commands.js');
+    const other = await registerUser(app);
+    app.ctx.db.run('UPDATE users SET owner = 1 WHERE id = :id', { id: other.user.id });
+    ensureOwner(app.ctx, ['sashka']);
+    const owners = app.ctx.db.all<{ username: string }>('SELECT username FROM users WHERE owner = 1').map((u) => u.username);
+    expect(owners).toEqual(['sashka']);
   });
 });

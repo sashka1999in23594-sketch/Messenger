@@ -52,13 +52,13 @@ describe('консоль администратора', () => {
   it('обычный пользователь не может вызывать команды', async () => {
     const { client } = await registerUser(app);
     const res = await client.post('/admin/console', { command: '/help.all()' });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404) // консоль скрыта: для всех, кроме владельца, её как будто нет;
   });
 
   it('админ блокирует на срок, блокировка закрывает сеанс, всё пишется в журнал', async () => {
     const admin = await registerUser(app);
     const victim = await registerUser(app);
-    app.ctx.db.run("UPDATE users SET role = 'admin' WHERE id = :id", { id: admin.user.id });
+    app.ctx.db.run("UPDATE users SET role = 'admin', owner = 1 WHERE id = :id", { id: admin.user.id });
     const res = await admin.client.post('/admin/console', { command: `/user.block("${victim.user.username}", duration: 7d, reason: "спам")` });
     expect(res.body.ok).toBe(true);
     expect((await victim.client.get('/auth/session')).body.me).toBeNull();
@@ -70,12 +70,13 @@ describe('консоль администратора', () => {
     expect(badge.body.ok).toBe(true);
   });
 
-  it('модератор не может выдавать роли и трогать админов', async () => {
+  it('консоль есть только у владельца: модератор и даже администратор её не видят', async () => {
     const mod = await registerUser(app);
     const admin = await registerUser(app);
     app.ctx.db.run("UPDATE users SET role = 'moderator' WHERE id = :id", { id: mod.user.id });
     app.ctx.db.run("UPDATE users SET role = 'admin' WHERE id = :id", { id: admin.user.id });
-    expect((await mod.client.post('/admin/console', { command: `/role.grant("${mod.user.username}", "admin")` })).body.ok).toBe(false);
-    expect((await mod.client.post('/admin/console', { command: `/user.block("${admin.user.username}", duration: 1d)` })).body.ok).toBe(false);
+    expect((await mod.client.post('/admin/console', { command: `/role.grant("${mod.user.username}", "admin")` })).status).toBe(404);
+    expect((await admin.client.post('/admin/console', { command: `/user.block("${mod.user.username}", duration: 1d)` })).status).toBe(404);
+    expect((await admin.client.get('/admin/console/commands')).status).toBe(404);
   });
 });

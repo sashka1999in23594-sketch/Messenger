@@ -75,7 +75,7 @@ describe('Студия', () => {
   it('админ проверяет приложение, и оно попадает в каталог', async () => {
     const author = await registerUser(app);
     const admin = await registerUser(app);
-    app.ctx.db.run("UPDATE users SET role = 'admin' WHERE id = :id", { id: admin.user.id });
+    app.ctx.db.run("UPDATE users SET role = 'admin', owner = 1 WHERE id = :id", { id: admin.user.id });
     const id = await newProject(author.client);
     const { slug } = (await author.client.post('/studio/publish', { projectId: id, review: true })).body;
     expect((await admin.client.post('/admin/console', { command: '/app.pending()' })).body.lines.join()).toContain(slug);

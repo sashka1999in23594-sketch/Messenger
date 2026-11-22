@@ -276,3 +276,47 @@
 [data-reduce-motion='true'] .btn--primary::after {
   animation: none !important;
 }
+
+/* ── Окно «Найти всё»: капсула без линий, солнце, мягкие результаты ── */
+.palette {
+  border-radius: 30px;
+  animation: polish-pop 0.45s var(--ease-spring) both;
+}
+.palette__input {
+  margin: 12px 12px 4px;
+  padding: 0 8px 0 14px;
+  border: 0 !important;
+  border-radius: var(--radius-full);
+  background: color-mix(in oklab, var(--text) 5%, transparent);
+  transition: background 0.2s var(--ease), box-shadow 0.25s var(--ease);
+}
+.palette__input:focus-within {
+  background: color-mix(in oklab, var(--accent) 7%, var(--bg));
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+}
+.palette__input input {
+  height: 54px;
+  outline: none !important;
+  box-shadow: none !important;
+  caret-color: var(--accent);
+}
+.palette__item {
+  border-radius: 16px;
+  transition: background 0.18s var(--ease), transform 0.25s var(--ease-spring);
+}
+.palette__item[aria-selected='true'] {
+  transform: translateX(3px);
+}
+.palette__list > div {
+  animation: polish-rise 0.35s calc(var(--i, 0) * 20ms) var(--ease) both;
+}
+@keyframes polish-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.palette__foot {
+  border-top: 0 !important;
+  opacity: 0.65;
+}

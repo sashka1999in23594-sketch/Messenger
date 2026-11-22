@@ -4,13 +4,14 @@ import { Shell } from './layout/Shell';
 import { ComingSoon } from '../features/misc/ComingSoon';
 import { START_PAGES, usePrefs } from '../shared/stores/prefs';
 import { Loading } from '../shared/ui';
+import { lazyRetry } from '../shared/lib/lazyRetry';
 
 /**
  * Каждый модуль загружается отдельным чанком при первом заходе в раздел —
  * быстрый старт на мобильном интернете.
  */
 function lazyNamed<M extends Record<string, unknown>, K extends keyof M>(load: () => Promise<M>, name: K) {
-  return lazy(() => load().then((m) => ({ default: m[name] as ComponentType<Record<string, unknown>> })));
+  return lazy(() => lazyRetry(load).then((m) => ({ default: m[name] as ComponentType<Record<string, unknown>> })));
 }
 
 const chats = () => import('../features/chats');

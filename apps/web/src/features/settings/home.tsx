@@ -73,6 +73,7 @@ export function SettingsHome() {
   const [searching, setSearching] = useState(false);
   const settings = sections.find((s) => s.id === 'settings')!;
   const isAdmin = me.role === 'admin' || me.role === 'moderator';
+  const visible = (n: { adminOnly?: boolean; ownerOnly?: boolean }): boolean => (!n.adminOnly || isAdmin) && (!n.ownerOnly || !!me.owner);
   const nodes = new Map(settings.children.map((n) => [n.id, n]));
   const sub = params.get('s');
   const open = sub ? nodes.get(sub) : undefined;
@@ -135,7 +136,7 @@ export function SettingsHome() {
           <SettingsSearch onActive={setSearching} />
           {!searching &&
             GROUPS.map((ids, gi) => {
-              const rows = ids.map((id) => nodes.get(id)).filter((n): n is NavNode => !!n && (!n.adminOnly || isAdmin));
+              const rows = ids.map((id) => nodes.get(id)).filter((n): n is NavNode => !!n && visible(n));
               if (!rows.length) return null;
               return (
                 <div key={gi} className="st-group">
@@ -159,11 +160,11 @@ export function SettingsHome() {
           {!searching && (
             <>
               {/* Разделы, которых нет в группах выше (если появятся в реестре) — внизу, чтобы ничего не потерять */}
-              {settings.children.some((n) => !GROUPS.flat().includes(n.id) && (!n.adminOnly || isAdmin)) && (
+              {settings.children.some((n) => !GROUPS.flat().includes(n.id) && visible(n)) && (
                 <div className="st-group">
                   <div className="st-card">
                     {settings.children
-                      .filter((n) => !GROUPS.flat().includes(n.id) && (!n.adminOnly || isAdmin))
+                      .filter((n) => !GROUPS.flat().includes(n.id) && visible(n))
                       .map((n) => (
                         <NavRow key={n.id} node={n} tile="tile-gray" to={n.children ? `/settings?s=${n.id}` : (n.path ?? '/settings')} />
                       ))}

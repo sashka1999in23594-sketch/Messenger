@@ -7,9 +7,9 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { newId } from '../../lib/ids.js';
-import { parse } from '../../lib/errors.js';
-import { requireRole } from '../../http/request.js';
-import { COMMANDS, ensureOwner, type Parsed, type UserRow } from './commands.js';
+import { notFound, parse } from '../../lib/errors.js';
+import { requireAuth } from '../../http/request.js';
+import { COMMANDS, ensureOwner, type Parsed, type Role, type UserRow } from './commands.js';
 
 export { parseDuration } from './commands.js';
 
@@ -47,10 +47,9 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
 
   // Владельцы из ADMIN_USERNAMES получают роль admin при старте сервера; если никого
   // не указали — администратором становится первый зарегистрированный пользователь
-  if (config.adminUsernames.length) {
-    for (const u of config.adminUsernames) db.run("UPDATE users SET role = 'admin' WHERE lower(username) = :u", { u });
-  }
-  const owner = ensureOwner(app.ctx);
+  // Демо-аккаунты (@example.com) прав администратора не имеют
+  db.run("UPDATE users SET role = 'user', owner = 0 WHERE (role = 'admin' OR owner = 1) AND email LIKE '%@example.com'");
+  const owner = ensureOwner(app.ctx, config.adminUsernames);
   if (owner) app.log.info(`Администратор платформы: @${owner} (первый зарегистрированный)`);
 
 
@@ -72,13 +71,21 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         )
       : undefined;
 
+  /** Консоль есть только у владельца. Остальным — 404, как будто её не существует. */
+  const requireOwner = (req: Parameters<typeof requireAuth>[0]) => {
+    const a = requireAuth(req);
+    const row = db.get<{ owner: number; role: Role }>('SELECT owner, role FROM users WHERE id = :id AND deleted_at IS NULL', { id: a.userId });
+    if (!row?.owner) throw notFound('Страница не найдена');
+    return { userId: a.userId, role: 'admin' as Role };
+  };
+
   app.get('/admin/console/commands', async (req) => {
-    const auth = requireRole(req, 'moderator', 'admin');
+    const auth = requireOwner(req);
     return { role: auth.role, commands: COMMANDS.filter((c) => c.role.includes(auth.role)).map(({ usage, text }) => ({ usage, text })) };
   });
 
   app.post('/admin/console', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (req) => {
-    const auth = requireRole(req, 'moderator', 'admin');
+    const auth = requireOwner(req);
     const { command } = parse(z.object({ command: z.string().min(1).max(500) }), req.body);
     const done = (ok: boolean, lines: string[], target: string | null = null) => {
       audit(auth.userId, command, target, `${ok ? 'ok' : 'fail'}: ${lines[0] ?? ''}`);

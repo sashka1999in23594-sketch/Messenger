@@ -7,6 +7,7 @@
  * Перетаскивание и изменение размера идут напрямую через стиль элемента,
  * без перерисовки React; в хранилище результат попадает, когда кнопку отпустили.
  */
+import { isChunkError, reloadForNewVersion } from '../../shared/lib/lazyRetry';
 import { Component, memo, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { create } from 'zustand';
@@ -75,13 +76,17 @@ class WindowBoundary extends Component<{ children: ReactNode }, { failed: boolea
   static getDerivedStateFromError() {
     return { failed: true };
   }
+  // Окно не загрузилось из-за обновления сайта — сразу берём новую версию
+  override componentDidCatch(error: unknown) {
+    if (isChunkError(error)) reloadForNewVersion();
+  }
   override render() {
     if (!this.state.failed) return this.props.children;
     return (
       <div className="empty desk-win__error">
         <strong>Не удалось показать это окно</strong>
         <span className="muted">Попробуйте открыть его заново — остальные окна работают.</span>
-        <button type="button" className="btn btn--secondary" onClick={() => this.setState({ failed: false })}>
+        <button type="button" className="btn btn--secondary" onClick={() => (reloadForNewVersion() ? undefined : this.setState({ failed: false }))}>
           <RotateCcw size={16} /> Повторить
         </button>
       </div>

@@ -129,7 +129,7 @@ export function DeskIcons() {
   };
 
   return (
-    <div className={`dicons dicons--${size}`} aria-label="Облако на рабочем столе">
+    <div className={`dicons dicons--${size}`} aria-label="Файлы рабочего стола">
       <SystemIcons />
       {root.map((item, i) => {
         const p = pos.get(item.id)!;
@@ -203,8 +203,6 @@ export function DeskIcons() {
                 'separator',
                 { label: 'Переименовать', icon: <PenLine size={18} />, hint: 'F2', onClick: () => setEditing(menuFor.id) },
                 { label: 'В корзину', icon: <Trash2 size={18} />, hint: 'Delete', danger: true, onClick: () => void trashItem(menuFor) },
-                'separator',
-                { label: 'Открыть облако', icon: <Folder size={18} />, onClick: () => void openPath('/cloud') },
               ]
             : []
         }

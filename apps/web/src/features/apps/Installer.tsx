@@ -95,7 +95,7 @@ function Dialog({ t, done }: { t: InstallTarget; done: (ok: boolean) => void }) 
         <h3>Что изменится</h3>
         <ul className="inst__list">
           <li>
-            <MonitorDown size={15} /> Значок «{t.name}» на рабочем столе (в облаке, виден на всех устройствах)
+            <MonitorDown size={15} /> Значок «{t.name}» на рабочем столе — виден на всех ваших устройствах
           </li>
           <li>
             <FolderLock size={15} /> Доступ к файлам: нет — ваши файлы и другие приложения не затрагиваются

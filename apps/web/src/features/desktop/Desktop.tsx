@@ -343,8 +343,7 @@ export function Desktop() {
           items={[
             { label: 'Создать папку', icon: <FolderPlus size={18} />, onClick: () => void createItem({ kind: 'folder', name: 'Новая папка', ...cellAt(menuAt.current.x, menuAt.current.y) }) },
             { label: 'Создать проект', icon: <Sparkles size={18} />, onClick: () => void newProject(cellAt(menuAt.current.x, menuAt.current.y)) },
-            { label: 'Загрузить файлы в облако…', icon: <Upload size={18} />, onClick: () => fileInput.current?.click() },
-            { label: 'Открыть облако и корзину', icon: <Cloud size={18} />, onClick: () => void openPath('/cloud') },
+            { label: 'Загрузить файлы…', icon: <Upload size={18} />, onClick: () => fileInput.current?.click() },
             'separator',
             { label: 'Упорядочить окна', icon: <LayoutGrid size={18} />, disabled: !count, onClick: () => withGlide(() => st().arrange()) },
             empty && st().stash?.length

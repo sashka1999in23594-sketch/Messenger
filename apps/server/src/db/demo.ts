@@ -78,7 +78,7 @@ export async function seedDemo(db: Db, config: Config): Promise<boolean> {
         tick(30);
       }
       db.run("UPDATE users SET verified = 1 WHERE username IN ('sunnet_team', 'alice', 'nikita')");
-      db.run("UPDATE users SET role = 'admin' WHERE username = 'sasha'");
+      // Демо-аккаунты не получают прав администратора: консоль есть только у владельца платформы
       s.users.updatePrivacy(users.lena!.id, { isPrivate: true });
 
       // ── Подписки ──────────────────────────────────────────────────────────────

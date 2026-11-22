@@ -137,7 +137,7 @@ export async function buildApp(config: Config, opts: { db?: Db; storage?: S3Stor
 
   // Первый человек на новом сервере получает консоль администратора сразу после регистрации
   app.addHook('onResponse', async (req, reply) => {
-    if (reply.statusCode < 300 && req.method === 'POST' && /\/auth\/(register|signup\/complete|flow\/)/.test(req.url)) ensureOwner(app.ctx);
+    if (reply.statusCode < 300 && req.method === 'POST' && /\/auth\/(register|signup\/complete|flow\/)/.test(req.url)) ensureOwner(app.ctx, config.adminUsernames);
   });
 
   hub.start(WS_HEARTBEAT_MS);

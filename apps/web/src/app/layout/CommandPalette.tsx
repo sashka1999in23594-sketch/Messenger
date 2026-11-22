@@ -152,7 +152,7 @@ export function CommandPalette() {
     for (const d of (desk.data ?? []).filter((d) => has(d.name)).slice(0, 6)) {
       out.push({
         key: `d-${d.id}`,
-        group: d.kind === 'project' ? 'Проекты Студии' : 'Облако',
+        group: d.kind === 'project' ? 'Проекты Студии' : 'Рабочий стол',
         label: d.name,
         hint: { folder: 'папка', file: 'файл', project: 'проект', link: 'ярлык' }[d.kind],
         icon: d.kind === 'project' ? <Sparkles size={18} /> : d.kind === 'folder' ? <Folder size={18} /> : <FileText size={18} />,

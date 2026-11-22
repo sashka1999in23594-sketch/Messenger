@@ -124,6 +124,8 @@ export interface NotificationSettings {
 
 export interface Me extends UserSummary {
   role: 'user' | 'moderator' | 'admin';
+  /** Владелец платформы — только у него консоль администратора */
+  owner?: boolean;
   bio: string;
   website: string | null;
   location: string | null;
