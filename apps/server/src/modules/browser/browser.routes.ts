@@ -1,6 +1,6 @@
 /**
  * Браузер Sunnet: поиск и загрузки в облако.
- * — Поиск: результаты Википедии (открытый API) и самого Sunnet (люди, сообщества, посты).
+ * — Поиск: весь интернет (Bing, запасной — DuckDuckGo), Википедия и сам Sunnet (люди, сообщества, посты).
  * — «Скачать в облако»: сервер сам забирает файл по https-ссылке. Защита от SSRF:
  *   только https и стандартный порт, все адреса хоста проверяются (никаких локальных
  *   и внутренних сетей), не больше 3 перенаправлений с повторной проверкой, лимит
@@ -15,6 +15,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { badRequest, parse } from '../../lib/errors.js';
 import { requireAuth } from '../../http/request.js';
+import { webSearch } from './websearch.js';
 
 const MAX_BYTES = 50 * 1024 * 1024;
 
@@ -85,20 +86,8 @@ export async function browserRoutes(app: FastifyInstance): Promise<void> {
     const { userId } = requireAuth(req);
     const { q } = parse(z.object({ q: z.string().trim().min(1).max(200) }), req.query);
     const sunnet = services.search.search(userId, q, 'all', 5);
-    let web: { title: string; url: string; snippet: string; source: string }[] = [];
-    try {
-      const api = `https://ru.wikipedia.org/w/api.php?action=query&list=search&format=json&utf8=1&srlimit=10&srsearch=${encodeURIComponent(q)}`;
-      const res = await fetch(api, { headers: { 'User-Agent': 'SunnetBrowser/1.0' }, signal: AbortSignal.timeout(8000) });
-      const data = (await res.json()) as { query?: { search?: { title: string; snippet: string }[] } };
-      web = (data.query?.search ?? []).map((r) => ({
-        title: r.title,
-        url: `https://ru.wikipedia.org/wiki/${encodeURIComponent(r.title.replace(/ /g, '_'))}`,
-        snippet: r.snippet.replace(/<[^>]+>/g, '').replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&#039;/g, "'"),
-        source: 'Википедия',
-      }));
-    } catch {
-      /* Википедия недоступна — покажем то, что нашлось в Sunnet */
-    }
+    // Весь интернет (Bing, DuckDuckGo) и Википедия — сервер разбирает выдачу сам
+    const web = await webSearch(q).catch(() => []);
     return {
       web,
       sunnet: {

@@ -153,19 +153,33 @@ function pickSource(sources, parent) {
   });
 }
 
-// Ссылки внутри Sunnet остаются в приложении, всё остальное — в браузере по умолчанию.
-function setupNavigation(webContents, appOrigin) {
-  webContents.setWindowOpenHandler(({ url }) => {
+// Ссылки внутри Sunnet остаются в приложении. Сайты и сторонние приложения — во
+// встроенном браузере Sunnet (openWeb), а не в системном; почта — в почтовой программе.
+// Имя окна вида «sunnet-app-telegram» выбирает отдельный профиль приложения.
+function setupNavigation(webContents, appOrigin, openWeb) {
+  const outside = (url, frameName = '') => {
+    let protocol;
+    try {
+      protocol = new URL(url).protocol;
+    } catch {
+      return;
+    }
+    const profile = /^sunnet-(app-[a-z0-9-]{1,32})(?:~.*)?$/.exec(frameName)?.[1] ?? 'web';
+    const title = profile === 'web' ? '' : decodeURIComponent((frameName.split('~')[1] || '').slice(0, 60));
+    if ((protocol === 'https:' || protocol === 'http:') && openWeb && openWeb(url, profile, title)) return;
+    openExternal(url);
+  };
+  webContents.setWindowOpenHandler(({ url, frameName }) => {
     if (originOf(url) === appOrigin) webContents.loadURL(url).catch(() => {});
-    else openExternal(url);
-    return { action: 'deny' }; // новых окон Electron не создаём
+    else outside(url, frameName);
+    return { action: 'deny' }; // окна создаём сами — с изоляцией
   });
 
   webContents.on('will-navigate', (event, legacyUrl) => {
     const url = event.url ?? legacyUrl;
     if (originOf(url) === appOrigin) return;
     event.preventDefault();
-    openExternal(url);
+    outside(url);
   });
 
   // Встроенные <webview> сайту не нужны.

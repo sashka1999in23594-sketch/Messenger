@@ -17,7 +17,7 @@ export interface DeskApp {
 }
 
 /** Порядок значков в доке. */
-export const DOCK_APPS = ['home', 'messenger', 'channels', 'reels', 'video', 'companies', 'communities', 'servers', 'browser', 'search', 'notifications', 'stats', 'profile', 'settings', 'apps'] as const;
+export const DOCK_APPS = ['home', 'messenger', 'channels', 'reels', 'video', 'companies', 'communities', 'servers', 'notifications', 'stats', 'profile', 'settings', 'apps'] as const;
 
 const EXTRA: DeskApp[] = [
   { id: 'help', label: 'Помощь', short: 'Помощь', icon: LifeBuoy, path: '/help', description: 'Ответы на вопросы и связь с командой' },

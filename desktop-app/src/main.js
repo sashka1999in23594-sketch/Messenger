@@ -16,6 +16,7 @@ const { isNight, watchDayNight } = require('./daynight');
 const { syncShortcuts } = require('./shortcuts');
 const updates = require('./updater');
 const { createTray, ensureAutostart } = require('./tray');
+const { openInApp, setupInApp } = require('./inapp');
 
 const SITE_URL = resolveSiteUrl();
 const APP_ORIGIN = new URL(SITE_URL).origin;
@@ -57,6 +58,16 @@ async function start() {
     }
   }
   setupPermissions(ses, APP_ORIGIN);
+  // Встроенный браузер: сайты и сторонние приложения открываются внутри Sunnet
+  setupInApp({
+    appOrigin: APP_ORIGIN,
+    siteSession: ses,
+    icon: process.platform === 'linux' ? path.join(__dirname, '..', 'build', 'icons', '256x256.png') : undefined,
+    onSearch: (q) => {
+      showMainWindow();
+      mainWindow?.webContents.loadURL(new URL(`/browser?q=${encodeURIComponent(q)}`, SITE_URL).href).catch(() => {});
+    },
+  });
   ensureAutostart();
 
   try {
@@ -296,7 +307,7 @@ function createWindow() {
   if (state.isMaximized) mainWindow.once('show', () => mainWindow?.maximize());
 
   const contents = mainWindow.webContents;
-  setupNavigation(contents, APP_ORIGIN);
+  setupNavigation(contents, APP_ORIGIN, openInApp);
   attachContextMenu(mainWindow);
 
   contents.on('did-fail-load', (_event, code, description, url, isMainFrame) => {

@@ -52,7 +52,9 @@ export const useDeskPrefs = create<Prefs>((set, get) => ({
 const FIXED = 'apps';
 
 export function dockIds(dock: string[] | null): string[] {
-  const ids = (dock ?? [...DOCK_APPS]).filter((id) => id !== FIXED && appById(id));
+  // Браузер живёт на рабочем столе (значок, который нельзя удалить), поиск — в солнце
+  // в центре дока, поэтому из сохранённых наборов они тоже убираются
+  const ids = (dock ?? [...DOCK_APPS]).filter((id) => id !== FIXED && id !== 'browser' && id !== 'search' && appById(id));
   return [...ids, FIXED];
 }
 

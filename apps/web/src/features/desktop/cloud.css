@@ -346,3 +346,52 @@
     opacity: 0.4;
   }
 }
+
+/* ─── Системные значки справа: Браузер и Корзина (не удаляются) ─── */
+.dsys {
+  position: absolute;
+  top: calc(var(--desk-menubar-h, 30px) + 16px);
+  right: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+.dsys .dicon {
+  position: relative;
+  pointer-events: auto;
+}
+.dicon--sys .dicon__tile {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  color: #fff;
+  box-shadow: 0 12px 26px -14px rgba(5, 25, 60, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 0.35s var(--ease-spring);
+}
+.dicon--sys-browser .dicon__tile {
+  background: radial-gradient(circle at 30% 25%, #9ed4ff, transparent 55%), linear-gradient(140deg, #3d9bff, #1f5fe0);
+}
+.dicon--sys-browser .dicon__tile svg {
+  animation: dsys-globe 9s linear infinite;
+}
+@keyframes dsys-globe {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.dicon--sys-trash .dicon__tile {
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.55), rgba(220, 230, 245, 0.25));
+  backdrop-filter: blur(10px);
+  color: #2b3a55;
+}
+.dicon--sys:hover .dicon__tile {
+  transform: translateY(-3px) scale(1.05);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dicon--sys-browser .dicon__tile svg {
+    animation: none;
+  }
+}

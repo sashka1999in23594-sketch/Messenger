@@ -11,6 +11,7 @@ import { BookOpen, Briefcase, Code2, ExternalLink, Film, Gamepad2, Link2, Messag
 import { openPath } from '../desktop/fx';
 import { installHistory, openInstaller } from './Installer';
 import { toast } from '../../shared/stores/ui';
+import { openWeb } from './openWeb';
 import { CATALOG, CATEGORIES, type CatalogApp } from './catalog';
 import './apps.css';
 
@@ -60,7 +61,7 @@ function recommend(opened: Record<string, number>): CatalogApp[] {
 function AppRow({ a, i }: { a: CatalogApp; i: number }) {
   const open = () => {
     remember(a.id);
-    window.open(a.url, '_blank', 'noopener,noreferrer');
+    openWeb(a.url, a);
   };
   return (
     <li className="apps-row" style={{ '--i': i } as CSSProperties}>

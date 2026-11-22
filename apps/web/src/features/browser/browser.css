@@ -228,19 +228,62 @@
   justify-content: center;
   padding: 24px 16px 80px;
 }
-.brw-home__logo {
-  font: 800 clamp(44px, 7vw, 76px) / 1 var(--font-display);
-  letter-spacing: -0.02em;
-  background: linear-gradient(100deg, #2f7cf6 0%, #4fa3ff 35%, #ffb23f 65%, #ff7a45 100%);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: brw-shine 8s ease-in-out infinite alternate;
+/* Живое солнце вместо надписи: лучи, две орбиты и искры */
+.brw-home__hero {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  overflow: hidden; /* искры и орбиты не вылезают на панель браузера */
+  animation: brw-rise 0.8s var(--ease-spring) both;
 }
-@keyframes brw-shine {
-  to {
-    background-position: 100% 0;
+@keyframes brw-rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+  }
+}
+.brw-home__hero .sunburst {
+  filter: drop-shadow(0 10px 30px rgba(255, 159, 28, 0.55));
+}
+.brw-home__orbit {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  border: 1.5px dashed color-mix(in oklab, #ffb341 55%, transparent);
+  animation: sun-spin 26s linear infinite;
+}
+.brw-home__orbit--b {
+  inset: 4px 26px;
+  border: 1.5px solid color-mix(in oklab, var(--accent) 30%, transparent);
+  border-left-color: transparent;
+  border-right-color: transparent;
+  animation-duration: 14s;
+  animation-direction: reverse;
+}
+.brw-home__spark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff6d6, #ffb341 60%, transparent 70%);
+  transform: rotate(calc(var(--k) * 51deg)) translateX(84px);
+  animation: brw-spark 3.2s calc(var(--k) * -0.45s) ease-in-out infinite;
+}
+@keyframes brw-spark {
+  0%,
+  100% {
+    opacity: 0.2;
+    scale: 0.6;
+  }
+  50% {
+    opacity: 1;
+    scale: 1.3;
   }
 }
 .brw-home__private {
@@ -278,53 +321,70 @@
   font: inherit;
   font-size: var(--fs-md);
 }
-.brw-home__buttons {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 22px;
-}
-.brw-home__buttons button {
+.brw-home__go {
+  display: grid;
+  place-items: center;
+  width: 38px;
   height: 38px;
-  padding: 0 18px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  background: color-mix(in oklab, currentColor 5%, transparent);
-  color: inherit;
-  font: 500 var(--fs-sm) var(--font-sans);
+  margin-right: -12px;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(130deg, #ffb341, var(--accent));
+  color: #fff;
   cursor: pointer;
+  box-shadow: 0 6px 16px -8px var(--accent);
+  transition:
+    transform 0.3s var(--ease-spring),
+    opacity 0.2s;
 }
-.brw-home__buttons button:hover {
-  border-color: color-mix(in oklab, currentColor 15%, transparent);
+.brw-home__go:hover:not(:disabled) {
+  transform: rotate(-12deg) scale(1.08);
 }
-.brw-home__marks {
+.brw-home__go:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.brw-home__quick {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 14px;
+  gap: 10px 6px;
   margin-top: 34px;
-  max-width: 600px;
+  max-width: 640px;
 }
-.brw-home__marks button {
+.brw-home__quick button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  width: 84px;
+  gap: 7px;
+  width: 82px;
+  padding: 8px 0;
   border: 0;
+  border-radius: 18px;
   background: none;
   color: inherit;
   font-size: var(--fs-xs);
   cursor: pointer;
+  animation: brw-rise 0.6s calc(0.15s + var(--i) * 0.04s) var(--ease-spring) both;
+  transition:
+    transform 0.3s var(--ease-spring),
+    background 0.2s;
 }
-.brw-home__marks span {
-  width: 46px;
-  height: 46px;
+.brw-home__quick button:hover {
+  transform: translateY(-3px);
+  background: color-mix(in oklab, var(--text) 5%, transparent);
+}
+.brw-home__quick span {
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-weight: 700;
-  background: color-mix(in oklab, currentColor 7%, transparent);
+  font-weight: 800;
+  font-size: 19px;
+  color: #fff;
+  background: linear-gradient(140deg, var(--c1), var(--c2));
+  box-shadow: 0 8px 18px -10px var(--c2);
 }
 
 /* Выдача */
@@ -437,7 +497,9 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .brw *,
-  .brw-home__logo {
+  .brw-home__hero,
+  .brw-home__orbit,
+  .brw-home__spark {
     animation: none !important;
   }
 }

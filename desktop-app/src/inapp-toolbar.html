@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'" />
+<title>Sunnet · Браузер</title>
+<style>
+  :root { --accent: #2f8cff; --text: #101828; --muted: #667085; --bar: #f4f7fc; --field: #fff; }
+  @media (prefers-color-scheme: dark) { :root { --text: #eef2ff; --muted: #98a2b3; --bar: #121826; --field: #1c2435; } }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bar); color: var(--text); font: 14px/1.2 'Segoe UI', system-ui, sans-serif; overflow: hidden; user-select: none; }
+  .bar { display: flex; align-items: center; gap: 6px; height: 52px; padding: 0 10px; position: relative; }
+  button { all: unset; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; color: var(--text); transition: background .2s, transform .25s cubic-bezier(.34,1.56,.64,1); }
+  button:hover:not(:disabled) { background: color-mix(in oklab, var(--accent) 12%, transparent); transform: translateY(-1px); }
+  button:active:not(:disabled) { transform: scale(.92); }
+  button:disabled { opacity: .35; cursor: default; }
+  svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .sun { width: 26px; height: 26px; flex: none; margin: 0 4px; }
+  .sun g { transform-origin: 50% 50%; animation: spin 18s linear infinite; }
+  .loading .sun g { animation-duration: 1.6s; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  form { flex: 1; min-width: 0; }
+  input { width: 100%; height: 36px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--field); color: var(--text); font: inherit; outline: none; box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--text) 8%, transparent); transition: box-shadow .2s; user-select: text; }
+  input:focus { box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 25%, transparent); }
+  .app { padding: 0 12px; height: 30px; display: inline-flex; align-items: center; border-radius: 999px; background: linear-gradient(120deg, #ffb341, var(--accent)); color: #fff; font-weight: 700; font-size: 12.5px; white-space: nowrap; }
+  .app:empty { display: none; }
+  .progress { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: linear-gradient(90deg, #ffb341, var(--accent)); transition: width .4s, opacity .4s; }
+  .loading .progress { width: 70%; transition: width 6s cubic-bezier(.1,.7,.2,1); }
+  .dl { display: none; align-items: center; gap: 8px; padding: 0 12px; height: 32px; border-radius: 999px; background: color-mix(in oklab, var(--accent) 12%, transparent); font-size: 12.5px; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dl.on { display: inline-flex; animation: pop .45s cubic-bezier(.34,1.56,.64,1); }
+  .dl.err { background: color-mix(in oklab, #ff4d5e 15%, transparent); }
+  @keyframes pop { from { transform: scale(.7); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="bar" id="bar">
+  <svg class="sun" viewBox="0 0 100 100" aria-hidden="true"><g>
+    <circle cx="50" cy="50" r="20" fill="#ffc53d" stroke="none"/>
+    <path d="M50 6v14M50 80v14M6 50h14M80 50h14M19 19l10 10M71 71l10 10M19 81l10-10M71 29l10-10" stroke="#ff9f1c" stroke-width="7"/>
+  </g></svg>
+  <button id="back" title="Назад" disabled><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <button id="fwd" title="Вперёд" disabled><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+  <button id="reload" title="Обновить"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button>
+  <form id="form"><input id="addr" spellcheck="false" aria-label="Адрес или поиск" placeholder="Адрес сайта или поиск" /></form>
+  <span class="dl" id="dl"></span>
+  <span class="app" id="app"></span>
+  <div class="progress"></div>
+</div>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const bar = $('bar'), addr = $('addr');
+  let editing = false;
+  addr.addEventListener('focus', () => { editing = true; addr.select(); });
+  addr.addEventListener('blur', () => { editing = false; });
+  $('form').addEventListener('submit', (e) => { e.preventDefault(); window.inapp.nav('go', addr.value); addr.blur(); });
+  $('back').onclick = () => window.inapp.nav('back');
+  $('fwd').onclick = () => window.inapp.nav('forward');
+  $('reload').onclick = () => window.inapp.nav(bar.classList.contains('loading') ? 'stop' : 'reload');
+  let dlTimer = 0;
+  window.inapp.onState((s) => {
+    if (s.download) {
+      const d = s.download, el = $('dl');
+      el.className = 'dl on' + (d.phase === 'error' ? ' err' : '');
+      el.textContent = d.phase === 'error' ? `«${d.name}»: ${d.text}` : d.phase === 'done' ? `☁ «${d.name}» в облаке` : `☁ ${d.percent}% · ${d.name}`;
+      clearTimeout(dlTimer);
+      if (d.phase === 'done' || d.phase === 'error') dlTimer = setTimeout(() => (el.className = 'dl'), 5000);
+      return;
+    }
+    if (!editing && s.url && s.url !== 'about:blank') addr.value = s.url;
+    $('back').disabled = !s.back;
+    $('fwd').disabled = !s.forward;
+    bar.classList.toggle('loading', !!s.loading);
+    $('app').textContent = s.app || '';
+  });
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@
  * на сервере), бросок на папку — переложить внутрь, двойной щелчок — открыть,
  * правый щелчок — меню, F2 — переименовать, Delete — в корзину.
  */
+import { openWeb } from '../apps/openWeb';
 import { useRef, useState, type CSSProperties } from 'react';
 import { Pin, ShieldCheck, FileArchive, FileText, Film, Folder, Globe, Image as ImageIcon, Music, PenLine, Sparkles, Trash2, ExternalLink, FolderOpen } from 'lucide-react';
 import { DeskMenu, useDeskMenu } from './DeskMenu';
@@ -92,7 +93,10 @@ export function DeskIcons() {
     if (item.kind === 'project') return void openMaximized(`/studio/${item.id}`);
     if (isInternal(item)) return void openPath(item.url!);
     const url = openItemUrl(item);
-    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    if (!url) return;
+    // Ярлык сайта или приложения — во встроенном браузере Sunnet; файл — как раньше
+    if (item.kind === 'link') openWeb(url);
+    else window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const onDown = (e: React.PointerEvent, item: DeskItem) => {
@@ -126,6 +130,7 @@ export function DeskIcons() {
 
   return (
     <div className={`dicons dicons--${size}`} aria-label="Облако на рабочем столе">
+      <SystemIcons />
       {root.map((item, i) => {
         const p = pos.get(item.id)!;
         const dragging = drag?.id === item.id;
@@ -204,6 +209,48 @@ export function DeskIcons() {
             : []
         }
       />
+    </div>
+  );
+}
+
+/**
+ * Системные значки рабочего стола — Браузер и Корзина. Стоят справа, удалить или
+ * открепить их нельзя (как «Корзину» в Windows); в меню — только «Открыть».
+ */
+function SystemIcons() {
+  const [menu, setMenu] = useState<{ x: number; y: number; open: () => void } | null>(null);
+  const items = [
+    { id: 'browser', name: 'Браузер', icon: <Globe size={30} />, open: () => openMaximized('/browser') },
+    { id: 'trash', name: 'Корзина', icon: <Trash2 size={28} />, open: () => openPath('/cloud/trash') },
+  ];
+  return (
+    <div className="dsys" aria-label="Системные значки">
+      {items.map((it, i) => (
+        <button
+          key={it.id}
+          type="button"
+          className={`dicon dicon--sys dicon--sys-${it.id}`}
+          style={{ '--i': i } as CSSProperties}
+          onDoubleClick={it.open}
+          onKeyDown={(e) => e.key === 'Enter' && it.open()}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setMenu({ x: e.clientX, y: e.clientY, open: it.open });
+          }}
+        >
+          <span className="dicon__tile">{it.icon}</span>
+          <span className="dicon__name">{it.name}</span>
+        </button>
+      ))}
+      {menu && (
+        <DeskMenu
+          anchor={{ x: menu.x, y: menu.y }}
+          onClose={() => setMenu(null)}
+          label="Системный значок"
+          items={[{ label: 'Открыть', icon: <FolderOpen size={18} />, onClick: menu.open }]}
+        />
+      )}
     </div>
   );
 }

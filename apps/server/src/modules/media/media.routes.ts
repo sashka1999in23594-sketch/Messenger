@@ -51,8 +51,11 @@ export async function mediaRoutes(app: FastifyInstance): Promise<void> {
     reply.header('Cross-Origin-Resource-Policy', 'same-origin');
     reply.header('Cache-Control', 'private, max-age=86400, immutable');
     if (row.kind === 'file') {
-      const name = encodeURIComponent(row.original_name ?? `file-${row.id}`);
-      reply.header('Content-Disposition', `attachment; filename*=UTF-8''${name}`);
+      const original = row.original_name ?? `file-${row.id}`;
+      const name = encodeURIComponent(original);
+      // ASCII-имя для старых программ + точное имя в UTF-8
+      const ascii = original.replace(/[^\x20-\x7e]+/g, '_').replace(/["\\]/g, '_') || 'file';
+      reply.header('Content-Disposition', `attachment; filename="${ascii}"; filename*=UTF-8''${name}`);
     }
     return reply.sendFile(row.storage_key, app.ctx.config.uploadsDir, { cacheControl: false });
   });

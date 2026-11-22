@@ -10,6 +10,8 @@ import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, CloudDownload, External
 import { api, errorMessage } from '../../shared/api/client';
 import { toast } from '../../shared/stores/ui';
 import { createItem } from '../desktop/cloud';
+import { isDesktopApp, openWeb } from '../apps/openWeb';
+import { SunBurst } from '../../shared/ui/SunBurst';
 import './browser.css';
 
 interface Tab {
@@ -52,7 +54,11 @@ function resolve(input: string): { url?: string; query?: string } {
 }
 
 export function BrowserPage() {
-  const [tabs, setTabs] = useState<Tab[]>(() => [newTab()]);
+  // /browser?q=… — поиск сразу (например, из адресной строки встроенного браузера)
+  const [tabs, setTabs] = useState<Tab[]>(() => {
+    const q = new URLSearchParams(window.location.search).get('q')?.trim();
+    return [{ ...newTab(), query: q ? q.slice(0, 200) : null }];
+  });
   const [activeId, setActiveId] = useState(tabs[0]!.id);
   const [bookmarks, setBookmarks] = useState<Visit[]>(() => read('sunnet-browser-bookmarks', []));
   const [history, setHistory] = useState<Visit[]>(() => read('sunnet-browser-history', []));
@@ -66,6 +72,17 @@ export function BrowserPage() {
   const go = (input: string) => {
     const r = resolve(input);
     if (!r.url && !r.query) return;
+    // В приложении для компьютера сайт открывается во встроенном браузере Sunnet —
+    // там работают все сайты, вход, видео, а скачанное уходит в облако
+    if (r.url && isDesktopApp()) {
+      openWeb(r.url);
+      if (!tab.private) {
+        const h = [{ url: r.url, title: new URL(r.url).hostname, at: Date.now() }, ...history.filter((v) => v.url !== r.url)].slice(0, 300);
+        setHistory(h);
+        write('sunnet-browser-history', h);
+      }
+      return;
+    }
     patch(tab.id, (t) => ({ ...t, back: [...t.back, t.url ?? (t.query ? `?${t.query}` : '')].filter(Boolean), forward: [], url: r.url ?? null, query: r.query ?? null }));
     if (r.url && !tab.private) {
       const h = [{ url: r.url, title: new URL(r.url).hostname, at: Date.now() }, ...history.filter((v) => v.url !== r.url)].slice(0, 300);
@@ -235,12 +252,31 @@ function VisitList({ items, onOpen, searchable }: { items: Visit[]; onOpen: (u: 
   );
 }
 
+/** Быстрые сайты на стартовой странице (цветные круглые значки, без логотипов-картинок). */
+const QUICK: { name: string; url: string; c: [string, string] }[] = [
+  { name: 'YouTube', url: 'https://www.youtube.com', c: ['#ff6b6b', '#e02424'] },
+  { name: 'Википедия', url: 'https://ru.wikipedia.org', c: ['#9aa4b8', '#5b6478'] },
+  { name: 'Telegram', url: 'https://web.telegram.org', c: ['#5ab8ff', '#2a8cf0'] },
+  { name: 'ВКонтакте', url: 'https://vk.com', c: ['#5a8dff', '#2f5fe0'] },
+  { name: 'GitHub', url: 'https://github.com', c: ['#7b8494', '#2b313c'] },
+  { name: 'Twitch', url: 'https://www.twitch.tv', c: ['#b28bff', '#7c3aed'] },
+  { name: 'Яндекс', url: 'https://ya.ru', c: ['#ffcf4d', '#ff8a1e'] },
+  { name: 'Instagram', url: 'https://www.instagram.com', c: ['#ff9ac1', '#e23a7a'] },
+];
+
 function Home({ onSearch, priv, bookmarks, onOpen }: { onSearch: (q: string) => void; priv: boolean; bookmarks: Visit[]; onOpen: (u: string) => void }) {
   const [q, setQ] = useState('');
+  const tiles = [...bookmarks.slice(0, 4).map((b) => ({ name: b.title, url: b.url, c: ['#ffb341', '#2f8cff'] as [string, string] })), ...QUICK].slice(0, 10);
   return (
     <div className="brw-home">
-      <div className="brw-home__logo" aria-label="Sunnet">
-        Sunnet
+      {/* Вместо надписи — живое солнце: лучи вращаются, вокруг плывут орбиты и искры */}
+      <div className="brw-home__hero" aria-hidden>
+        <span className="brw-home__orbit brw-home__orbit--a" />
+        <span className="brw-home__orbit brw-home__orbit--b" />
+        {Array.from({ length: 7 }, (_, i) => (
+          <span key={i} className="brw-home__spark" style={{ '--k': i } as React.CSSProperties} />
+        ))}
+        <SunBurst size={118} spin />
       </div>
       {priv && (
         <p className="brw-home__private">
@@ -255,34 +291,21 @@ function Home({ onSearch, priv, bookmarks, onOpen }: { onSearch: (q: string) => 
         }}
       >
         <label className="brw-home__box">
-          <Search size={18} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} aria-label="Поиск" autoFocus />
-        </label>
-        <div className="brw-home__buttons">
-          <button type="submit">Поиск в Sunnet</button>
-          <button
-            type="button"
-            onClick={async () => {
-              if (!q.trim()) return;
-              const r = await api.get<{ web: { url: string }[] }>(`/browser/search?q=${encodeURIComponent(q)}`).catch(() => null);
-              if (r?.web[0]) onOpen(r.web[0].url);
-              else onSearch(q);
-            }}
-          >
-            Мне повезёт
+          <Search size={19} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} aria-label="Поиск или адрес сайта" placeholder="Найдите что угодно или введите адрес сайта" autoFocus />
+          <button type="submit" className="brw-home__go" aria-label="Искать" disabled={!q.trim()}>
+            <ArrowRight size={19} />
           </button>
-        </div>
+        </label>
       </form>
-      {bookmarks.length > 0 && (
-        <div className="brw-home__marks">
-          {bookmarks.slice(0, 8).map((b) => (
-            <button key={b.url} type="button" onClick={() => onOpen(b.url)}>
-              <span>{b.title.slice(0, 1).toUpperCase()}</span>
-              {b.title}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="brw-home__quick">
+        {tiles.map((t, i) => (
+          <button key={t.url} type="button" onClick={() => onOpen(t.url)} style={{ '--c1': t.c[0], '--c2': t.c[1], '--i': i } as React.CSSProperties}>
+            <span>{t.name.slice(0, 1).toUpperCase()}</span>
+            {t.name}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

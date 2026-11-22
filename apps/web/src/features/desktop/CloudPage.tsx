@@ -1,4 +1,5 @@
 /** Окно облака: содержимое папки или корзина (восстановить / удалить навсегда). */
+import { openWeb } from '../apps/openWeb';
 import { useRef } from 'react';
 import { useParams } from 'react-router';
 import { ArchiveRestore, DownloadCloud, FolderPlus, RotateCcw, Trash2, Upload } from 'lucide-react';
@@ -15,7 +16,10 @@ function Row({ item, trash }: { item: DeskItem; trash?: boolean }) {
     if (trash) return;
     if (item.kind === 'folder') return void openPath(`/cloud/${item.id}`);
     const url = openItemUrl(item);
-    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    if (!url) return;
+    // Ярлык сайта или приложения — во встроенном браузере Sunnet; файл — как раньше
+    if (item.kind === 'link') openWeb(url);
+    else window.open(url, '_blank', 'noopener,noreferrer');
   };
   return (
     <li className="cloud-row" onDoubleClick={open}>
