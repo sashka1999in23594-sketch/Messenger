@@ -1988,3 +1988,142 @@
     animation: none;
   }
 }
+
+/* ══ Панель звонка: мягкие карточки с цветными значками вместо серых прямоугольников ══ */
+.room-card {
+  position: relative;
+  overflow: hidden;
+  border: 0;
+  border-radius: 18px;
+  padding: 14px;
+  background: color-mix(in oklab, var(--room-fg) 5%, transparent);
+  transition:
+    transform 0.3s var(--ease-spring),
+    background 0.25s var(--ease),
+    box-shadow 0.3s var(--ease);
+}
+.room-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: transparent;
+  background: color-mix(in oklab, var(--room-fg) 9%, transparent);
+  box-shadow: 0 14px 30px -18px rgba(0, 0, 0, 0.8);
+}
+.room-card:active:not(:disabled) {
+  transform: scale(0.97);
+}
+/* Значок — в цветном кружке, который вспыхивает под курсором */
+.room-card > svg {
+  box-sizing: content-box;
+  padding: 8px;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(150deg, #4fa3ff, #2f7cf6);
+  box-shadow: 0 8px 18px -8px rgba(47, 124, 246, 0.9);
+  transition: transform 0.35s var(--ease-spring);
+}
+.room-card:nth-child(2) > svg {
+  background: linear-gradient(150deg, #9d8bff, #6b5ce0);
+  box-shadow: 0 8px 18px -8px rgba(107, 92, 224, 0.9);
+}
+.room-card:nth-child(3) > svg {
+  background: linear-gradient(150deg, #5fe08a, #1ea952);
+  box-shadow: 0 8px 18px -8px rgba(30, 169, 82, 0.9);
+}
+.room-card:nth-child(4) > svg {
+  background: linear-gradient(150deg, #ff9fc0, #e0569b);
+  box-shadow: 0 8px 18px -8px rgba(224, 86, 155, 0.9);
+}
+.room-card--row > svg {
+  background: linear-gradient(150deg, #ffcf5c, #ff9d2e);
+  box-shadow: 0 8px 18px -8px rgba(255, 157, 46, 0.9);
+}
+.room-card:hover:not(:disabled) > svg {
+  transform: scale(1.1) rotate(-6deg);
+}
+.room-card b {
+  margin-top: 6px;
+  font-size: var(--fs-sm);
+}
+.room-card--row b {
+  margin-top: 0;
+}
+/* Кнопка-карандаш сцены: светящийся кружок */
+.room-studio-btn {
+  border-radius: 999px !important;
+  box-shadow: 0 10px 24px -10px rgba(47, 124, 246, 0.9);
+  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s;
+}
+.room-studio-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+}
+.room-studio-btn.is-on {
+  background: linear-gradient(150deg, #4fa3ff, #2f7cf6) !important;
+  color: #fff !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .room-card,
+  .room-card > svg {
+    transition: none;
+  }
+}
+
+/* ══ Сцена звонка: капсулы и плавные переходы вместо квадратных кнопок ══ */
+.studio__tool {
+  border-radius: 999px;
+  padding: 8px 14px;
+  transition: background 0.2s var(--ease), transform 0.3s var(--ease-spring), color 0.2s;
+}
+.studio__tool:hover {
+  transform: translateX(2px);
+}
+.studio__tool.is-on {
+  background: linear-gradient(120deg, #2f7cf6, #4fa3ff);
+  box-shadow: 0 8px 18px -10px rgba(47, 124, 246, 0.9);
+}
+.studio__primary,
+.studio__secondary,
+.studio__danger,
+.studio__chip,
+.studio__live {
+  border-radius: 999px;
+  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s var(--ease), background 0.2s;
+}
+.studio__primary {
+  background: linear-gradient(120deg, #2f7cf6, #4fa3ff);
+  box-shadow: 0 10px 22px -12px rgba(47, 124, 246, 0.95);
+}
+.studio__secondary,
+.studio__chip {
+  background: color-mix(in oklab, var(--room-fg) 7%, transparent);
+}
+.studio__primary:hover,
+.studio__secondary:hover,
+.studio__chip:hover,
+.studio__live:hover {
+  transform: translateY(-1px);
+}
+.studio__live {
+  padding: 11px 20px;
+  color: #fff;
+  background: linear-gradient(120deg, #18a058, #38d39f);
+  box-shadow: 0 10px 24px -12px rgba(24, 160, 88, 0.95);
+}
+.studio__live.is-live {
+  background: linear-gradient(120deg, #ff4d5e, #ff7a59);
+  box-shadow: 0 0 0 0 rgba(255, 77, 94, 0.6);
+  animation: studio-live 1.6s ease-out infinite;
+}
+@keyframes studio-live {
+  to {
+    box-shadow: 0 0 0 12px rgba(255, 77, 94, 0);
+  }
+}
+.studio__input,
+.studio__select {
+  border-radius: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio__live.is-live {
+    animation: none;
+  }
+}

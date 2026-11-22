@@ -42,10 +42,13 @@ export function UploadVideoForm({
   kind,
   onDone,
   premiereDefault,
+  autoPick,
 }: {
   kind: 'video' | 'short';
   onDone: (p: Post) => void;
   premiereDefault?: boolean;
+  /** Сразу открыть выбор файла (нажали «+» — значит, хотят загрузить) */
+  autoPick?: boolean;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -65,6 +68,10 @@ export function UploadVideoForm({
   const isVideo = kind === 'video';
 
   useEffect(() => () => abort.current?.abort(), []);
+  // Окно выбора файла открывается сразу: браузер разрешает это в течение нескольких секунд после нажатия «+»
+  useEffect(() => {
+    if (autoPick) input.current?.click();
+  }, [autoPick]);
   useEffect(() => () => void (preview && URL.revokeObjectURL(preview)), [preview]);
 
   const pick = (f: File) => {

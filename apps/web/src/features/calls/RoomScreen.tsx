@@ -6,50 +6,9 @@
  * поднятыми руками и управлением для организатора, чат. Снизу — студия.
  * На телефоне — полноэкранный звонок, как во всех мессенджерах.
  */
+import { toast } from '../../shared/stores/ui';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  Crown,
-  Hand,
-  Image as ImageIcon,
-  LayoutGrid,
-  Lock,
-  Maximize2,
-  MessageSquare,
-  Mic,
-  MicOff,
-  Minimize2,
-  Minus,
-  Monitor,
-  MonitorUp,
-  MoreHorizontal,
-  MoreVertical,
-  Music,
-  PanelRight,
-  Pause,
-  PencilLine,
-  Phone,
-  PhoneOff,
-  Pin,
-  PinOff,
-  Play,
-  Send,
-  Shield,
-  Square,
-  Sparkles,
-  UserPlus,
-  Users,
-  Video,
-  VideoOff,
-  Volume2,
-  VolumeX,
-  X,
-  AppWindow,
-  Film,
-} from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Crown, Hand, Image as ImageIcon, LayoutGrid, Lock, Maximize2, MessageSquare, Mic, MicOff, Minimize2, Minus, Monitor, MonitorUp, MoreHorizontal, MoreVertical, Music, PanelRight, Pause, PencilLine, Phone, PhoneOff, Pin, PinOff, Play, Send, Shield, Square, Sparkles, UserPlus, Users, Video, VideoOff, Volume2, VolumeX, X, AppWindow, Film, PictureInPicture2, Camera } from 'lucide-react';
 import type { RoomMember, UserSummary } from '@omni/shared';
 import { DESKTOP_QUERY } from '../desktop/store';
 import { useMediaQuery } from '../../shared/hooks';
@@ -107,6 +66,56 @@ function useTicker(on: boolean) {
     const t = window.setInterval(() => setTick((x) => x + 1), 1000);
     return () => window.clearInterval(t);
   }, [on]);
+}
+
+/** Говорящий (или первое видео) в маленьком окне поверх всех программ. */
+async function pipSpeaker() {
+  const vids = [...document.querySelectorAll<HTMLVideoElement>('.room-win video')].filter((v) => v.readyState >= 2 && v.videoWidth > 0);
+  const v = vids.find((x) => x.closest('.is-speaking')) ?? vids.find((x) => !x.closest('.room-tile--me')) ?? vids[0];
+  if (!v) return toast('Нет видео для отдельного окна — включите камеру или подождите участников');
+  try {
+    if (document.pictureInPictureElement) await document.exitPictureInPicture();
+    else await v.requestPictureInPicture();
+  } catch {
+    toast({ text: 'Браузер не поддерживает «Картинку в картинке»', kind: 'error' });
+  }
+}
+
+/** Кадр звонка (все плитки с видео) — картинкой на рабочий стол в облако. */
+async function snapshotToCloud() {
+  const tiles = [...document.querySelectorAll<HTMLElement>('.room-win .room-tile')];
+  const stage = document.querySelector<HTMLElement>('.room-win__stage');
+  if (!stage || !tiles.length) return;
+  const box = stage.getBoundingClientRect();
+  const c = document.createElement('canvas');
+  c.width = Math.round(box.width * 2);
+  c.height = Math.round(box.height * 2);
+  const g = c.getContext('2d')!;
+  g.scale(2, 2);
+  g.fillStyle = '#0f1a2e';
+  g.fillRect(0, 0, box.width, box.height);
+  for (const t of tiles) {
+    const r = t.getBoundingClientRect();
+    const v = t.querySelector('video');
+    const x = r.left - box.left;
+    const y = r.top - box.top;
+    if (v && v.videoWidth) g.drawImage(v, x, y, r.width, r.height);
+    else {
+      g.fillStyle = '#1d2d4d';
+      g.fillRect(x, y, r.width, r.height);
+    }
+    const name = t.querySelector('.room-tile__name')?.textContent ?? '';
+    g.fillStyle = 'rgba(0,0,0,.45)';
+    g.fillRect(x + 8, y + r.height - 30, Math.min(r.width - 16, g.measureText(name).width + 20), 22);
+    g.fillStyle = '#fff';
+    g.font = '600 12px Inter, system-ui, sans-serif';
+    g.fillText(name, x + 18, y + r.height - 15);
+  }
+  const blob = await new Promise<Blob | null>((res) => c.toBlob(res, 'image/png'));
+  if (!blob) return;
+  const name = `Звонок ${new Date().toLocaleString('ru', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.png`;
+  const { uploadToDesk } = await import('../desktop/cloud');
+  await uploadToDesk([new File([blob], name, { type: 'image/png' })], { x: 0, y: 0 });
 }
 
 /** Выбрать файл с устройства (фото, видео, музыка). */
@@ -546,7 +555,7 @@ function MediaPanel({ onStudio }: { onStudio: () => void }) {
         <button type="button" className="room-card room-card--row" onClick={onStudio}>
           <Sparkles size={20} />
           <span>
-            <b>Студия трансляции</b>
+            <b>Сцена</b>
             <span>Текст, фото, видео и фоны — участники видят сцену вместо камеры</span>
           </span>
         </button>
@@ -1130,6 +1139,10 @@ function RoomWindow() {
         <div className="room-win__center">
           <div className="room-win__stage" onPointerDown={() => menu && setMenu(null)}>
             <Stage layout={layout} pinned={pinned} setPinned={setPinned} />
+            <button type="button" className={cn('room-studio-btn', studioOpen && 'is-on')} onClick={toggleStudio} aria-label="Сцена" title="Сцена: текст, фото, видео, экран и фон вместо камеры">
+              {studioOpen ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+              <PencilLine size={18} />
+            </button>
             <div className="room-controls">
               <Ctrl label="Камера" onClick={() => void toggleRoomCamera()} off={cameraOff} locked={camLocked}>
                 {cameraOff ? <VideoOff size={20} /> : <Video size={20} />}
@@ -1157,6 +1170,15 @@ function RoomWindow() {
                     <button type="button" role="menuitem" onClick={() => (setTab('media'), setMenu(null))}>
                       <Music size={16} /> Показ и музыка на фон
                     </button>
+                    <button type="button" role="menuitem" onClick={() => (toggleStudio(), setMenu(null))}>
+                      <PencilLine size={16} /> Сцена — текст, фото и фон
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => (void pipSpeaker(), setMenu(null))}>
+                      <PictureInPicture2 size={16} /> Картинка в картинке
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => (void snapshotToCloud(), setMenu(null))}>
+                      <Camera size={16} /> Снимок звонка в облако
+                    </button>
                     <button type="button" role="menuitem" onClick={() => (setMax((m) => !m), setMenu(null))}>
                       <Maximize2 size={16} /> {max ? 'Обычный размер окна' : 'Окно на весь экран'}
                     </button>
@@ -1166,7 +1188,7 @@ function RoomWindow() {
               <EndButton />
             </div>
           </div>
-          {/* Студия трансляции убрана вместе с прямыми эфирами */}
+          {studioOpen && <Studio />}
         </div>
         {tab && (
           <div className="room-win__side">

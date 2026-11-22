@@ -31,29 +31,12 @@ export function CreateShortPage() {
             <ChevronLeft size={18} /> Reels
           </Link>
           <h1 className="rl-up__title">Новый Reels</h1>
-          <p className="rl-up__lead">Выберите вертикальное видео, добавьте подпись и опубликуйте.</p>
+
         </header>
         <div className="rl-up__grid">
           <section className="rl-up__card" aria-label="Видео и подпись">
-            <UploadVideoForm kind="short" onDone={(p) => navigate(`/reels?start=${p.id}`)} />
+            <UploadVideoForm kind="short" autoPick onDone={(p) => navigate(`/reels?start=${p.id}`)} />
           </section>
-          <aside className="rl-up__tips" aria-labelledby="rl-up-tips">
-            <h2 id="rl-up-tips">Перед публикацией</h2>
-            <ul>
-              {TIPS.map(({ title, text }, i) => (
-                <li key={title} style={{ '--i': i } as CSSProperties}>
-                  <svg className="rl-up__check" viewBox="0 0 24 24" width="24" height="24" aria-hidden>
-                    <circle cx="12" cy="12" r="10.5" />
-                    <path d="M7.5 12.4l3 3 6-6.6" />
-                  </svg>
-                  <span className="rl-up__tip-text">
-                    <b>{title}</b>
-                    <span>{text}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </aside>
         </div>
       </div>
     </div>

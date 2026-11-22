@@ -1,0 +1,215 @@
+/* ─── Sunnet «Дневной свет»: общий слой полировки ────────────────────────────
+ * Подключается последним и меняет внешний вид кнопок и карточек ВЕЗДЕ:
+ * никаких серых прямоугольников. Главное действие — капсула с градиентом и мягким
+ * цветным свечением, второстепенное — прозрачная капсула с тонким оттенком,
+ * карточки выбора — мягкие поверхности, которые «приподнимаются» под курсором,
+ * а выбранная загорается акцентом и получает галочку с пружинной анимацией.
+ * Все анимации выключаются настройкой «Уменьшить движение».
+ */
+
+/* ── Кнопки ── */
+.btn {
+  border-radius: var(--radius-full);
+  font-weight: 650;
+  transition:
+    transform 0.28s var(--ease-spring),
+    box-shadow 0.28s var(--ease),
+    background 0.2s var(--ease),
+    color 0.2s var(--ease),
+    filter 0.2s var(--ease);
+  overflow: hidden;
+}
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.96);
+}
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 35%, transparent);
+}
+.btn--primary {
+  background: linear-gradient(120deg, var(--accent), color-mix(in oklab, var(--accent) 70%, #7cc4ff));
+  box-shadow: 0 8px 20px -10px color-mix(in oklab, var(--accent) 85%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.btn--primary:hover:not(:disabled) {
+  background: linear-gradient(120deg, var(--accent), color-mix(in oklab, var(--accent) 60%, #9ed4ff));
+  box-shadow: 0 12px 26px -10px color-mix(in oklab, var(--accent) 95%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+/* Блик пробегает по главной кнопке один раз при наведении */
+.btn--primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  z-index: -1;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: skewX(-18deg);
+  pointer-events: none;
+}
+.btn--primary:hover:not(:disabled)::after {
+  animation: polish-sheen 0.8s var(--ease) both;
+}
+@keyframes polish-sheen {
+  to {
+    left: 130%;
+  }
+}
+.btn--secondary {
+  background: color-mix(in oklab, var(--accent) 9%, transparent);
+  color: color-mix(in oklab, var(--accent) 70%, var(--text));
+  box-shadow: none;
+}
+.btn--secondary:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--accent) 15%, transparent);
+}
+.btn--soft {
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+}
+.btn--ghost:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--text) 6%, transparent);
+}
+.btn--danger {
+  background: linear-gradient(120deg, #ff4d5e, #ff7a59);
+  box-shadow: 0 8px 20px -10px rgba(255, 77, 94, 0.8);
+}
+.btn--sm,
+.btn--lg {
+  border-radius: var(--radius-full);
+}
+
+/* ── Карточки выбора («Кто увидит», варианты в формах) ── */
+.choice-card {
+  position: relative;
+  border: 0;
+  border-radius: 22px;
+  background: color-mix(in oklab, var(--text) 4%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--text) 6%, transparent);
+  transition:
+    transform 0.3s var(--ease-spring),
+    box-shadow 0.3s var(--ease),
+    background 0.25s var(--ease);
+}
+.choice-card:hover {
+  transform: translateY(-3px);
+  border-color: transparent;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--text) 9%, transparent), 0 14px 28px -18px rgba(10, 30, 80, 0.45);
+}
+.choice-card--on {
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+  box-shadow: inset 0 0 0 2px var(--accent), 0 14px 30px -18px var(--accent);
+}
+.choice-card--on::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E")
+    center / 12px no-repeat;
+  animation: polish-check 0.4s var(--ease-spring) both;
+}
+@keyframes polish-check {
+  from {
+    transform: scale(0) rotate(-40deg);
+  }
+}
+.choice-card > svg:first-child,
+.choice-card .choice-card__icon {
+  transition: transform 0.35s var(--ease-spring);
+}
+.choice-card:hover > svg:first-child,
+.choice-card:hover .choice-card__icon {
+  transform: scale(1.12) rotate(-6deg);
+}
+
+/* ── Поля ввода — мягкие, с цветным фокусом ── */
+.input:focus,
+.input:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+}
+
+/* ── Вкладки-капсулы ── */
+.folder-tab {
+  transition:
+    color 0.2s var(--ease),
+    background 0.25s var(--ease),
+    transform 0.25s var(--ease-spring);
+}
+.folder-tab:hover {
+  transform: translateY(-1px);
+}
+
+/* ── Модальные окна появляются пружиной ── */
+.modal,
+[role='dialog'] > .modal__card {
+  animation: polish-pop 0.42s var(--ease-spring) both;
+}
+@keyframes polish-pop {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .choice-card,
+  .folder-tab {
+    transition: none;
+  }
+  .btn--primary:hover::after,
+  .choice-card--on::after,
+  .modal {
+    animation: none;
+  }
+}
+
+/* ── Варианты выбора в формах (кто увидит, доступ к видео): как карточки выбора ── */
+.story-audience__opt,
+.vup-vis__opt {
+  position: relative;
+  border: 0 !important;
+  border-radius: 20px !important;
+  background: color-mix(in oklab, var(--text) 4%, transparent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--text) 6%, transparent);
+  transition:
+    transform 0.3s var(--ease-spring),
+    box-shadow 0.3s var(--ease),
+    background 0.25s var(--ease);
+}
+.story-audience__opt:hover,
+.vup-vis__opt:hover {
+  transform: translateY(-2px);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--text) 10%, transparent), 0 14px 28px -18px rgba(10, 30, 80, 0.45);
+}
+.story-audience__opt--on,
+.vup-vis__opt--on {
+  background: color-mix(in oklab, var(--accent) 10%, transparent) !important;
+  box-shadow: inset 0 0 0 2px var(--accent), 0 14px 30px -18px var(--accent);
+}
+.story-audience__opt--close.story-audience__opt--on {
+  background: color-mix(in oklab, #22c35e 12%, transparent) !important;
+  box-shadow: inset 0 0 0 2px #22c35e, 0 14px 30px -18px #22c35e;
+}
+.story-audience__dot {
+  transition: transform 0.35s var(--ease-spring);
+}
+.story-audience__opt:hover .story-audience__dot,
+.story-audience__opt--on .story-audience__dot {
+  transform: scale(1.12) rotate(-8deg);
+}
+/* Сегментированный переключатель — «скользящая» подсветка */
+.vseg__opt {
+  border-radius: 999px !important;
+  transition: background 0.25s var(--ease), color 0.2s, transform 0.25s var(--ease-spring);
+}
+.vseg__opt:hover {
+  transform: translateY(-1px);
+}

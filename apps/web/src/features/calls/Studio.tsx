@@ -238,7 +238,7 @@ function ToolProps({ tool }: { tool: Tool }) {
               Вернуть фон из списка
             </button>
           )}
-          <p className="studio__hint">Файлы не загружаются на сервер — участники видят их только в трансляции.</p>
+          <p className="studio__hint">Файлы не загружаются на сервер — участники видят их только в звонке.</p>
         </>
       );
     case 'video':
@@ -421,8 +421,8 @@ function Backdrops() {
   const strip = useRef<HTMLDivElement>(null);
   const scroll = (dir: number) => strip.current?.scrollBy({ left: dir * strip.current.clientWidth * 0.8, behavior: 'smooth' });
   return (
-    <section className="studio__bgs" aria-label="Фон трансляции">
-      <h3 className="studio__h studio__h--small">Фон трансляции</h3>
+    <section className="studio__bgs" aria-label="Фон сцены">
+      <h3 className="studio__h studio__h--small">Фон сцены</h3>
       <div className="studio__bgrow">
         <button type="button" className="studio__arrow" onClick={() => scroll(-1)} aria-label="Назад">
           <ChevronLeft size={18} />
@@ -464,7 +464,7 @@ export function Studio() {
     { label: 'Камера', icon: <Camera size={22} />, run: addCamera },
   ];
   return (
-    <section className="studio" aria-label="Студия трансляции">
+    <section className="studio" aria-label="Сцена звонка">
       <div className="studio__main">
         <nav className="studio__tools" aria-label="Инструменты">
           {TOOLS.map((t) => (
@@ -492,7 +492,7 @@ export function Studio() {
       <Backdrops />
       <footer className="studio__bar">
         <button type="button" className={cn('studio__live', live && 'is-live')} onClick={() => setLive(!live)}>
-          <Radio size={16} /> {live ? 'Остановить трансляцию' : 'Начать трансляцию экрана'}
+          <Radio size={16} /> {live ? 'Убрать сцену из звонка' : 'Показать сцену в звонке'}
         </button>
         <label className="studio__volume" title="Громкость собеседников">
           <button type="button" onClick={() => setRoomVolume(volume ? 0 : 1)} aria-label={volume ? 'Выключить звук' : 'Включить звук'}>
@@ -500,7 +500,7 @@ export function Studio() {
           </button>
           <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => setRoomVolume(Number(e.target.value))} aria-label="Громкость" />
         </label>
-        <select className="studio__select studio__select--q" value={quality} onChange={(e) => setQuality(e.target.value as Quality)} aria-label="Качество трансляции">
+        <select className="studio__select studio__select--q" value={quality} onChange={(e) => setQuality(e.target.value as Quality)} aria-label="Качество сцены">
           {(Object.keys(QUALITIES) as Quality[]).map((q) => (
             <option key={q} value={q}>
               {q}

@@ -460,3 +460,9 @@
   border: 0;
   box-shadow: none;
 }
+/* Без колонки инструкций: загрузка по центру */
+.rl-up__grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+  max-width: 620px;
+  margin-inline: auto;
+}
