@@ -144,7 +144,7 @@ export async function browserRoutes(app: FastifyInstance): Promise<void> {
     });
     const name = decodeURIComponent(url.pathname.split('/').pop() || 'файл').slice(0, 120);
     try {
-      const media = await services.media.store(userId, limited, { originalName: name });
+      const media = await services.media.store(userId, limited, { originalName: name, anyFile: true });
       return { media, name };
     } catch (e) {
       throw badRequest(e instanceof Error && /тип|формат|не поддерж/i.test(e.message) ? 'Такой тип файла нельзя сохранить: разрешены картинки, видео, звук, PDF и ZIP' : e instanceof Error ? e.message : 'Не удалось сохранить файл');

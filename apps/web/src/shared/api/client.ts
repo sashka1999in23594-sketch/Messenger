@@ -4,6 +4,7 @@
  * с машиночитаемым кодом.
  */
 import { API_PREFIX, ERROR_MESSAGES, type ApiErrorBody, type ErrorCode, type MediaItem } from '@omni/shared';
+import { useUploads } from '../stores/uploads';
 
 export class ApiError extends Error {
   constructor(
@@ -113,8 +114,10 @@ export interface UploadOptions {
   height?: number;
   duration?: number;
   posterId?: string;
-  /** Голосовое: контейнер WebM/MP4 только со звуком */
-  as?: 'audio';
+  /** audio — голосовое (контейнер WebM/MP4 только со звуком); file — облако: любой файл, только на скачивание */
+  as?: 'audio' | 'file';
+  /** Не показывать анимацию загрузки (служебные мелкие файлы) */
+  quiet?: boolean;
   /** Волна голосового (base64url, байты 0–255) */
   waveform?: string;
   onProgress?: (fraction: number) => void;
@@ -122,7 +125,38 @@ export interface UploadOptions {
 }
 
 /** Загрузка файла с прогрессом (XMLHttpRequest — fetch пока не умеет прогресс отправки). */
+/** Лимиты сервера по умолчанию (МБ) — проверяем заранее, чтобы не ждать обрыва на середине. */
+const LIMIT_MB = { image: 15, video: 300, other: 50 };
+
 export function uploadFile(file: Blob, filename: string, opts: UploadOptions = {}): Promise<MediaItem> {
+  const type = file.type || '';
+  const kind = type.startsWith('image/') ? 'image' : type.startsWith('video/') || type.startsWith('audio/') ? 'video' : 'other';
+  const max = LIMIT_MB[kind];
+  if (file.size > max * 1024 * 1024) {
+    return Promise.reject(new ApiError(413, 'PAYLOAD_TOO_LARGE', `Файл больше ${max} МБ — такой загрузить нельзя`));
+  }
+  if (opts.quiet || opts.as === 'audio') return send(file, filename, opts);
+  const fx = useUploads.getState();
+  const job = fx.start(filename);
+  return send(file, filename, {
+    ...opts,
+    onProgress: (p) => {
+      fx.progress(job, p);
+      opts.onProgress?.(p);
+    },
+  }).then(
+    (m) => {
+      fx.finish(job, true);
+      return m;
+    },
+    (e: unknown) => {
+      fx.finish(job, false);
+      throw e;
+    },
+  );
+}
+
+function send(file: Blob, filename: string, opts: UploadOptions): Promise<MediaItem> {
   return new Promise((resolve, reject) => {
     const run = async () => {
       if (!readCookie(CSRF_COOKIE)) await refreshCsrf();
@@ -154,7 +188,14 @@ export function uploadFile(file: Blob, filename: string, opts: UploadOptions = {
           reject(new ApiError(xhr.status, e?.code ?? 'INTERNAL_ERROR', e?.message ?? 'Не удалось загрузить файл'));
         }
       };
-      xhr.onerror = () => reject(new ApiError(0, 'NETWORK_ERROR', 'Нет соединения с сервером'));
+      // Сервер мог отказать посреди передачи (размер, тип) — браузер видит это как обрыв.
+      // Если ответ всё же пришёл, показываем его, а не «нет соединения».
+      xhr.onerror = () =>
+        reject(
+          xhr.status
+            ? new ApiError(xhr.status, 'INTERNAL_ERROR', 'Сервер не принял файл')
+            : new ApiError(0, 'NETWORK_ERROR', navigator.onLine ? 'Связь оборвалась во время загрузки — попробуйте ещё раз' : 'Нет интернета'),
+        );
       opts.signal?.addEventListener('abort', () => xhr.abort());
       const form = new FormData();
       form.append('file', file, filename);

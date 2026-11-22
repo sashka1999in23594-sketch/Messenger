@@ -98,10 +98,10 @@ export async function deleteForever(id: string) {
 export async function uploadToDesk(files: File[], at: { x: number; y: number }, parentId: string | null = null) {
   let col = at.x;
   let row = at.y;
-  for (const f of files.slice(0, 20)) {
-    toast({ text: `Загружаем «${f.name}» в облако…` });
+  for (const f of files.slice(0, 50)) {
     try {
-      const media = await uploadFile(f, f.name);
+      // Облако принимает любой файл: неизвестные типы хранятся только на скачивание
+      const media = await uploadFile(f, f.name, { as: 'file' });
       await createItem({ kind: 'file', name: f.name.slice(0, 120), mediaId: media.id, parentId, x: col, y: row });
       row++;
       if (row > 6) ((row = 0), col++);

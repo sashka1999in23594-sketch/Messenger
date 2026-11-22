@@ -2242,6 +2242,7 @@ export function UploadVideoPage() {
           </header>
           <UploadVideoForm
             kind="video"
+            autoPick
             premiereDefault={premiere}
             onDone={(p) => navigate(`/watch/${p.id}`)}
           />

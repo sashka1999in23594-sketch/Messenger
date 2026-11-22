@@ -10,7 +10,7 @@ const uploadQuery = z.object({
   duration: z.coerce.number().min(0).max(86400).optional(),
   posterId: z.string().max(64).optional(),
   /** Голосовое сообщение: контейнер WebM/MP4 только со звуком */
-  as: z.enum(['audio']).optional(),
+  as: z.enum(['audio', 'file']).optional(),
   waveform: z.string().max(140).optional(),
 });
 const serveQuery = z.object({ e: z.string().max(20).optional(), s: z.string().max(64).optional() });
@@ -18,7 +18,7 @@ const serveQuery = z.object({ e: z.string().max(20).optional(), s: z.string().ma
 export async function mediaRoutes(app: FastifyInstance): Promise<void> {
   const { media } = app.ctx.services;
 
-  app.post('/media', { config: { rateLimit: { max: 60, timeWindow: '10 minutes' } } }, async (req, reply) => {
+  app.post('/media', { config: { rateLimit: { max: 240, timeWindow: '10 minutes' } } }, async (req, reply) => {
     const auth = requireAuth(req);
     const q = parse(uploadQuery, req.query);
     if (!req.isMultipart()) throw new AppError(415, ErrorCode.UnsupportedMedia, 'Ожидается multipart/form-data');
@@ -31,6 +31,7 @@ export async function mediaRoutes(app: FastifyInstance): Promise<void> {
       durationSec: q.duration,
       posterId: q.posterId,
       asAudio: q.as === 'audio',
+      anyFile: q.as === 'file',
       waveform: q.waveform,
     });
     return reply.status(201).send(item);

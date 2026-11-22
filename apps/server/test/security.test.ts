@@ -273,6 +273,20 @@ describe('media', () => {
     expect(html.status).toBe(415);
   });
 
+  it('cloud takes any file, but only as a download that never renders', async () => {
+    const { client } = await registerUser(app);
+    const html = await client.upload(Buffer.from('<html><script>alert(1)</script></html>'.repeat(3)), 'page.html', '?as=file');
+    expect(html.status).toBe(201);
+    expect(html.body).toMatchObject({ kind: 'file', mime: 'application/octet-stream' });
+    const got = await client.request('GET', html.body.url);
+    expect(got.status).toBe(200);
+    expect(String(got.headers['content-disposition'])).toMatch(/^attachment/);
+    expect(got.headers['x-content-type-options']).toBe('nosniff');
+    expect(String(got.headers['content-security-policy'])).toContain('sandbox');
+    const tiny = await client.upload(Buffer.from('hi'), 'note.txt', '?as=file');
+    expect(tiny.status).toBe(201);
+  });
+
   it('cannot attach media owned by someone else', async () => {
     const alice = await registerUser(app);
     const bob = await registerUser(app);

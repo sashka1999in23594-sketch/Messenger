@@ -2,7 +2,7 @@
  * Новая история: фото/видео с подписью или текстовая история на градиенте.
  * Текстовая рисуется в canvas 1080×1920 и загружается как обычная картинка.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
 import { AlignCenter, AlignLeft, Image as ImageIcon, Star, Type, Users } from 'lucide-react';
@@ -84,6 +84,11 @@ export function NewStoryPage() {
   const me = useMe();
   const [mode, setMode] = useState<'media' | 'text'>('media');
   const [file, setFile] = useState<File | null>(null);
+  // «+» в историях сразу открывает выбор файла — детали заполняются после
+  const pickRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    pickRef.current?.click();
+  }, []);
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   useEffect(() => () => void (preview && URL.revokeObjectURL(preview)), [preview]);
   const [caption, setCaption] = useState('');
@@ -142,6 +147,7 @@ export function NewStoryPage() {
                   <b style={{ color: 'var(--story-fg)' }}>Выберите фото или видео</b>
                   <span className="small">Вертикальные 9:16 смотрятся лучше всего</span>
                   <input
+                    ref={pickRef}
                     type="file"
                     accept="image/*,video/*"
                     hidden

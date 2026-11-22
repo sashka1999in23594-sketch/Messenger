@@ -278,16 +278,20 @@ export function Desktop() {
         ref={deskRef}
         className={`desk desk--wp-${wallpaper}${full ? ' desk--full' : ''}${view.zoom !== 1 ? ' desk--zoomed' : ''}${dropping ? ' desk--drop' : ''}`}
         onDragOver={(e) => {
-          if (!isFiles(e) || (e.target as HTMLElement).closest('.desk-win')) return;
+          if (!isFiles(e)) return;
+          // Разрешаем бросать файлы и поверх окон: если окно само их не примет — уйдут в облако
           e.preventDefault();
-          if (!dropping) setDropping(true);
+          const overWin = !!(e.target as HTMLElement).closest('.desk-win');
+          if (dropping === !overWin) return;
+          setDropping(!overWin);
         }}
         onDragLeave={(e) => {
           if (e.currentTarget === e.target) setDropping(false);
         }}
         onDrop={(e) => {
           setDropping(false);
-          if (!isFiles(e) || (e.target as HTMLElement).closest('.desk-win')) return;
+          // Окно (чат, загрузка видео) уже приняло файлы само — не дублируем
+          if (!isFiles(e) || e.defaultPrevented) return;
           e.preventDefault();
           void uploadToDesk([...e.dataTransfer.files], cellAt(e.clientX, e.clientY));
         }}

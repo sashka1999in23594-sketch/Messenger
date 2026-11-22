@@ -6,6 +6,7 @@ import { applyPrefs, usePrefs } from '../shared/stores/prefs';
 import { useMediaQuery } from '../shared/hooks';
 import { useSession } from '../shared/stores/session';
 import { Aurora, ConfirmHost, Loading, SunSplash, Toasts } from '../shared/ui';
+import { UploadFx } from '../shared/ui/UploadFx';
 import { GuestApp } from '../features/auth/GuestApp';
 import { AppRoutes } from './routes';
 import { bootstrapSession, retryBootstrap } from './session';
@@ -133,6 +134,7 @@ export function App() {
       <Gate />
       <Toasts />
       <ConfirmHost />
+      <UploadFx />
     </QueryClientProvider>
   );
 }

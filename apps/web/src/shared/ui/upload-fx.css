@@ -1,0 +1,172 @@
+/* ─── Анимация загрузки: файл → дуга → облако ─── */
+.upfx {
+  position: fixed;
+  top: 44px;
+  left: 50%;
+  z-index: 9000;
+  width: 264px;
+  padding: 10px 12px 12px;
+  border-radius: 24px;
+  background: color-mix(in oklab, var(--bg-elev, var(--bg)) 82%, transparent);
+  backdrop-filter: blur(18px) saturate(1.4);
+  box-shadow: 0 18px 50px -20px rgba(10, 30, 80, 0.55), inset 0 0 0 1px color-mix(in oklab, var(--text) 8%, transparent);
+  transform: translateX(-50%);
+  animation: upfx-in 0.5s var(--ease-spring) both;
+  pointer-events: none;
+}
+@keyframes upfx-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -18px) scale(0.9);
+  }
+}
+.upfx__pct {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(90deg, #ff9f1c, #ffcf4d 45%, #3d9bff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.upfx--error .upfx__pct {
+  background: none;
+  color: #ff4d5e;
+}
+.upfx__scene {
+  display: block;
+  width: 240px;
+  height: 80px;
+  overflow: visible;
+}
+.upfx__track,
+.upfx__fill,
+.upfx__head {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.upfx__track {
+  stroke: color-mix(in oklab, var(--text) 14%, transparent);
+  stroke-width: 3;
+  stroke-dasharray: 3 5;
+  animation: upfx-march 1s linear infinite;
+}
+@keyframes upfx-march {
+  to {
+    stroke-dashoffset: -8;
+  }
+}
+.upfx__fill {
+  stroke-width: 4;
+  stroke-dasharray: calc(var(--p) * 100) 100;
+  transition: stroke-dasharray 0.35s var(--ease);
+  filter: drop-shadow(0 2px 5px color-mix(in oklab, var(--accent) 50%, transparent));
+}
+.upfx__head {
+  stroke: var(--accent);
+  stroke-width: 3.5;
+  opacity: calc(0.35 + var(--p) * 0.65);
+}
+.upfx__cloud path:first-child {
+  fill: color-mix(in oklab, var(--accent) 16%, var(--bg));
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+/* Облако стоит чуть правее конца дуги, чтобы стрелка «входила» в него */
+.upfx__cloud {
+  translate: 4px 0;
+  transform-origin: 211px 54px;
+  animation: upfx-float 2.4s var(--ease) infinite;
+}
+@keyframes upfx-float {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+.upfx__tick {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+}
+.upfx--done .upfx__cloud {
+  animation: upfx-catch 0.6s var(--ease-spring) both;
+}
+.upfx--done .upfx__tick {
+  animation: upfx-tick 0.45s 0.15s var(--ease) forwards;
+}
+@keyframes upfx-catch {
+  40% {
+    transform: scale(1.18);
+  }
+}
+@keyframes upfx-tick {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.upfx--error .upfx__cloud path:first-child {
+  stroke: #ff4d5e;
+}
+/* Файлик едет по той же дуге, что нарисована в SVG */
+.upfx__file {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 41px 0 0 12px; /* начало сцены внутри карточки */
+  offset-path: path('M 22 62 C 60 4, 150 4, 190 50');
+  offset-distance: calc(var(--p) * 100%);
+  offset-rotate: auto 0deg;
+  transition: offset-distance 0.35s var(--ease);
+  display: grid;
+  place-items: end center;
+  width: 22px;
+  height: 28px;
+  padding-bottom: 3px;
+  border-radius: 5px 10px 5px 5px;
+  background: linear-gradient(160deg, #fff, #e8eefc);
+  box-shadow: 0 6px 14px -6px rgba(10, 30, 80, 0.6), inset 0 0 0 1px rgba(10, 30, 80, 0.12);
+  font-size: 7px;
+  font-weight: 800;
+  color: var(--accent);
+  animation: upfx-wobble 0.9s var(--ease) infinite alternate;
+}
+@keyframes upfx-wobble {
+  to {
+    rotate: 8deg;
+  }
+}
+.upfx--done .upfx__file {
+  offset-distance: 100%;
+  opacity: 0;
+  transition:
+    offset-distance 0.35s var(--ease),
+    opacity 0.3s 0.25s;
+}
+.upfx__name {
+  margin-top: 4px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-2, var(--text));
+  opacity: 0.8;
+}
+@media (max-width: 600px) {
+  .upfx {
+    top: calc(env(safe-area-inset-top) + 10px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .upfx,
+  .upfx__track,
+  .upfx__cloud,
+  .upfx__file {
+    animation: none !important;
+  }
+}

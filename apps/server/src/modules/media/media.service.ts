@@ -240,7 +240,7 @@ export class MediaService {
   async store(
     ownerId: string,
     stream: Readable,
-    opts: { originalName?: string; width?: number; height?: number; durationSec?: number; posterId?: string; asAudio?: boolean; waveform?: string },
+    opts: { originalName?: string; width?: number; height?: number; durationSec?: number; posterId?: string; asAudio?: boolean; waveform?: string; anyFile?: boolean },
   ): Promise<MediaItem> {
     const id = newId();
     const tmpDir = path.join(this.config.uploadsDir, 'tmp');
@@ -253,6 +253,10 @@ export class MediaService {
     let size = 0;
     let sniffed: Sniffed | null = null;
     const limits = this.config.limits;
+    // Облако принимает любой файл: неизвестный тип хранится как двоичный и отдаётся
+    // только на скачивание (attachment + nosniff + sandbox) — открыть его в Sunnet нельзя
+    const BINARY: Sniffed = { mime: 'application/octet-stream', kind: 'file', ext: 'bin' };
+    const detect = (buf: Buffer) => sniff(buf) ?? (opts.anyFile ? BINARY : null);
     const maxFor = (k: MediaKind) =>
       k === 'image' ? limits.imageBytes : k === 'video' || k === 'audio' ? limits.videoBytes : limits.fileBytes;
 
@@ -265,7 +269,7 @@ export class MediaService {
           headLen += chunk.length;
         }
         if (!sniffed && headLen >= 16) {
-          sniffed = sniff(Buffer.concat(headChunks));
+          sniffed = detect(Buffer.concat(headChunks));
           if (!sniffed) return cb(new AppError(415, ErrorCode.UnsupportedMedia));
         }
         if (sniffed && size > maxFor(sniffed.kind)) return cb(new AppError(413, ErrorCode.PayloadTooLarge));
@@ -284,7 +288,7 @@ export class MediaService {
       throw new AppError(413, ErrorCode.PayloadTooLarge);
     }
     const head = Buffer.concat(headChunks);
-    sniffed ??= sniff(head);
+    sniffed ??= detect(head);
     if (!sniffed || size === 0) {
       await rm(tmpPath, { force: true });
       throw new AppError(415, ErrorCode.UnsupportedMedia);
