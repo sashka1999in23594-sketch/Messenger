@@ -3,7 +3,7 @@
  * Безопасность: ответы API и медиа НИКОГДА не кэшируются здесь — личные данные
  * не оседают в общем кэше устройства.
  */
-const VERSION = 'omni-v4';
+const VERSION = 'omni-v5';
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png', '/theme-init.js'];
 
 self.addEventListener('install', (event) => {
@@ -30,8 +30,11 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(VERSION).then((c) => c.put('/', copy));
+          // В кэш — только настоящая страница (не 502 «сервер просыпается»)
+          if (res.ok && (res.headers.get('content-type') || '').includes('text/html')) {
+            const copy = res.clone();
+            caches.open(VERSION).then((c) => c.put('/', copy));
+          }
           return res;
         })
         .catch(() => caches.match('/')),
@@ -46,7 +49,8 @@ self.addEventListener('fetch', (event) => {
         (hit) =>
           hit ||
           fetch(req).then((res) => {
-            if (res.ok) {
+            const type = res.headers.get('content-type') || '';
+            if (res.ok && !type.includes('text/html')) {
               const copy = res.clone();
               caches.open(VERSION).then((c) => c.put(req, copy));
             }

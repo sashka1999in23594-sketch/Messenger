@@ -29,6 +29,7 @@ let launcher = null;
 let tray = null;
 let quitting = false;
 let lastCrashAt = 0;
+let bootHealed = false;
 let dayNight = null;
 
 app.enableSandbox(); // песочница для всех страниц, без исключений
@@ -308,6 +309,22 @@ function createWindow() {
   contents.on('did-navigate', (_event, url, httpCode) => {
     const serverDown = httpCode >= 502 && httpCode <= 504;
     if (serverDown && originOf(url) === APP_ORIGIN) wake();
+  });
+
+  // Страница загрузилась, но интерфейс не появился (устаревший кэш после обновления
+  // сайта) — вместо чёрного экрана чистим кэш оболочки и грузим заново (один раз за запуск).
+  contents.on('did-finish-load', () => {
+    if (originOf(contents.getURL()) !== APP_ORIGIN) return;
+    setTimeout(async () => {
+      if (!mainWindow || mainWindow.isDestroyed() || bootHealed) return;
+      const ok = await withTimeout(contents.executeJavaScript("!!document.getElementById('root')?.childElementCount"), 3000).catch(() => true);
+      if (ok) return;
+      bootHealed = true;
+      const ses = contents.session;
+      await ses.clearCache().catch(() => {});
+      await ses.clearStorageData({ storages: ['serviceworkers', 'cachestorage'] }).catch(() => {});
+      loadSite();
+    }, 12_000);
   });
 
   // Страница упала — перезагружаем сайт, но не чаще раза в 30 секунд, чтобы не уйти в цикл.

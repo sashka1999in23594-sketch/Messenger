@@ -14,6 +14,8 @@ import { dockIds, runAsAdmin, unpinFromDock, useDeskPrefs } from './deskPrefs';
 import { DeskMenu, useDeskMenu, type DeskMenuEntry } from './DeskMenu';
 import { activate, bounce, closeWindows, dockEls, minimizeWindow, motionOn, openPath } from './fx';
 import { activeWin, useDesktop } from './store';
+import { SunBurst } from '../../shared/ui/SunBurst';
+import { useUi } from '../../shared/stores/ui';
 
 const MAX_SCALE = 1.62;
 
@@ -177,6 +179,34 @@ function DockAccount() {
   );
 }
 
+/**
+ * Солнце в центре дока — «Найти всё»: функции и разделы, чаты, люди, каналы,
+ * номера телефонов, файлы облака, серверы и приложения. То же, что Ctrl K.
+ */
+function DockSun() {
+  const tile = useRef<HTMLSpanElement | null>(null);
+  const open = useUi((s) => s.paletteOpen);
+  return (
+    <div className={cn('dock-item', 'dock-item--sun', open && 'dock-item--running')} data-mag>
+      <button
+        type="button"
+        className="dock-item__btn"
+        onClick={() => {
+          bounce(tile.current);
+          useUi.getState().setPalette(!useUi.getState().paletteOpen);
+        }}
+        aria-label="Найти всё"
+      >
+        <span ref={tile} className="dock-item__tile dock-sun">
+          <SunBurst size={48} spin />
+        </span>
+      </button>
+      <span className="dock-item__dot" aria-hidden />
+      <Tip>Найти всё · Ctrl K</Tip>
+    </div>
+  );
+}
+
 export function Dock() {
   const dock = useDeskPrefs((s) => s.dock);
   const pinned = dockIds(dock)
@@ -265,7 +295,11 @@ export function Dock() {
     <nav ref={navRef} className="dock" aria-label="Док: разделы и свёрнутые окна" onPointerMove={onMove} onPointerLeave={onLeave}>
       <div className="dock__bg" aria-hidden />
       <div ref={rowRef} className="dock__row">
-        {pinned.map((a) => (
+        {pinned.slice(0, Math.ceil(pinned.length / 2)).map((a) => (
+          <DockApp key={a.id} app={a} />
+        ))}
+        <DockSun />
+        {pinned.slice(Math.ceil(pinned.length / 2)).map((a) => (
           <DockApp key={a.id} app={a} />
         ))}
         <span className="dock__sep" aria-hidden />

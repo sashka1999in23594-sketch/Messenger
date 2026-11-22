@@ -1112,3 +1112,43 @@ body:has(.desk:not(.desk--wp-aurora)) .aurora {
 .desk-tile--browser {
   --tile: var(--desk-app-browser);
 }
+
+/* Солнце в центре дока — «Найти всё» */
+.menubar__spacer {
+  flex: 1;
+}
+.dock-sun {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+}
+.dock-sun .sunburst {
+  filter: drop-shadow(0 3px 10px rgba(255, 159, 28, 0.55));
+  z-index: 1;
+  transition: transform 0.4s var(--ease-spring);
+}
+.dock-item--sun .dock-item__btn:hover .sunburst {
+  transform: rotate(25deg) scale(1.06);
+}
+.dock-sun::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 190, 70, 0.4), transparent 68%);
+  animation: sun-halo 3.6s var(--ease) infinite;
+  pointer-events: none;
+}
+.dock-item--sun .dock-item__btn:active .dock-sun {
+  transform: scale(0.92);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dock-sun::before,
+  .sunburst__rays,
+  .sunburst__core,
+  .sunburst__halo {
+    animation: none !important;
+  }
+}

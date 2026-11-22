@@ -125,6 +125,11 @@ export async function buildApp(config: Config, opts: { db?: Db; storage?: S3Stor
     // SPA: все неизвестные не-API пути → index.html
     app.get('/*', (req, reply) => {
       if (req.url.startsWith('/api/')) return reply.callNotFound();
+      // Старый файл сборки (после обновления сайта его уже нет) — честный 404, а не
+      // index.html под видом скрипта: иначе страница остаётся пустой («чёрный экран»)
+      if (/^\/(assets|icons|brand)\//.test(req.url) || /\.(js|css|map|png|svg|jpg|webp|woff2?)(\?|$)/.test(req.url)) {
+        return reply.code(404).header('Cache-Control', 'no-store').type('text/plain; charset=utf-8').send('Not found');
+      }
       return reply.type('text/html; charset=utf-8').header('Cache-Control', 'no-cache').send(indexHtml);
     });
   }

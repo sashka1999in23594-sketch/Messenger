@@ -9,7 +9,8 @@ import { useQuery } from '@tanstack/react-query';
 import { queryClient } from '../../shared/api/query';
 import { CATALOG } from '../../features/apps/catalog';
 import { CornerDownLeft, Hash, MessageCircle, Moon, PenLine, Search, Sun, UserRound, Sparkles, Folder, FileText, Server, LayoutGrid } from 'lucide-react';
-import type { SearchResults } from '@omni/shared';
+import type { ChatSummary, SearchResults } from '@omni/shared';
+import { SunBurst } from '../../shared/ui/SunBurst';
 import { flatNodes, sections, type FlatNode } from '../navigation';
 import { api } from '../../shared/api/client';
 import { useDebounced, useEscape } from '../../shared/hooks';
@@ -89,6 +90,10 @@ export function CommandPalette() {
   // Поиск по всему Sunnet: облако и проекты, серверы, приложения каталога, чаты подключённых мессенджеров
   const desk = useQuery({ queryKey: ['desk-items'], queryFn: () => api.get<{ items: { id: string; kind: string; name: string; url: string | null; media: { url: string } | null }[] }>('/desk/items').then((r) => r.items), enabled: open, staleTime: 15_000 });
   const servers = useQuery({ queryKey: ['servers'], queryFn: () => api.get<{ items: { id: string; name: string; online: boolean }[] }>('/servers/mine'), enabled: open, staleTime: 30_000 });
+  // Свои чаты из уже загруженных списков (все папки) — находятся мгновенно, без сервера
+  const myChats = queryClient
+    .getQueriesData<{ pages?: { items?: ChatSummary[] }[] }>({ queryKey: ['chats'] })
+    .flatMap(([, d]) => d?.pages?.flatMap((p) => p.items ?? []) ?? []);
   const bridged = queryClient.getQueryData<{ chats: { id: string; title: string; service: string; lastText: string }[] }>(['bridge-chats'])?.chats ?? [];
 
   const items = useMemo<Item[]>(() => {
@@ -158,6 +163,19 @@ export function CommandPalette() {
         },
       });
     }
+    const seenChats = new Set<string>();
+    for (const c of myChats.filter((x) => has(x.title) || (x.peer && (has(x.peer.username) || has(x.peer.displayName)))).slice(0, 12)) {
+      if (seenChats.has(c.id) || seenChats.size >= 6) continue;
+      seenChats.add(c.id);
+      out.push({
+        key: `mc-${c.id}`,
+        group: 'Мои чаты',
+        label: c.title,
+        hint: c.lastMessage?.text?.slice(0, 60) ?? (c.handle ? `@${c.handle}` : undefined),
+        icon: <Avatar src={c.avatarUrl} name={c.title} id={c.id} size={24} />,
+        run: go(`/chats/${c.id}`),
+      });
+    }
     for (const sv of (servers.data?.items ?? []).filter((x) => has(x.name)).slice(0, 4))
       out.push({ key: `sv-${sv.id}`, group: 'Серверы', label: sv.name, hint: sv.online ? 'на связи' : 'не на связи', icon: <Server size={18} />, run: go(`/servers/${sv.id}`) });
     for (const c of bridged.filter((x) => has(x.title) || has(x.lastText)).slice(0, 5))
@@ -175,13 +193,13 @@ export function CommandPalette() {
           icon: <Avatar src={u.avatarUrl} name={u.displayName} id={u.id} size={24} />,
           run: go(`/u/${u.username}`),
         })),
-        ...r.chats.map((c) => ({ key: `c-${c.id}`, group: 'Каналы и группы', label: c.title, hint: c.handle ? `@${c.handle}` : undefined, icon: <MessageCircle size={18} />, run: go(`/chats/${c.id}`) })),
+        ...r.chats.filter((c) => !seenChats.has(c.id)).map((c) => ({ key: `c-${c.id}`, group: 'Каналы и группы', label: c.title, hint: c.handle ? `@${c.handle}` : undefined, icon: <MessageCircle size={18} />, run: go(`/chats/${c.id}`) })),
         ...r.hashtags.map((h) => ({ key: `h-${h.tag}`, group: 'Хэштеги', label: `#${h.tag}`, hint: `${h.count}`, icon: <Hash size={18} />, run: go(`/tag/${encodeURIComponent(h.tag)}`) })),
       );
     }
     out.push({ key: 'search-all', group: 'Поиск', label: `Искать «${q.trim()}» везде`, icon: <Search size={18} />, run: go(`/search?q=${encodeURIComponent(q.trim())}`) });
     return out;
-  }, [q, remote.data, prefs, navigate, setOpen, desk.data, servers.data, bridged]);
+  }, [q, remote.data, prefs, navigate, setOpen, desk.data, servers.data, bridged, myChats]);
 
   useEffect(() => setSel(0), [q]);
   if (!open) return null;
@@ -191,12 +209,12 @@ export function CommandPalette() {
     <div className="overlay" onPointerDown={(e) => e.target === e.currentTarget && setOpen(false)}>
       <div className="palette" role="dialog" aria-label="Поиск и навигация">
         <div className="palette__input">
-          <Search size={20} className="faint" />
+          <SunBurst size={26} spin />
           <input
             ref={input}
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Куда перейти? Раздел, человек, канал, #тег…"
+            placeholder="Найти всё: функцию, чат, человека, канал, номер телефона…"
             aria-label="Поиск"
             role="combobox"
             aria-expanded

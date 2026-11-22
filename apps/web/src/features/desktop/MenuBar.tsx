@@ -178,11 +178,7 @@ export function MenuBar() {
           Окно
         </button>
       </div>
-      <button type="button" className="menubar__search" onClick={() => useUi.getState().setPalette(true)} aria-label="Поиск и переход">
-        <Search size={15} />
-        <span className="ellipsis">Поиск по {brand}</span>
-        <span className="menubar__kbd">{isMac ? '⌘K' : 'Ctrl K'}</span>
-      </button>
+      <span className="menubar__spacer" aria-hidden />
       <div className="menubar__right">
         {offline && (
           <span className="menubar__offline" title="Нет соединения — переподключаемся">
