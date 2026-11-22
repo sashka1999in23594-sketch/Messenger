@@ -778,7 +778,9 @@ export type NotificationType =
   | 'story_reaction'
   | 'space_invite'
   | 'security'
-  | 'birthday';
+  | 'birthday'
+  /** Сообщение из подключённого мессенджера или приложения Студии */
+  | 'app_message';
 
 export interface AppNotification {
   id: ID;

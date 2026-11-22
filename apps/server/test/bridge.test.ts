@@ -48,6 +48,8 @@ describe('подключённые мессенджеры', () => {
       entry: [{ changes: [{ value: { metadata: { phone_number_id: '1234567' }, contacts: [{ wa_id: '79990001122', profile: { name: 'Мама' } }], messages: [{ from: '79990001122', timestamp: '1700000000', type: 'text', text: { body: 'Купи хлеб' } }] } }] }],
     });
     expect(res.statusCode).toBe(200);
+    const notes = (await owner.client.get('/notifications')).body.items;
+    expect(notes[0]).toMatchObject({ type: 'app_message', preview: 'WhatsApp · Мама: Купи хлеб' });
     const chats = (await owner.client.get('/bridge/chats')).body.chats;
     expect(chats).toHaveLength(1);
     expect(chats[0]).toMatchObject({ id: 'wa:79990001122', service: 'whatsapp', title: 'Мама', lastText: 'Купи хлеб', unread: 1 });

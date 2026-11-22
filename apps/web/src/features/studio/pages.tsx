@@ -62,7 +62,12 @@ export function AppRunPage() {
       const d = e.data as { __sunnet?: number; type?: string; text?: string; permission?: string };
       if (!d?.__sunnet || !app) return;
       if (d.type === 'notify') {
-        if (granted.includes('notifications')) toast(`${app.name}: ${String(d.text ?? '').slice(0, 300)}`);
+        if (granted.includes('notifications')) {
+          const text = String(d.text ?? '').slice(0, 300);
+          toast(`${app.name}: ${text}`);
+          // И в общий центр уведомлений Sunnet
+          void api.post(`/studio/apps/${slug}/notify`, { text }).catch(() => undefined);
+        }
       } else if (d.type === 'request' && d.permission && app.permissions.includes(d.permission) && !granted.includes(d.permission)) {
         const info = PERMISSION_INFO[d.permission];
         const ok = await confirm({ title: `«${app.name}» просит: ${info?.label ?? d.permission}`, text: `${info?.text ?? ''}. Отозвать можно в любой момент на этой странице или в разделе «Безопасность».`, confirmLabel: 'Разрешить' });

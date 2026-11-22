@@ -35,6 +35,7 @@ const PREF_FOR: Record<NotificationType, keyof ReturnType<typeof notificationPre
   story_reaction: 'stories',
   security: 'security',
   birthday: 'follows',
+  app_message: 'mentions',
 };
 
 export interface NotifyInput {

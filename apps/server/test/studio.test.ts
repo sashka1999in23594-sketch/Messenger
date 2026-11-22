@@ -59,6 +59,13 @@ describe('Студия', () => {
     expect((await user.client.get(`/studio/apps/${slug}`)).body.granted).toEqual([]);
     const hist = (await user.client.get('/studio/grants')).body.items;
     expect(hist[0].revokedAt).toBeTruthy();
+    // Уведомление от приложения: без разрешения — нельзя, с разрешением — в центр уведомлений
+    expect((await user.client.post(`/studio/apps/${slug}/notify`, { text: 'Привет' })).status).toBe(400);
+    await user.client.post(`/studio/apps/${slug}/grants`, { permission: 'notifications', grant: true });
+    expect((await user.client.post(`/studio/apps/${slug}/notify`, { text: 'Привет' })).status).toBe(200);
+    const notes = (await user.client.get('/notifications')).body.items;
+    expect(notes[0]).toMatchObject({ type: 'app_message', link: `/app/${slug}` });
+    await user.client.post(`/studio/apps/${slug}/grants`, { permission: 'notifications', grant: false });
     const run = await user.client.get(`/studio/run/${slug}`);
     expect(String(run.headers['content-security-policy'])).toContain('sandbox allow-scripts');
     // Без входа запустить нельзя

@@ -31,6 +31,7 @@ const TEXT: Record<NotificationType, string> = {
   space_invite: '',
   security: 'Безопасность',
   birthday: 'празднует день рождения',
+  app_message: '',
 };
 
 /** Значок типа: иконка и цвет кружка в углу аватара */
@@ -49,6 +50,7 @@ const KIND: Record<NotificationType, { icon: React.ReactNode; tone: string }> = 
   space_invite: { icon: <Briefcase size={11} strokeWidth={2.6} />, tone: 'space' },
   security: { icon: <Shield size={11} fill="currentColor" strokeWidth={0} />, tone: 'security' },
   birthday: { icon: <Cake size={11} strokeWidth={2.6} />, tone: 'birthday' },
+  app_message: { icon: <MessageCircle size={11} fill="currentColor" strokeWidth={0} />, tone: 'comment' },
 };
 
 /** Группы по времени, как в Instagram */
@@ -121,9 +123,7 @@ export function NotificationRow({ n, followingIds, onOpen }: { n: AppNotificatio
           {actor ? (
             <Avatar src={actor.avatarUrl} name={actor.displayName} id={actor.id} size={48} />
           ) : (
-            <span className="nt-row__system">
-              <Shield size={22} />
-            </span>
+            <span className="nt-row__system">{n.type === 'app_message' ? <MessageCircle size={22} /> : <Shield size={22} />}</span>
           )}
           <span className={`nt-kind nt-kind--${kind.tone}`}>{kind.icon}</span>
         </span>

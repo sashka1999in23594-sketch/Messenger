@@ -148,6 +148,17 @@ export async function studioRoutes(app: FastifyInstance): Promise<void> {
     return { ok: true };
   });
 
+  /** Уведомление от приложения в общий центр — только если пользователь выдал «Уведомления». */
+  app.post<{ Params: { slug: string } }>('/studio/apps/:slug/notify', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req) => {
+    const { userId } = requireAuth(req);
+    const r = bySlug(req.params.slug);
+    const { text } = parse(z.object({ text: z.string().trim().min(1).max(300) }), req.body);
+    const ok = db.get("SELECT 1 FROM app_grants WHERE user_id = :u AND app_id = :a AND permission = 'notifications' AND revoked_at IS NULL", { u: userId, a: r.id });
+    if (!ok) throw badRequest('Приложению не разрешено присылать уведомления');
+    app.ctx.services.notifications.notify({ userId, type: 'app_message', link: `/app/${r.slug}`, preview: `${r.name}: ${text}` });
+    return { ok: true };
+  });
+
   /** История разрешений всех приложений — для центра безопасности. */
   app.get('/studio/grants', async (req) => {
     const { userId } = requireAuth(req);

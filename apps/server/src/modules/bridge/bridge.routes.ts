@@ -25,7 +25,7 @@ const strict = { config: { rateLimit: { max: 8, timeWindow: '10 minutes' } } };
 const normal = { config: { rateLimit: { max: 120, timeWindow: '1 minute' } } };
 
 export async function bridgeRoutes(app: FastifyInstance): Promise<void> {
-  const { db, config } = app.ctx;
+  const { db, config, services } = app.ctx;
   const box = new SecretBox(config.secret, 'messenger-bridge');
   const cfg = config.telegram;
 
@@ -221,6 +221,14 @@ export async function bridgeRoutes(app: FastifyInstance): Promise<void> {
               n: name.slice(0, 120),
               t: text.slice(0, 4000),
               at: Number(m.timestamp) * 1000 || Date.now(),
+            });
+            // В общий центр уведомлений Sunnet
+            services.notifications.notify({
+              userId: owner.user_id,
+              type: 'app_message',
+              entityType: 'message',
+              link: `/chats/x/${encodeURIComponent(`wa:${m.from.replace(/\D/g, '').slice(0, 20)}`)}`,
+              preview: `WhatsApp · ${name}: ${text}`,
             });
           }
         }
