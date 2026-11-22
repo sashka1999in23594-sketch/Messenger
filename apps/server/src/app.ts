@@ -1,3 +1,4 @@
+import { ensureOwner } from './modules/admin/commands.js';
 import cookie from '@fastify/cookie';
 import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
@@ -133,6 +134,11 @@ export async function buildApp(config: Config, opts: { db?: Db; storage?: S3Stor
       return reply.type('text/html; charset=utf-8').header('Cache-Control', 'no-cache').send(indexHtml);
     });
   }
+
+  // Первый человек на новом сервере получает консоль администратора сразу после регистрации
+  app.addHook('onResponse', async (req, reply) => {
+    if (reply.statusCode < 300 && req.method === 'POST' && /\/auth\/(register|signup\/complete|flow\/)/.test(req.url)) ensureOwner(app.ctx);
+  });
 
   hub.start(WS_HEARTBEAT_MS);
   app.addHook('onClose', async () => {
