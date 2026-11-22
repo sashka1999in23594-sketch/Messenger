@@ -62,6 +62,11 @@ services:
         sync: false
       # Ник владельца платформы (через запятую можно несколько): при старте получает роль администратора
       # и доступ к консоли /user.block("ник", duration: 7d) и др.
+      # Платежи в приложениях Студии (СБП и карты): личный кабинет ЮKassa → Интеграция → Ключи API
+      - key: YOOKASSA_SHOP_ID
+        sync: false
+      - key: YOOKASSA_SECRET_KEY
+        sync: false
       - key: ADMIN_USERNAMES
         value: sashka
       # Telegram в общем списке чатов: my.telegram.org → API development tools → App api_id и App api_hash

@@ -28,6 +28,9 @@ const envSchema = z.object({
   TELEGRAM_API_HASH: z.string().optional(),
   /** Токен проверки вебхука WhatsApp Business (придумайте и укажите его же в Meta for Developers) */
   WHATSAPP_VERIFY_TOKEN: z.string().optional(),
+  /** Платежи в приложениях Студии через ЮKassa (СБП и карты). Без них — тестовый режим. */
+  YOOKASSA_SHOP_ID: z.string().optional(),
+  YOOKASSA_SECRET_KEY: z.string().optional(),
   /** Ники владельцев платформы (через запятую): при старте получают роль admin */
   ADMIN_USERNAMES: z.string().default(''),
   /** Загрузить демо-данные при первом запуске (публичное демо, например на Render) */
@@ -195,6 +198,7 @@ export function loadConfig(overrides: Partial<Record<keyof z.infer<typeof envSch
     sessionTtlMs: env.SESSION_DAYS * 24 * 3600 * 1000,
     telegram: env.TELEGRAM_API_ID && env.TELEGRAM_API_HASH ? { apiId: env.TELEGRAM_API_ID, apiHash: env.TELEGRAM_API_HASH } : null,
     whatsappVerifyToken: env.WHATSAPP_VERIFY_TOKEN ?? null,
+    yookassa: env.YOOKASSA_SHOP_ID && env.YOOKASSA_SECRET_KEY ? { shopId: env.YOOKASSA_SHOP_ID, secret: env.YOOKASSA_SECRET_KEY } : null,
     adminUsernames: env.ADMIN_USERNAMES.split(',').map((u) => u.trim().toLowerCase().replace(/^@/, '')).filter(Boolean),
     /** Cookies с флагом Secure — в production всегда (нужен HTTPS) */
     secureCookies: isProd,

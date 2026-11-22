@@ -1,0 +1,237 @@
+/* ─── Окно оплаты Sunnet (СБП и карты) ─── */
+.pay-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(8, 14, 30, 0.45);
+  backdrop-filter: blur(10px);
+  animation: pay-fade 0.3s var(--ease) both;
+}
+@keyframes pay-fade {
+  from {
+    opacity: 0;
+  }
+}
+.pay-card {
+  position: relative;
+  width: min(380px, 100%);
+  padding: 26px 22px 20px;
+  border-radius: 32px;
+  background: var(--bg-elevated, #fff);
+  color: var(--text);
+  text-align: center;
+  box-shadow: 0 40px 80px -30px rgba(10, 30, 80, 0.6);
+  animation: pay-pop 0.5s var(--ease-spring) both;
+}
+@keyframes pay-pop {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.92);
+  }
+}
+.pay-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--text) 6%, transparent);
+  color: inherit;
+  cursor: pointer;
+}
+.pay-sun {
+  display: grid;
+  place-items: center;
+  margin: -6px auto 6px;
+}
+.pay-app {
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.65;
+}
+.pay-amount {
+  margin: 4px 0 2px;
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(90deg, #ff9f1c, #ff6f61 50%, #3d9bff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.pay-desc {
+  margin-bottom: 18px;
+  opacity: 0.8;
+}
+.pay-methods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.pay-methods button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 8px;
+  border: 0;
+  border-radius: 22px;
+  background: color-mix(in oklab, var(--text) 4%, transparent);
+  color: inherit;
+  font: 650 14px var(--font-sans);
+  cursor: pointer;
+  transition:
+    transform 0.3s var(--ease-spring),
+    box-shadow 0.25s,
+    background 0.25s;
+}
+.pay-methods button:hover {
+  transform: translateY(-2px);
+}
+.pay-methods button.is-on {
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.pay-methods__ico {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: #fff;
+}
+.pay-methods__ico--sbp {
+  background: linear-gradient(140deg, #5b2bd8, #1fb3a5);
+}
+.pay-methods__ico--card {
+  background: linear-gradient(140deg, #3d9bff, #1f5fe0);
+}
+.pay-go {
+  width: 100%;
+  height: 52px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #ffb341, #ff6f61);
+  color: #fff;
+  font: 750 16px var(--font-sans);
+  cursor: pointer;
+  box-shadow: 0 14px 30px -14px #ff6f61;
+  transition: transform 0.3s var(--ease-spring);
+}
+.pay-go:hover {
+  transform: translateY(-2px);
+}
+.pay-go:active {
+  transform: scale(0.97);
+}
+.pay-ghost {
+  height: 52px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--text) 6%, transparent);
+  color: inherit;
+  font: 600 15px var(--font-sans);
+  cursor: pointer;
+}
+.pay-safe {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 12px;
+  opacity: 0.6;
+}
+.pay-error {
+  margin-bottom: 10px;
+  color: #e5484d;
+  font-size: 13px;
+}
+.pay-wait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0 6px;
+}
+.pay-spin {
+  animation: sun-spin 0.9s linear infinite;
+  color: var(--accent);
+}
+.pay-test {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pay-test span {
+  font-size: 13px;
+  opacity: 0.7;
+}
+.pay-test__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 10px;
+}
+.pay-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  font-size: 18px;
+  font-weight: 700;
+  animation: pay-pop 0.5s var(--ease-spring) both;
+}
+.pay-result--fail {
+  opacity: 0.7;
+}
+.pay-check {
+  width: 76px;
+  height: 76px;
+}
+.pay-check circle {
+  fill: none;
+  stroke: #22c55e;
+  stroke-width: 3;
+  stroke-dasharray: 152;
+  stroke-dashoffset: 152;
+  animation: pay-draw 0.6s var(--ease) forwards;
+}
+.pay-check path {
+  fill: none;
+  stroke: #22c55e;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: pay-draw 0.4s 0.45s var(--ease) forwards;
+}
+@keyframes pay-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pay-overlay,
+  .pay-card,
+  .pay-result,
+  .pay-spin {
+    animation: none;
+  }
+  .pay-check circle,
+  .pay-check path {
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+}

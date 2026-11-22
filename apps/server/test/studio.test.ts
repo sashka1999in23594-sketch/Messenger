@@ -92,4 +92,47 @@ describe('Студия', () => {
     expect((await client.post('/desk/items', { kind: 'link', name: 'Серверы', url: '/servers' })).status).toBe(201);
     expect((await client.post('/desk/items', { kind: 'link', name: 'x', url: '//evil.example' })).status).toBe(400);
   });
+
+  it('хранилище приложения: своё у каждого пользователя и с лимитами', async () => {
+    const author = await registerUser(app);
+    const id = await newProject(author.client);
+    const { slug } = (await author.client.post('/studio/publish', { projectId: id })).body;
+    const a = await registerUser(app);
+    const b = await registerUser(app);
+    expect((await a.client.put(`/studio/apps/${slug}/kv/score`, { value: JSON.stringify({ n: 5 }) })).status).toBe(200);
+    expect((await a.client.get(`/studio/apps/${slug}/kv/score`)).body.value).toEqual({ n: 5 });
+    expect((await b.client.get(`/studio/apps/${slug}/kv/score`)).body.value).toBeNull();
+    expect((await a.client.put(`/studio/apps/${slug}/kv/bad`, { value: 'не json' })).status).toBe(400);
+    expect((await a.client.get(`/studio/apps/${slug}/kv`)).body.keys).toEqual(['score']);
+  });
+
+  it('интернет только с разрешением и не во внутреннюю сеть', async () => {
+    const author = await registerUser(app);
+    const id = await newProject(author.client);
+    const { slug } = (await author.client.post('/studio/publish', { projectId: id, permissions: ['internet'] })).body;
+    const user = await registerUser(app);
+    expect((await user.client.post('/studio/net', { url: 'https://example.com', slug })).status).toBe(403);
+    await user.client.post(`/studio/apps/${slug}/grants`, { permission: 'internet', grant: true });
+    expect((await user.client.post('/studio/net', { url: 'https://127.0.0.1/', slug })).status).toBe(400);
+    expect((await user.client.post('/studio/net', { url: 'http://example.com/', slug })).status).toBe(400);
+  });
+
+  it('оплата: только в приложениях с разрешением, тестовый режим без ключей, подтверждает только плательщик', async () => {
+    const author = await registerUser(app);
+    const id = await newProject(author.client);
+    const plain = (await author.client.post('/studio/publish', { projectId: id })).body.slug;
+    const buyer = await registerUser(app);
+    expect((await buyer.client.post('/studio/pay', { slug: plain, amount: 99, description: 'Кристаллы', method: 'sbp' })).status).toBe(403);
+    const id2 = await newProject(author.client);
+    const shop = (await author.client.post('/studio/publish', { projectId: id2, permissions: ['payments'] })).body.slug;
+    const pay = await buyer.client.post('/studio/pay', { slug: shop, amount: 99, description: 'Кристаллы', method: 'card' });
+    expect(pay.body).toMatchObject({ test: true });
+    const other = await registerUser(app);
+    expect((await other.client.post(`/studio/payments/${pay.body.id}/test`, { ok: true })).status).toBe(404);
+    expect((await buyer.client.post(`/studio/payments/${pay.body.id}/test`, { ok: true })).body.status).toBe('succeeded');
+    expect((await buyer.client.get(`/studio/payments/${pay.body.id}`)).body.status).toBe('succeeded');
+    expect((await buyer.client.post(`/studio/payments/${pay.body.id}/test`, { ok: false })).status).toBe(404);
+    expect((await buyer.client.post('/studio/pay', { slug: shop, amount: 0, description: 'x', method: 'sbp' })).status).toBe(400);
+    expect((await buyer.client.get('/studio/payments')).body.items[0]).toMatchObject({ amount: 99, status: 'succeeded' });
+  });
 });

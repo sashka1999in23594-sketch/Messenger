@@ -14,6 +14,7 @@ import { createItem, useDeskItems } from '../desktop/cloud';
 import { openMaximized, openPath } from '../desktop/fx';
 import { API, lint, PERMISSION_INFO } from './model';
 import { LESSONS } from './lessons';
+import { useAppBridge } from './bridge';
 import './studio.css';
 
 interface AppMeta {
@@ -54,6 +55,9 @@ export function AppRunPage() {
       toast({ text: errorMessage(e), kind: 'error' });
     }
   };
+
+  // Хранилище, профиль, интернет и оплата — через окно Sunnet, с проверкой разрешений
+  useAppBridge({ frame, appName: app?.name ?? 'Приложение', slug, permissions: app?.permissions ?? [], granted, onGrant: (p) => setGrant(p, true) });
 
   // Просьбы приложения: уведомление — только при выданном разрешении; новое разрешение — отдельный вопрос
   useEffect(() => {

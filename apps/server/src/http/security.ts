@@ -74,7 +74,7 @@ export async function registerSecurity(app: FastifyInstance): Promise<void> {
     if (SAFE_METHODS.has(req.method) || !req.url.startsWith('/api/')) return;
     // Вебхук WhatsApp приходит с серверов Meta: вместо CSRF он проверяется подписью HMAC (bridge.routes)
     // Sunnet Connect — не браузер: вместо CSRF он предъявляет код подключения сервера
-    if (['/api/v1/bridge/whatsapp/webhook', '/api/v1/connect/heartbeat'].includes(req.url.split('?')[0]!)) return;
+    if (['/api/v1/bridge/whatsapp/webhook', '/api/v1/connect/heartbeat', '/api/v1/studio/payments/yookassa'].includes(req.url.split('?')[0]!)) return;
     const origin = req.headers.origin ?? refererOrigin(req.headers.referer);
     if (!origin || !(config.allowedOrigins.has(origin) || isSameOrigin(origin, req))) {
       throw new AppError(403, ErrorCode.Csrf, 'Запрос с недоверенного источника');

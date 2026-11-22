@@ -76,7 +76,7 @@ export function emptyProject(): Project {
       {
         id: uid(),
         name: 'main',
-        code: '// Код запускается, когда приложение открылось\nconst btn = screen.find("Кнопка")\n\nbtn.onClick(() => {\n  screen.find("Солнце").animate("spin")\n  sunnet.notify("Привет из моего приложения!")\n})\n',
+        code: '// Код запускается, когда приложение открылось\nconst btn = screen.find("Кнопка")\nconst title = screen.find("Заголовок")\n\n// Счёт хранится у каждого пользователя — даже после перезапуска\nlet clicks = (await sunnet.storage.get("clicks")) || 0\ntitle.setText("Нажатий: " + clicks)\n\nbtn.onClick(async () => {\n  clicks++\n  title.setText("Нажатий: " + clicks)\n  screen.find("Солнце").animate("spin")\n  sunnet.sound("pop")\n  await sunnet.storage.set("clicks", clicks)\n  if (clicks % 10 === 0) sunnet.confetti()\n})\n',
       },
     ],
   };
@@ -111,13 +111,27 @@ export const API: ApiDoc[] = [
   { name: 'animate', sig: 'элемент.animate(имя, { duration })', text: 'Проигрывает анимацию: pulse, float, spin, fade, pop.', example: 'b.animate("pop", { duration: 500 })' },
   { name: 'sunnet.notify', sig: 'sunnet.notify(текст)', text: 'Показывает уведомление Sunnet. Нужно разрешение «Уведомления».', example: 'sunnet.notify("Готово!")' },
   { name: 'sunnet.go', sig: 'sunnet.go(экран)', text: 'Переходит на другой экран приложения.', example: 'sunnet.go("Настройки")' },
-  { name: 'sunnet.request', sig: 'sunnet.request(разрешение)', text: 'Просит разрешение: notifications, files, camera, microphone, screen. Пользователь решает сам.', example: 'sunnet.request("camera")' },
+  { name: 'sunnet.request', sig: 'sunnet.request(разрешение)', text: 'Просит разрешение: notifications, files, camera, microphone, screen, profile, internet, payments. Пользователь решает сам.', example: 'sunnet.request("camera")' },
   { name: 'sunnet.state', sig: 'sunnet.state', text: 'Объект для своих данных, пока приложение открыто.', example: 'sunnet.state.count = (sunnet.state.count || 0) + 1' },
+  { name: 'sunnet.storage', sig: 'await sunnet.storage.set(ключ, значение) / get(ключ) / remove(ключ) / keys()', text: 'Сохраняет данные навсегда — у каждого пользователя свои (рекорды, настройки, корзина). До 200 ключей.', example: 'await sunnet.storage.set("рекорд", 120)\nconst r = await sunnet.storage.get("рекорд")' },
+  { name: 'sunnet.user', sig: 'await sunnet.user()', text: 'Имя и ник пользователя. Нужно разрешение «Профиль».', example: 'const me = await sunnet.user()\nscreen.find("Привет").setText("Привет, " + me.name)' },
+  { name: 'sunnet.fetch', sig: 'await sunnet.fetch(адрес)', text: 'Загрузить текст или JSON с публичного https-сайта через защищённый сервер Sunnet. Нужно разрешение «Интернет».', example: 'const r = await sunnet.fetch("https://api.example.com/data.json")\nconst data = r.json()' },
+  { name: 'sunnet.pay', sig: 'await sunnet.pay({ amount, description, method })', text: 'Оплата по СБП ("sbp") или картой ("card"). Окно оплаты показывает Sunnet; ответ — { status: "succeeded" | "canceled" }. Нужно разрешение «Платежи».', example: 'const r = await sunnet.pay({ amount: 99, description: "100 кристаллов", method: "sbp" })\nif (r.status === "succeeded") sunnet.confetti()' },
+  { name: 'sunnet.sound', sig: 'sunnet.sound(имя)', text: 'Короткий звук: click, success, error, coin, pop.', example: 'sunnet.sound("coin")' },
+  { name: 'sunnet.confetti', sig: 'sunnet.confetti()', text: 'Праздничный салют из конфетти.', example: 'sunnet.confetti()' },
+  { name: 'sunnet.wait', sig: 'await sunnet.wait(мс)', text: 'Подождать указанное число миллисекунд.', example: 'await sunnet.wait(500)' },
+  { name: 'sunnet.every', sig: 'sunnet.every(мс, функция) / sunnet.after(мс, функция) / sunnet.stop(таймер)', text: 'Повторять действие или выполнить один раз позже.', example: 'const t = sunnet.every(1000, () => tick())\nsunnet.stop(t)' },
+  { name: 'sunnet.random', sig: 'sunnet.random(от, до)', text: 'Случайное целое число в диапазоне.', example: 'const кубик = sunnet.random(1, 6)' },
+  { name: 'sunnet.on', sig: 'sunnet.on("screen", функция)', text: 'Событие: перешли на другой экран.', example: 'sunnet.on("screen", (имя) => sunnet.log("Экран:", имя))' },
+  { name: 'sunnet.log', sig: 'sunnet.log(...значения)', text: 'Вывести значения в журнал предпросмотра — удобно искать ошибки.', example: 'sunnet.log("счёт", score)' },
+  { name: 'on', sig: 'элемент.on(событие, функция)', text: 'Любое событие: input, pointerdown, keydown…', example: 'screen.find("Имя").on("input", () => check())' },
+  { name: 'value', sig: 'элемент.value() / value(текст)', text: 'Прочитать или записать значение поля ввода.', example: 'const q = screen.find("Поиск").value()' },
+  { name: 'ui.input', sig: 'ui.input(подсказка) / ui.image(адрес) / ui.clear()', text: 'Создать поле ввода или картинку из кода; убрать созданное.', example: 'const name = ui.input("Ваше имя")' },
   { name: 'ui.button', sig: 'ui.button(текст)', text: 'Создаёт кнопку прямо из кода.', example: 'ui.button("Ещё").onClick(() => {})' },
   { name: 'ui.text', sig: 'ui.text(текст)', text: 'Добавляет строку текста из кода.', example: 'ui.text("Добро пожаловать")' },
 ];
 
-const KNOWN = new Set(['notify', 'go', 'request', 'state', 'version']);
+const KNOWN = new Set(['notify', 'go', 'request', 'state', 'version', 'on', 'user', 'storage', 'fetch', 'pay', 'sound', 'vibrate', 'wait', 'every', 'after', 'stop', 'random', 'confetti', 'log']);
 
 export interface Problem {
   line: number;
@@ -129,7 +143,7 @@ export interface Problem {
 export function lint(code: string): Problem[] {
   const out: Problem[] = [];
   try {
-    parse(code, { ecmaVersion: 'latest', sourceType: 'script', allowReturnOutsideFunction: true });
+    parse(code, { ecmaVersion: 'latest', sourceType: 'script', allowReturnOutsideFunction: true, allowAwaitOutsideFunction: true });
   } catch (e) {
     const err = e as { message?: string; loc?: { line: number } };
     out.push({ line: err.loc?.line ?? 0, text: `Ошибка в коде: ${translate(err.message ?? '')}`, hint: 'Проверьте скобки, кавычки и запятые рядом с этой строкой' });
@@ -141,7 +155,7 @@ export function lint(code: string): Problem[] {
         out.push({ line: i + 1, text: `«sunnet.${m[1]}» не существует`, hint: near ? `Вы имели в виду sunnet.${near}?` : 'Список команд — в документации API' });
       }
     }
-    if (/\b(fetch|XMLHttpRequest|WebSocket)\b/.test(l)) out.push({ line: i + 1, text: 'Сеть в приложениях выключена ради безопасности', hint: 'Приложение работает в песочнице без доступа к интернету' });
+    if (/(^|[^.\w])(fetch|XMLHttpRequest|WebSocket)\b/.test(l)) out.push({ line: i + 1, text: 'Прямой доступ в сеть закрыт ради безопасности', hint: 'Используйте sunnet.fetch(адрес) — с разрешением «Интернет»' });
   });
   return out;
 }
@@ -159,4 +173,7 @@ export const PERMISSION_INFO: Record<string, { label: string; text: string }> = 
   camera: { label: 'Камера', text: 'Включать камеру — только после вашего разрешения и с индикатором' },
   microphone: { label: 'Микрофон', text: 'Включать микрофон — только после вашего разрешения и с индикатором' },
   screen: { label: 'Экран', text: 'Показывать ваш экран — каждый раз с подтверждением' },
+  profile: { label: 'Профиль', text: 'Знать ваше имя и ник (без почты, телефона и переписок)' },
+  internet: { label: 'Интернет', text: 'Загружать текст и данные с публичных сайтов через защищённый сервер Sunnet' },
+  payments: { label: 'Платежи', text: 'Предлагать покупки. Каждую оплату вы подтверждаете сами в окне Sunnet (СБП или карта)' },
 };

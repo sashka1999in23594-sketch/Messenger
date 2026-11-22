@@ -3,6 +3,7 @@
  * скрипт снизу (подсказки и проверка ошибок), предпросмотр в песочнице,
  * автосохранение в облако и публикация по ссылке.
  */
+import { useAppBridge } from './bridge';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent } from 'react';
 import { useParams } from 'react-router';
 import { BookOpen, Box, Check, Code2, Copy, Image as ImageIcon, Monitor, MousePointer2, Play, Plus, RectangleHorizontal, Rocket, TextCursorInput, Trash2, Type, X } from 'lucide-react';
@@ -425,7 +426,15 @@ function ScriptEditor({ scripts, script, setScriptId, onChange, onAdd }: { scrip
   const [code, setCode] = useState(script?.code ?? '');
   const [word, setWord] = useState('');
   const ta = useRef<HTMLTextAreaElement>(null);
-  const problems = useMemo(() => lint(code), [code]);
+  // Проверяем, когда человек сделал паузу, — не ругаемся на недописанное слово
+  const [checked, setChecked] = useState(code);
+  useEffect(() => {
+    const t = setTimeout(() => setChecked(code), 700);
+    return () => clearTimeout(t);
+  }, [code]);
+  const problems = useMemo(() => lint(checked), [checked]);
+  const mirror = useRef<HTMLPreElement>(null);
+  const gutter = useRef<HTMLPreElement>(null);
   const hints = useMemo(() => suggest(word), [word]);
   useEffect(() => {
     const t = setTimeout(() => onChange(code), 400);
@@ -467,8 +476,13 @@ function ScriptEditor({ scripts, script, setScriptId, onChange, onAdd }: { scrip
         <span className={`st-code__status${problems.length ? ' is-bad' : ''}`}>{problems.length ? `Ошибок: ${problems.length}` : 'Ошибок нет'}</span>
       </div>
       <div className="st-code__body">
-        <pre className="st-code__lines" aria-hidden>
+        <pre ref={gutter} className="st-code__lines" aria-hidden>
           {Array.from({ length: lines }, (_, i) => `${i + 1}\n`).join('')}
+        </pre>
+        <div className="st-code__field">
+        <pre ref={mirror} className="st-code__mirror" aria-hidden>
+          {highlightJs(code)}
+          {'\n'}
         </pre>
         <textarea
           ref={ta}
@@ -476,6 +490,10 @@ function ScriptEditor({ scripts, script, setScriptId, onChange, onAdd }: { scrip
           value={code}
           spellCheck={false}
           aria-label="Код скрипта"
+          onScroll={(e) => {
+            if (mirror.current) (mirror.current.scrollTop = e.currentTarget.scrollTop), (mirror.current.scrollLeft = e.currentTarget.scrollLeft);
+            if (gutter.current) gutter.current.scrollTop = e.currentTarget.scrollTop;
+          }}
           onChange={(e) => onInput(e.target.value, e.target.selectionStart)}
           onKeyDown={(e) => {
             if (e.key === 'Tab') {
@@ -488,6 +506,7 @@ function ScriptEditor({ scripts, script, setScriptId, onChange, onAdd }: { scrip
             if (e.key === 'Escape') setWord('');
           }}
         />
+        </div>
         {hints.length > 0 && word.length > 1 && (
           <ul className="st-code__hints" role="listbox" aria-label="Подсказки">
             {hints.map((h, i) => (
@@ -522,13 +541,14 @@ function ScriptEditor({ scripts, script, setScriptId, onChange, onAdd }: { scrip
 function Preview({ projectId, onClose }: { projectId: string; onClose: () => void }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const [log, setLog] = useState<string[]>([]);
+  // Автор проверяет хранилище, интернет и оплату прямо в предпросмотре (оплата — тестовая)
+  useAppBridge({ frame, appName: 'Предпросмотр', projectId, permissions: [], granted: [], onLog: (l) => setLog((x) => [...x.slice(-30), l]) });
   useEffect(() => {
     const on = (e: MessageEvent) => {
       if (e.source !== frame.current?.contentWindow) return;
       const d = e.data as { __sunnet?: number; type?: string; text?: string; permission?: string };
       if (!d?.__sunnet) return;
       if (d.type === 'notify') toast(String(d.text ?? '').slice(0, 300));
-      if (d.type === 'error') setLog((l) => [...l.slice(-20), `Ошибка: ${String(d.text).slice(0, 200)}`]);
       if (d.type === 'request') setLog((l) => [...l.slice(-20), `Приложение просит разрешение «${PERMISSION_INFO[d.permission ?? '']?.label ?? d.permission}» — пользователь увидит запрос`]);
     };
     window.addEventListener('message', on);
@@ -635,4 +655,26 @@ function Publish({ projectId, onClose }: { projectId: string; onClose: () => voi
       </div>
     </div>
   );
+}
+
+/** Подсветка JavaScript в редакторе: API Sunnet, ключевые слова, строки, числа, комментарии. */
+function highlightJs(src: string) {
+  const re = /(\/\/.*$|\/\*[\s\S]*?\*\/)|("(?:[^"\\\n]|\\.)*"?|'(?:[^'\\\n]|\\.)*'?|`(?:[^`\\]|\\.)*`?)|(\b\d+(?:\.\d+)?\b)|(\b(?:const|let|var|function|return|if|else|for|while|of|in|await|async|new|true|false|null|undefined|try|catch|throw|break|continue)\b)|(\b(?:sunnet|screen|ui)\b)|(\.[A-Za-z_]\w*(?=\s*\())|(=>)/gm;
+  const out: React.ReactNode[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let k = 0;
+  while ((m = re.exec(src))) {
+    if (m.index > last) out.push(src.slice(last, m.index));
+    const cls = m[1] ? 'c' : m[2] ? 's' : m[3] ? 'n' : m[4] ? 'k' : m[5] ? 'api' : m[6] ? 'm' : 'k';
+    out.push(
+      <span key={k++} className={`js js--${cls}`}>
+        {m[0]}
+      </span>,
+    );
+    last = m.index + m[0].length;
+    if (!m[0]) re.lastIndex++;
+  }
+  if (last < src.length) out.push(src.slice(last));
+  return out;
 }
