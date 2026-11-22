@@ -9,7 +9,9 @@ import { z } from 'zod';
 import { newId } from '../../lib/ids.js';
 import { notFound, parse } from '../../lib/errors.js';
 import { requireAuth } from '../../http/request.js';
-import { COMMANDS, ensureOwner, type Parsed, type Role, type UserRow } from './commands.js';
+import { COMMANDS, ensureOwner, setRegistry, type Command, type Parsed, type Role, type UserRow } from './commands.js';
+import { entityCommands } from './entities.js';
+import { runScript } from './script.js';
 
 export { parseDuration } from './commands.js';
 
@@ -79,25 +81,29 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     return { userId: a.userId, role: 'admin' as Role };
   };
 
+  // Полный набор: ручные команды + семейства по сущностям (ручные важнее при совпадении имён)
+  const all = new Map<string, Command>();
+  for (const c of entityCommands(app.ctx)) all.set(c.name, c);
+  for (const c of COMMANDS) all.set(c.name, c);
+  const list = [...all.values()].sort((a, b) => a.name.localeCompare(b.name));
+  setRegistry(list);
+  app.log.info(`Консоль: ${list.length} команд`);
+
   app.get('/admin/console/commands', async (req) => {
-    const auth = requireOwner(req);
-    return { role: auth.role, commands: COMMANDS.filter((c) => c.role.includes(auth.role)).map(({ usage, text }) => ({ usage, text })) };
+    requireOwner(req);
+    return { role: 'owner', count: list.length, commands: list.map(({ name, usage, text }) => ({ name, usage, text })) };
   });
 
+  /** Выполнить команду или целый скрипт на языке «Луч». */
   app.post('/admin/console', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (req) => {
     const auth = requireOwner(req);
-    const { command } = parse(z.object({ command: z.string().min(1).max(500) }), req.body);
-    const done = (ok: boolean, lines: string[], target: string | null = null) => {
-      audit(auth.userId, command, target, `${ok ? 'ok' : 'fail'}: ${lines[0] ?? ''}`);
-      return { ok, lines };
-    };
-    const cmd = parseCommand(command);
-    if (!cmd) return done(false, ['Не понял команду. Формат: /user.block("ник", duration: 7d)']);
-    const def = COMMANDS.find((c) => c.name === cmd.name);
-    if (!def) return done(false, [`Нет команды ${cmd.name}. Введите /help.all()`]);
-    if (!def.role.includes(auth.role)) return done(false, [`Нужны права: ${def.role.join(' или ')}`]);
-
-    const res = await def.run({ ctx: app.ctx, actor: { userId: auth.userId, role: auth.role }, cmd, user: findUser });
-    return done(res.ok, res.lines, res.target ?? null);
+    const { command } = parse(z.object({ command: z.string().min(1).max(5000) }), req.body);
+    const res = await runScript(command, {
+      commands: all,
+      base: { ctx: app.ctx, actor: { userId: auth.userId, role: auth.role }, user: findUser },
+      onCall: (name, r) => audit(auth.userId, `${name}`, r.target ?? null, `${r.ok ? 'ok' : 'fail'}: ${r.lines[0] ?? ''}`),
+    });
+    audit(auth.userId, command, null, `${res.ok ? 'ok' : 'fail'}: скрипт`);
+    return { ok: res.ok, lines: res.out.map((l) => l.text), out: res.out };
   });
 }

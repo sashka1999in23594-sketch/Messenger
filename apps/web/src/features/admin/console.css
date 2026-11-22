@@ -1,158 +1,535 @@
-/* Консоль администратора — тёмный терминал в любой теме. */
-.acon {
-  --acon-bg: #0b1122;
-  --acon-fg: #dfe6ff;
-  --acon-dim: #8a97b8;
-  --acon-ok: #5fe3a1;
-  --acon-fail: #ff8a8a;
-  --acon-gold: #ffc24a;
-  --acon-blue: #82aaff;
-  display: flex;
-  height: 100%;
-  min-height: 420px;
-  background: var(--acon-bg);
-  color: var(--acon-fg);
-  font: 14px/1.7 var(--font-mono);
-}
-.acon__main {
-  flex: 1;
-  min-width: 0;
+/* ─── «Луч»: консоль владельца ─────────────────────────────────────────────── */
+.luch {
+  --lx-bg: #0b1020;
+  --lx-fg: #e6ecff;
+  --lx-dim: #8a96b8;
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--lx-bg);
+  color: var(--lx-fg);
+  font-family: var(--font-sans);
 }
-.acon__log {
-  flex: 1;
-  overflow: auto;
-  padding: var(--space-4) var(--space-5);
+/* Медленное цветное сияние за текстом */
+.luch__aurora {
+  position: absolute;
+  inset: -30%;
+  z-index: -1;
+  background:
+    radial-gradient(40% 35% at 20% 15%, rgba(255, 170, 60, 0.18), transparent 70%),
+    radial-gradient(35% 30% at 85% 25%, rgba(80, 140, 255, 0.22), transparent 70%),
+    radial-gradient(40% 35% at 60% 90%, rgba(170, 90, 255, 0.16), transparent 70%);
+  animation: luch-drift 22s ease-in-out infinite alternate;
+  pointer-events: none;
 }
-.acon__hello {
-  color: var(--acon-dim);
-  margin-bottom: var(--space-2);
-}
-.acon__line {
-  white-space: pre-wrap;
-  word-break: break-word;
-  animation: acon-in 0.25s var(--ease) both;
-}
-.acon__line--ok {
-  color: var(--acon-ok);
-}
-.acon__line--fail {
-  color: var(--acon-fail);
-}
-@keyframes acon-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
+@keyframes luch-drift {
+  to {
+    transform: translate(4%, -3%) rotate(6deg) scale(1.05);
   }
 }
-.acon__prompt {
-  color: var(--acon-gold);
-  margin-right: 8px;
-}
-.acon__mark {
-  display: inline-block;
-  width: 18px;
-  margin-left: 4px;
-}
-.acon__input {
-  position: relative;
+
+.luch__head {
   display: flex;
   align-items: center;
-  padding: var(--space-3) var(--space-5);
-  border-top: 1px solid rgba(150, 170, 230, 0.15);
+  gap: 8px;
+  padding: 12px 14px;
+  flex-wrap: wrap;
 }
-.acon__input input {
-  flex: 1;
-  border: 0;
-  outline: 0;
-  background: none;
-  color: var(--acon-fg);
-  font: inherit;
-  caret-color: var(--acon-gold);
+.luch__logo {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
 }
-.acon__hints {
-  position: absolute;
-  left: var(--space-5);
-  bottom: 100%;
-  list-style: none;
-  margin: 0;
-  padding: 6px;
-  border-radius: 12px;
-  background: #18213f;
-  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.6);
-  animation: acon-in 0.2s var(--ease) both;
-}
-.acon__hints li {
-  display: flex;
-  gap: 12px;
-  padding: 4px 10px;
-  border-radius: 8px;
-}
-.acon__hints li:first-child {
-  background: rgba(130, 170, 255, 0.16);
-}
-.acon__hints span {
-  color: var(--acon-dim);
-  font-family: var(--font-sans);
-  font-size: 12.5px;
-}
-.acon__side {
-  width: 320px;
-  flex: none;
-  overflow: auto;
-  padding: var(--space-4);
-  border-left: 1px solid rgba(150, 170, 230, 0.15);
-}
-.acon__side h2 {
-  margin: 0 0 var(--space-2);
-  font: 600 13px var(--font-sans);
-  color: var(--acon-dim);
-}
-.acon__side ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.luch__title {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  line-height: 1.15;
 }
-.acon__side button {
-  width: 100%;
-  text-align: left;
+.luch__title b {
+  font-size: 17px;
+  letter-spacing: 0.01em;
+  background: linear-gradient(90deg, #ffd166, #ff9f1c 40%, #7cb6ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.luch__title span {
+  font-size: 12px;
+  color: var(--lx-dim);
+}
+.luch__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
   border: 0;
-  border-radius: 10px;
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--acon-fg);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--lx-fg);
+  font: 600 13px var(--font-sans);
   cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.3s var(--ease-spring);
+}
+.luch__chip:hover {
+  background: rgba(255, 255, 255, 0.13);
+  transform: translateY(-1px);
+}
+.luch__chip.is-on {
+  background: linear-gradient(120deg, #ff9f1c, #ff6f61);
+  color: #fff;
+}
+.luch__chip--icon {
+  width: 36px;
+  padding: 0;
+  justify-content: center;
+}
+.luch__badge {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.25);
+  font-size: 11px;
+}
+
+.luch__log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 18px 12px;
+  font: 13.5px/1.55 var(--font-mono, ui-monospace, 'SFMono-Regular', Consolas, monospace);
+}
+.luch__hello {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 12vh auto 0;
+  max-width: 460px;
+  text-align: center;
+  font-family: var(--font-sans);
+  color: var(--lx-dim);
+  animation: luch-in 0.6s var(--ease-spring) both;
+}
+.luch__hello > svg {
+  color: #ffd166;
+}
+.luch__hello b {
+  color: var(--lx-fg);
+  font-size: 18px;
+}
+.luch__hello code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+}
+.luch__start {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #ffb341, #ff7a59);
+  color: #fff;
+  font: 650 13.5px var(--font-sans);
+  cursor: pointer;
+  box-shadow: 0 10px 24px -12px #ff7a59;
+  transition: transform 0.3s var(--ease-spring);
+}
+.luch__start:hover {
+  transform: translateY(-2px) scale(1.03);
+}
+
+.luch__line {
+  display: flex;
+  gap: 10px;
+  padding: 2px 0;
+  animation: luch-in 0.35s var(--ease) both;
+}
+@keyframes luch-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.luch__line pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font: inherit;
+}
+.luch__line--in {
+  margin-top: 10px;
+}
+.luch__line--ok {
+  color: #d9f7e6;
+}
+.luch__line--fail {
+  color: #ffb4b4;
+}
+.luch__line--info {
+  color: var(--lx-dim);
+}
+.luch__prompt {
+  color: #ffb341;
+  font-weight: 700;
+}
+.luch__mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 800;
+}
+.luch__line--ok .luch__mark {
+  background: rgba(52, 211, 153, 0.18);
+  color: #34d399;
+}
+.luch__line--fail .luch__mark {
+  background: rgba(255, 99, 99, 0.18);
+  color: #ff7676;
+}
+.luch__busy {
+  width: 40px;
+  height: 4px;
+  margin: 10px 0 0 22px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #ffb341, #7cb6ff);
+  animation: luch-busy 0.9s ease-in-out infinite alternate;
+}
+@keyframes luch-busy {
+  from {
+    width: 14px;
+    opacity: 0.5;
+  }
+}
+
+/* Подсветка кода */
+.lx--f {
+  color: #7cc4ff;
+}
+.lx--s {
+  color: #a7f3a0;
+}
+.lx--n {
+  color: #ffcf7a;
+}
+.lx--k {
+  color: #ff9ad5;
+  font-weight: 700;
+}
+.lx--p {
+  color: #c4a8ff;
+  font-weight: 700;
+}
+.lx--c {
+  color: #6b7699;
+  font-style: italic;
+}
+.lx--b {
+  color: #9aa6c8;
+}
+
+/* Редактор: прозрачная textarea поверх подсвеченной копии */
+.luch__editor {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 0 12px 12px;
+  padding: 10px 10px 10px 16px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+  transition: box-shadow 0.25s;
+}
+.luch__editor:focus-within {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 179, 65, 0.45),
+    0 0 0 4px rgba(255, 179, 65, 0.1);
+}
+.luch__editor > .luch__prompt {
+  padding-bottom: 8px;
+  font: 700 15px var(--font-mono, monospace);
+}
+.luch__field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  font: 14px/1.55 var(--font-mono, ui-monospace, monospace);
+}
+.luch__mirror,
+.luch__field textarea {
+  margin: 0;
+  padding: 6px 0;
+  font: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.luch__mirror {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--lx-fg);
+  overflow: hidden;
+}
+.luch__ghost {
+  color: rgba(230, 236, 255, 0.28);
+}
+.luch__field textarea {
+  position: relative;
+  display: block;
+  width: 100%;
+  resize: none;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: transparent;
+  caret-color: #ffb341;
+}
+.luch__field textarea::placeholder {
+  color: var(--lx-dim);
+}
+.luch__run {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(130deg, #ffb341, #ff6f61);
+  color: #fff;
+  cursor: pointer;
+  transition:
+    transform 0.3s var(--ease-spring),
+    opacity 0.2s;
+}
+.luch__run:hover:not(:disabled) {
+  transform: rotate(-10deg) scale(1.08);
+}
+.luch__run:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Листы: учебник и справочник */
+.luch-sheet {
+  position: absolute;
+  inset: 64px 12px 12px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  border-radius: 26px;
+  background: rgba(16, 22, 42, 0.94);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  animation: luch-sheet 0.45s var(--ease-spring) both;
+  overflow: hidden;
+}
+@keyframes luch-sheet {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+}
+.luch-sheet__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 10px 18px;
+}
+.luch-learn {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 230px 1fr;
+}
+.luch-learn__nav {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  transition: background var(--dur-fast), transform var(--dur-fast);
+  padding: 4px 8px 12px;
+  overflow-y: auto;
 }
-.acon__side button:hover {
-  background: rgba(130, 170, 255, 0.14);
-  transform: translateX(2px);
-}
-.acon__side code {
-  font-size: 12.5px;
-  color: var(--acon-blue);
-}
-.acon__side span {
-  font: 12px var(--font-sans);
-  color: var(--acon-dim);
-}
-.acon--denied {
+.luch-learn__nav button {
+  display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  color: var(--lx-fg);
+  font: 500 13.5px var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s;
 }
-.acon__denied {
-  font-family: var(--font-sans);
-  color: var(--acon-dim);
+.luch-learn__nav button:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
-@media (max-width: 760px) {
-  .acon__side {
-    display: none;
+.luch-learn__nav button.is-on {
+  background: rgba(255, 179, 65, 0.14);
+}
+.luch-learn__num {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  font-weight: 700;
+}
+.luch-learn__num.is-done {
+  background: linear-gradient(130deg, #34d399, #10b981);
+  color: #fff;
+  animation: polish-check 0.4s var(--ease-spring) both;
+}
+.luch-learn__body {
+  padding: 4px 22px 22px 10px;
+  overflow-y: auto;
+  animation: luch-in 0.4s var(--ease) both;
+}
+.luch-learn__body h3 {
+  margin: 4px 0 10px;
+  font-size: 20px;
+}
+.luch-learn__body p {
+  color: #c3cbe6;
+  line-height: 1.6;
+}
+.luch-ex {
+  margin: 14px 0;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+.luch-ex pre {
+  margin: 0;
+  padding: 14px 16px;
+  font: 13.5px/1.6 var(--font-mono, monospace);
+  white-space: pre-wrap;
+}
+.luch-ex__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px 10px 16px;
+  font-size: 13px;
+  color: var(--lx-dim);
+}
+.luch-ref__search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 14px 8px;
+  padding: 0 16px;
+  height: 42px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--lx-dim);
+}
+.luch-ref__search input {
+  flex: 1;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--lx-fg);
+  font: inherit;
+}
+.luch-ref {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 10px 12px;
+}
+.luch-ref__sec {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 10px;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  color: var(--lx-fg);
+  font: 600 14px var(--font-sans);
+  cursor: pointer;
+}
+.luch-ref__sec:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.luch-ref__sec svg {
+  transition: transform 0.25s var(--ease-spring);
+}
+.luch-ref__sec.is-open svg {
+  transform: rotate(90deg);
+}
+.luch-ref__sec span {
+  margin-left: auto;
+  color: var(--lx-dim);
+  font-weight: 500;
+  font-size: 12px;
+}
+.luch-ref__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  color: var(--lx-dim);
+  font: 12.5px var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+  animation: luch-in 0.25s var(--ease) both;
+}
+.luch-ref__row:hover {
+  background: rgba(124, 182, 255, 0.08);
+}
+.luch-ref__row code {
+  font: 13px var(--font-mono, monospace);
+}
+
+@media (max-width: 700px) {
+  .luch-learn {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .luch-learn__nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+  .luch-learn__nav button {
+    white-space: nowrap;
+  }
+  .luch-sheet {
+    inset: 60px 6px 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .luch *,
+  .luch__aurora {
+    animation: none !important;
   }
 }

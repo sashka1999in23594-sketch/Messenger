@@ -63,7 +63,7 @@ services:
       # Ник владельца платформы (через запятую можно несколько): при старте получает роль администратора
       # и доступ к консоли /user.block("ник", duration: 7d) и др.
       - key: ADMIN_USERNAMES
-        sync: false
+        value: sashka
       # Telegram в общем списке чатов: my.telegram.org → API development tools → App api_id и App api_hash
       - key: TELEGRAM_API_ID
         sync: false

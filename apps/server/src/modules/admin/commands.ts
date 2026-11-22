@@ -38,6 +38,8 @@ export interface Result {
   ok: boolean;
   lines: string[];
   target?: string | null;
+  /** Данные строками-объектами — для конвейеров языка (| where, | sort, for … in) */
+  rows?: Record<string, unknown>[];
 }
 export interface Command {
   name: string;
@@ -112,6 +114,12 @@ function counter(name: string, label: string, sql: string, extra?: string): Comm
   };
 }
 
+/** Все команды вместе со сгенерированными по сущностям — заполняет консоль при запуске */
+let registry: Command[] = [];
+export const setRegistry = (all: Command[]) => {
+  registry = all;
+};
+
 export const COMMANDS: Command[] = [
   // ── Пользователи ──
   onUser('user.find', '/user.find("ник")', 'Кто это: имя, роль, блокировка', MOD, (u) => {
@@ -133,34 +141,13 @@ export const COMMANDS: Command[] = [
     );
   }),
   {
-    name: 'user.search',
-    usage: '/user.search("часть ника или имени")',
-    text: 'Поиск пользователей',
-    role: MOD,
-    run: ({ ctx, cmd }) => {
-      const q = `%${(cmd.pos[0] ?? '').replace(/[%_]/g, '')}%`;
-      const rows = ctx.db.all<UserRow>('SELECT username, display_name, role, verified FROM users WHERE deleted_at IS NULL AND (username LIKE :q OR display_name LIKE :q) ORDER BY created_at LIMIT 25', { q });
-      return ok(rows.length ? rows.map((u) => `@${u.username} · ${u.display_name} · ${u.role}${u.verified ? ' ✓' : ''}`) : ['Никого не нашлось']);
-    },
-  },
-  {
-    name: 'user.recent',
-    usage: '/user.recent(20)',
-    text: 'Последние регистрации',
-    role: MOD,
-    run: ({ ctx, cmd }) => {
-      const rows = ctx.db.all<UserRow>('SELECT username, display_name, created_at FROM users WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT :n', { n: limitArg(cmd.pos[0]) });
-      return ok(rows.map((u) => `${when(u.created_at)} · @${u.username} · ${u.display_name}`));
-    },
-  },
-  {
     name: 'user.online',
     usage: '/user.online()',
     text: 'Кто был в сети за последние 5 минут',
     role: MOD,
     run: ({ ctx }) => {
-      const rows = ctx.db.all<UserRow>('SELECT username FROM users WHERE last_seen_at > :t ORDER BY last_seen_at DESC LIMIT 100', { t: Date.now() - 5 * 60_000 });
-      return ok(rows.length ? [`В сети: ${rows.length}`, rows.map((u) => `@${u.username}`).join(', ')] : ['Сейчас никого']);
+      const rows = ctx.db.all<UserRow>('SELECT username, display_name, last_seen_at FROM users WHERE last_seen_at > :t ORDER BY last_seen_at DESC LIMIT 100', { t: Date.now() - 5 * 60_000 });
+      return { ...ok(rows.length ? [`В сети: ${rows.length}`, rows.map((u) => `@${u.username}`).join(', ')] : ['Сейчас никого']), rows: rows as unknown as Record<string, unknown>[] };
     },
   },
   {
@@ -170,7 +157,7 @@ export const COMMANDS: Command[] = [
     role: MOD,
     run: ({ ctx }) => {
       const rows = ctx.db.all<UserRow>('SELECT username, blocked_until, blocked_reason FROM users WHERE blocked_until > :now ORDER BY blocked_until LIMIT 100', { now: Date.now() });
-      return ok(rows.length ? rows.map((u) => `@${u.username} до ${when(u.blocked_until)} · ${u.blocked_reason ?? 'без причины'}`) : ['Заблокированных нет']);
+      return { ...ok(rows.length ? rows.map((u) => `@${u.username} до ${when(u.blocked_until)} · ${u.blocked_reason ?? 'без причины'}`) : ['Заблокированных нет']), rows: rows as unknown as Record<string, unknown>[] };
     },
   },
   {
@@ -180,7 +167,7 @@ export const COMMANDS: Command[] = [
     role: MOD,
     run: ({ ctx }) => {
       const rows = ctx.db.all<UserRow>("SELECT username, role FROM users WHERE role IN ('admin', 'moderator') AND deleted_at IS NULL ORDER BY role, username");
-      return ok(rows.map((u) => `${u.role === 'admin' ? '★' : '☆'} @${u.username} · ${u.role}`));
+      return { ...ok(rows.map((u) => `${u.role === 'admin' ? '★' : '☆'} @${u.username} · ${u.role}`)), rows: rows as unknown as Record<string, unknown>[] };
     },
   },
   onUser(
@@ -400,7 +387,7 @@ export const COMMANDS: Command[] = [
         "SELECT id, entity_type, entity_id, reason, created_at FROM reports WHERE status = 'open' ORDER BY created_at LIMIT :n",
         { n: limitArg(cmd.pos[0]) },
       );
-      return ok(rows.length ? rows.map((r) => `${r.id} · ${when(r.created_at)} · ${r.entity_type} ${r.entity_id} · ${r.reason}`) : ['Открытых жалоб нет']);
+      return { ...ok(rows.length ? rows.map((r) => `${r.id} · ${when(r.created_at)} · ${r.entity_type} ${r.entity_id} · ${r.reason}`) : ['Открытых жалоб нет']), rows };
     },
   },
   ...(['resolve', 'reject'] as const).map(
@@ -572,9 +559,27 @@ export const COMMANDS: Command[] = [
   {
     name: 'help.all',
     usage: '/help.all()',
-    text: 'Список команд',
+    text: 'Список всех команд',
     role: MOD,
-    run: ({ actor }) => ok(COMMANDS.filter((c) => c.role.includes(actor.role)).map((c) => `${c.usage} — ${c.text}`)),
+    run: () => ok(registry.map((c) => `${c.usage} — ${c.text}`)),
+  },
+  {
+    name: 'help.count',
+    usage: '/help.count()',
+    text: 'Сколько команд и разделов',
+    role: MOD,
+    run: () => ok(`Команд: ${registry.length} · разделов: ${new Set(registry.map((c) => c.name.split('.')[0])).size}`),
+  },
+  {
+    name: 'help.section',
+    usage: '/help.section("post")',
+    text: 'Все команды одного раздела',
+    role: MOD,
+    run: ({ cmd }) => {
+      const sec = (cmd.pos[0] ?? '').toLowerCase();
+      const found = registry.filter((c) => c.name.split('.')[0] === sec);
+      return found.length ? ok(found.map((c) => `${c.usage} — ${c.text}`)) : ok(`Разделы: ${[...new Set(registry.map((c) => c.name.split('.')[0]))].join(', ')}`);
+    },
   },
   {
     name: 'help.find',
@@ -583,7 +588,7 @@ export const COMMANDS: Command[] = [
     role: MOD,
     run: ({ actor, cmd }) => {
       const q = (cmd.pos[0] ?? '').toLowerCase();
-      const found = COMMANDS.filter((c) => c.role.includes(actor.role) && (c.name.includes(q) || c.text.toLowerCase().includes(q)));
+      const found = registry.filter((c) => c.role.includes(actor.role) && (c.name.includes(q) || c.text.toLowerCase().includes(q)));
       return ok(found.length ? found.map((c) => `${c.usage} — ${c.text}`) : ['Ничего не нашлось']);
     },
   },

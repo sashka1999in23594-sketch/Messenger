@@ -23,7 +23,7 @@ describe('владелец платформы', () => {
     expect(role('later')).toBe('user');
     const help = await first.post('/admin/console', { command: '/help.all()' });
     expect(help.body.ok).toBe(true);
-    expect(help.body.lines.length).toBe(COMMANDS.length);
+    expect(help.body.lines.length).toBeGreaterThan(COMMANDS.length);
   });
 });
 
