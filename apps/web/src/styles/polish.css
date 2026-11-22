@@ -213,3 +213,66 @@
 .vseg__opt:hover {
   transform: translateY(-1px);
 }
+
+/* ── Поля поиска — капсулы с мягким фокусом, без серых прямоугольников ── */
+.settings-search input,
+.section-nav__search .input,
+.desk-win .section-nav__search .input,
+.search-field input,
+.chat-search input {
+  border-radius: var(--radius-full) !important;
+  border-color: transparent !important;
+  background: color-mix(in oklab, var(--text) 5%, transparent) !important;
+  transition:
+    background 0.2s var(--ease),
+    box-shadow 0.25s var(--ease) !important;
+}
+.settings-search input:focus,
+.section-nav__search .input:focus,
+.search-field input:focus,
+.chat-search input:focus {
+  background: var(--bg) !important;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent) !important;
+}
+
+/* ── Списки настроек: строка мягко подсвечивается, иконка «подпрыгивает» ── */
+.st-row {
+  transition: background 0.2s var(--ease);
+}
+.st-row:hover .st-row__icon,
+.settings-row:hover .settings-row__icon {
+  transform: scale(1.08) rotate(-6deg);
+}
+.st-row__icon,
+.settings-row__icon {
+  transition: transform 0.35s var(--ease-spring);
+}
+
+/* ── Пустой холст новой истории — тёплый рассвет вместо чёрного прямоугольника ── */
+.story-canvas:has(> label) {
+  background:
+    radial-gradient(120% 70% at 50% 110%, rgba(255, 180, 80, 0.55), transparent 60%),
+    linear-gradient(170deg, #4f7dff 0%, #8f6bff 45%, #ff8a5b 100%);
+}
+.story-canvas > label svg {
+  animation: polish-float 3s var(--ease) infinite;
+}
+@keyframes polish-float {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* «Уменьшить движение» в настройках Sunnet выключает и новые анимации */
+[data-reduce-motion='true'] .sunburst *,
+[data-reduce-motion='true'] .dock-sun::before,
+[data-reduce-motion='true'] .upfx,
+[data-reduce-motion='true'] .upfx *,
+[data-reduce-motion='true'] .brw-home__hero,
+[data-reduce-motion='true'] .brw-home__hero *,
+[data-reduce-motion='true'] .brw-home__quick button,
+[data-reduce-motion='true'] .dicon--sys *,
+[data-reduce-motion='true'] .story-canvas > label svg,
+[data-reduce-motion='true'] .btn--primary::after {
+  animation: none !important;
+}
