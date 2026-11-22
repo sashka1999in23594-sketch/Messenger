@@ -1,0 +1,119 @@
+/* Карточка «Новая возможность»: выплывает над доком, иконка с солнечным ореолом */
+.disc {
+  position: absolute;
+  right: 18px;
+  bottom: calc(var(--desk-dock-zone, 78px) + 14px);
+  z-index: 30;
+  width: min(360px, calc(100vw - 32px));
+  display: flex;
+  gap: 12px;
+  padding: 14px 14px 12px;
+  border-radius: 22px;
+  color: #0d1a2d;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  box-shadow: 0 24px 60px -18px rgba(10, 30, 80, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  animation: disc-in 0.6s var(--ease-spring) both;
+}
+@keyframes disc-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.92);
+  }
+}
+.disc__icon {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #b86b00;
+  background: linear-gradient(150deg, #fff1c7, #ffd27a);
+}
+.disc__icon i {
+  position: absolute;
+  inset: -6px;
+  border-radius: 18px;
+  border: 2px solid rgba(255, 190, 80, 0.55);
+  animation: disc-ring 2.2s ease-out infinite;
+}
+@keyframes disc-ring {
+  from {
+    opacity: 1;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+.disc__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.disc__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: #8291a8;
+}
+.disc__text {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #4a5a72;
+}
+.disc__acts {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.disc__go,
+.disc__no {
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  font: 600 12.5px var(--font-sans);
+  cursor: pointer;
+  transition: transform var(--dur) var(--ease-spring);
+}
+.disc__go {
+  color: #fff;
+  background: linear-gradient(120deg, #2f7cf6, #4fa3ff);
+}
+.disc__no {
+  color: #4a5a72;
+  background: rgba(13, 26, 45, 0.06);
+}
+.disc__go:hover,
+.disc__no:hover {
+  transform: translateY(-1px);
+}
+.disc__x {
+  align-self: flex-start;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: #8291a8;
+  cursor: pointer;
+}
+.desk--full .disc {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .disc,
+  .disc__icon i {
+    animation: none;
+  }
+}

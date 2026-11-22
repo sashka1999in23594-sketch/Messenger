@@ -7,6 +7,7 @@
  * `planned` получает страницу-дорожную карту — только для того, что уже в работе.
  */
 import {
+  CalendarClock,
   Globe,
   Link2,
   FileCode,
@@ -348,7 +349,10 @@ export const sections: NavSection[] = [
     icon: Plus,
     path: '/apps',
     description: 'Каталог сервисов и приложений для Sunnet',
-    children: [{ id: 'apps.catalog', label: 'Каталог', icon: AppsGrid, path: '/apps', keywords: ['магазин', 'добавить приложение', 'telegram', 'whatsapp', 'музыка', 'кино'] }],
+    children: [
+      { id: 'apps.catalog', label: 'Каталог', icon: AppsGrid, path: '/apps', keywords: ['магазин', 'добавить приложение', 'telegram', 'whatsapp', 'музыка', 'кино'] },
+      { id: 'apps.subscriptions', label: 'Подписки', icon: CalendarClock, path: '/apps/subscriptions', keywords: ['оплата', 'списание', 'кинопоиск', 'яндекс плюс', 'wink'] },
+    ],
   },
   {
     id: 'communities',

@@ -21,6 +21,7 @@ import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import { isAppPath, isMac, titleFor } from './apps';
 import { DeskMenu, useDeskMenu } from './DeskMenu';
 import { DeskIcons, cellAt } from './DeskIcons';
+import { DiscoverCard } from './discover';
 import { createItem, uploadToDesk } from './cloud';
 import { arrangeIcons, useDeskPrefs, type SortBy } from './deskPrefs';
 import './cloud.css';
@@ -315,6 +316,7 @@ export function Desktop() {
       >
         {moon ? <MoonScene className="wall wall--moon" still={reduceMotion} landX={0.74} earth={{ x: 0.18, y: 0.2, r: 0.09 }} /> : <Wallpaper kind={wallpaper} />}
         <DeskIcons />
+        <DiscoverCard />
         {empty && <EmptyDesk />}
         <input ref={fileInput} type="file" multiple hidden onChange={(e) => e.target.files && void uploadToDesk([...e.target.files], cellAt(menuAt.current.x, menuAt.current.y))} />
         <div

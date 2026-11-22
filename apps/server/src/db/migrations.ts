@@ -1120,4 +1120,22 @@ CREATE TABLE hosted_servers (
 CREATE INDEX hosted_servers_owner ON hosted_servers(owner_id);
 `,
   },
+  {
+    version: '021_subscriptions',
+    sql: `
+-- Подписки на сторонние сервисы: цена, период, следующий платёж. Управление — на сайте сервиса.
+CREATE TABLE subscriptions (
+  id           TEXT PRIMARY KEY,
+  user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name         TEXT NOT NULL,
+  price_cents  INTEGER NOT NULL,
+  currency     TEXT NOT NULL DEFAULT 'RUB',
+  period       TEXT NOT NULL CHECK (period IN ('week', 'month', 'year')),
+  next_payment TEXT NOT NULL,
+  manage_url   TEXT,
+  created_at   INTEGER NOT NULL
+);
+CREATE INDEX subscriptions_user ON subscriptions(user_id);
+`,
+  },
 ];

@@ -264,3 +264,73 @@
   border-bottom: 1px solid color-mix(in oklab, currentColor 8%, transparent);
   opacity: 0.85;
 }
+
+/* Подписки */
+.subs-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.subs-head h1 {
+  margin: 0;
+  font: 700 var(--fs-2xl) var(--font-display);
+}
+.subs-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+.subs-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border-radius: 20px;
+  background: color-mix(in oklab, currentColor 4%, transparent);
+  animation: apps-in 0.45s var(--ease-spring) both;
+}
+.subs-stats span {
+  font-size: var(--fs-xs);
+  opacity: 0.65;
+}
+.subs-stats b {
+  font: 700 var(--fs-xl) var(--font-display);
+}
+.subs-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+  animation: apps-in 0.35s var(--ease) both;
+}
+.subs-form input,
+.subs-form select {
+  height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  color: inherit;
+  font: inherit;
+  background: color-mix(in oklab, currentColor 6%, transparent);
+}
+.subs-soon {
+  color: #d97706 !important;
+  opacity: 1 !important;
+  font-weight: 600;
+}
+.subs-list .apps-row__open {
+  text-decoration: none;
+}
+.apps-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: var(--space-4);
+}
+/* Подписки — одной колонкой: строке нужен простор для цены, даты и кнопок */
+.subs-list {
+  grid-template-columns: minmax(0, 1fr);
+}

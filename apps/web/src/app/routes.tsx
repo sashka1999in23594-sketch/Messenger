@@ -88,6 +88,7 @@ const FollowListPage = lazyNamed(profile, 'FollowListPage');
 const SpacesHome = lazyNamed(spaces, 'SpacesHome');
 const AppsCatalog = lazyNamed(appsCatalog, 'AppsCatalog');
 const BrowserPage = lazyNamed(() => import('../features/browser'), 'BrowserPage');
+const PaidSubscriptionsPage = lazyNamed(() => import('../features/apps/Subscriptions'), 'SubscriptionsPage');
 const serversFeature = () => import('../features/servers');
 const ServersHome = lazyNamed(serversFeature, 'ServersHome');
 const ServerWizard = lazyNamed(serversFeature, 'ServerWizard');
@@ -276,6 +277,7 @@ export function AppRoutes({ layout }: { layout?: ReactElement } = {}) {
         {/* Каталог приложений (кнопка «+» в доке) */}
         <Route path="apps" element={<AppsCatalog />} />
         <Route path="browser" element={<BrowserPage />} />
+        <Route path="apps/subscriptions" element={<PaidSubscriptionsPage />} />
         {/* Студия: проекты, Академия, документация; опубликованные приложения */}
         <Route path="studio" element={<StudioHome />} />
         <Route path="studio/academy" element={<AcademyPage />} />

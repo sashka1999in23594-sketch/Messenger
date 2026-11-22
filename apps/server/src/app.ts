@@ -31,6 +31,7 @@ import { studioRoutes } from './modules/studio/studio.routes.js';
 import { bridgeRoutes } from './modules/bridge/bridge.routes.js';
 import { serversRoutes } from './modules/servers/servers.routes.js';
 import { browserRoutes } from './modules/browser/browser.routes.js';
+import { subscriptionsRoutes } from './modules/subscriptions/subscriptions.routes.js';
 import { postsRoutes } from './modules/posts/posts.routes.js';
 import { RealtimeHub } from './modules/realtime/hub.js';
 import { wsRoutes } from './modules/realtime/ws.routes.js';
@@ -100,6 +101,7 @@ export async function buildApp(config: Config, opts: { db?: Db; storage?: S3Stor
       await api.register(bridgeRoutes);
       await api.register(serversRoutes);
       await api.register(browserRoutes);
+      await api.register(subscriptionsRoutes);
       await api.register(wsRoutes);
     },
     { prefix: API_PREFIX },

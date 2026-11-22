@@ -118,6 +118,14 @@ export function AppsCatalog() {
           </label>
         </header>
 
+        <div className="apps-links">
+          <button type="button" className="apps-row__open" onClick={() => void openPath('/apps/subscriptions')}>
+            Мои подписки
+          </button>
+          <button type="button" className="apps-row__open" onClick={() => void openPath('/studio')}>
+            Создать своё приложение
+          </button>
+        </div>
         <nav className="apps-cats" aria-label="Категории">
           {[{ id: 'all', label: 'Все' }, ...CATEGORIES].map((c) => (
             <button key={c.id} type="button" className={`apps-cat ${cat === c.id ? 'is-on' : ''}`} onClick={() => setCat(c.id)}>
